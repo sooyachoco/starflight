@@ -89,6 +89,12 @@
   #toast.show { animation: pop 1.3s ease-out forwards; }
   @keyframes pop { 0% { opacity: 0; transform: translate(-50%, -30%); } 12% { opacity: 1; transform: translate(-50%, -50%); }
     75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -70%); } }
+  #warpfx { position: absolute; left: 0; right: 0; top: 0; height: var(--win-h); opacity: 0; mix-blend-mode: screen;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(190, 225, 255, .45) 0%, rgba(120, 180, 255, .12) 9%, transparent 22%),
+      radial-gradient(ellipse 75% 85% at 50% 50%, transparent 45%, rgba(40, 120, 255, .28) 75%, rgba(130, 70, 255, .55) 100%); }
+  #warpflash { position: absolute; left: 0; right: 0; top: 0; height: var(--win-h); opacity: 0;
+    background: radial-gradient(circle at 50% 50%, #ffffff 0%, #9fd0ff 30%, rgba(80, 120, 255, .4) 60%, transparent 85%); }
   #flash { position: absolute; inset: 0; background: radial-gradient(transparent 45%, #ff2040aa); opacity: 0; }
 
   /* 대시보드 */
@@ -197,6 +203,8 @@
 </head>
 <body>
 <div id="hud">
+  <div id="warpfx"></div>
+  <div id="warpflash"></div>
   <svg id="frame" viewBox="0 0 1000 1000" preserveAspectRatio="none">
     <defs>
       <linearGradient id="strutGrad" x1="0" y1="0" x2="1" y2="0">
@@ -303,7 +311,7 @@
       <kbd>W</kbd><kbd>S</kbd><span>THRUST</span><i></i>
       <kbd>A</kbd><kbd>D</kbd><span>ROLL</span><i></i>
       <kbd>Space</kbd><span>FIRE</span><i></i>
-      <kbd>Shift</kbd><span>BOOST</span><i></i>
+      <kbd>Shift</kbd><span>WARP</span><i></i>
       <kbd>M</kbd><span>MAP</span>
     </div>
   </div>
@@ -780,12 +788,12 @@ function updateBursts(dt) {
 // 게임 상태
 // =====================================================================
 const MAX_SPEED = 32;      // 1 unit = 10 m → 320 m/s
-const BOOST = 30;
+const BOOST = 70;          // 워프 시 추가 속도 (+700 m/s)
 const DOCK_SPEED = 12;     // 120 m/s
 const NAV_RANGES = [300, 800, 2000];
 const state = {
   mode: 'title', orbit: 7, score: 0, beaconsPassed: 0, beaconsMissed: 0,
-  hull: 100, shield: 100, fuel: 100, throttle: 0.33, speed: 10, boosting: false,
+  hull: 100, shield: 100, fuel: 100, throttle: 0.33, speed: 10, boosting: false, warp: 0,
   shake: 0, hitT: 0, sinceHit: 9, missionT: 0, navIdx: 0, invert: false, prox: false,
   heat: 0, overheat: false, kills: 0, spawnT: 7, sound: true, combat: false
 };
@@ -957,8 +965,13 @@ function updateShip(dt, controlled) {
   ship.rotateY(rate.y * dt);
   ship.rotateZ(rate.r * dt);
 
-  const target = state.throttle * MAX_SPEED + (state.boosting ? BOOST : 0);
-  state.speed += (target - state.speed) * (1 - Math.exp(-dt * 0.9));
+  const prevWarp = state.warp;
+  state.warp = state.boosting ? Math.min(1, state.warp + dt * 1.4) : Math.max(0, state.warp - dt * 1.8);
+  if (prevWarp < 0.04 && state.warp >= 0.04) warpEngage();
+  if (prevWarp > 0.5 && state.warp <= 0.5 && !state.boosting) warpDisengage();
+  const w = state.warp * state.warp * (3 - 2 * state.warp);
+  const target = state.throttle * MAX_SPEED + BOOST * w;
+  state.speed += (target - state.speed) * (1 - Math.exp(-dt * (state.boosting ? 2.2 : 1.2)));
   shipBasis();
   ship.position.addScaledVector(fwd, state.speed * dt);
 }
@@ -1275,6 +1288,25 @@ function sfx(type, dist = 0) {
   if (!actx || !state.sound) return;
   const t = actx.currentTime, g = actx.createGain(), fall = clamp(1 - dist / 700, 0.08, 1);
   g.connect(actx.destination);
+  if (type === 'warpIn' || type === 'warpOut') {
+    const up = type === 'warpIn', len = up ? 1.1 : 0.7;
+    const src = actx.createBufferSource(), bp = actx.createBiquadFilter();
+    src.buffer = noise(1);
+    bp.type = 'bandpass'; bp.Q.value = 2.5;
+    bp.frequency.setValueAtTime(up ? 180 : 2600, t);
+    bp.frequency.exponentialRampToValueAtTime(up ? 3200 : 150, t + len);
+    g.gain.setValueAtTime(up ? 0.5 : 0.35, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    src.connect(bp); bp.connect(g); src.start(t); src.stop(t + len);
+    const o = actx.createOscillator(), og = actx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(up ? 70 : 260, t);
+    o.frequency.exponentialRampToValueAtTime(up ? 320 : 50, t + len);
+    og.gain.setValueAtTime(0.12, t);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(og); og.connect(actx.destination); o.start(t); o.stop(t + len);
+    return;
+  }
   if (type === 'laser' || type === 'elaser' || type === 'alarm') {
     const o = actx.createOscillator();
     o.type = type === 'alarm' ? 'sawtooth' : 'square';
@@ -1312,12 +1344,86 @@ function updateCamera(dt) {
     camera.position.add(randomDir().multiplyScalar(state.shake * 0.5));
     state.shake = Math.max(0, state.shake - dt * 1.8);
   }
-  const fov = 62 + (state.boosting ? 10 : 0);
+  const w = state.warp;
+  if (w > 0.01) camera.position.add(randomDir().multiplyScalar(w * 0.12));
+  const fov = 62 + w * w * 30;
   if (Math.abs(camera.fov - fov) > 0.05) {
-    camera.fov += (fov - camera.fov) * (1 - Math.exp(-dt * 4));
+    camera.fov += (fov - camera.fov) * (1 - Math.exp(-dt * 6));
     camera.updateProjectionMatrix();
   }
+  updateWarpFx(dt);
 }
+
+// =====================================================================
+// 워프 연출 — 별빛 스트릭, 화면 효과, 사운드
+// =====================================================================
+scene.add(camera);
+const STREAKS = 600, STREAK_DEPTH = 420;
+const streakPos = new Float32Array(STREAKS * 6), streakCol = new Float32Array(STREAKS * 6);
+const streakXY = [];
+function resetStreak(i, z) {
+  const a = Math.random() * Math.PI * 2, r = 5 + Math.pow(Math.random(), 0.7) * 70;
+  streakXY[i] = [Math.cos(a) * r, Math.sin(a) * r, z];
+  const c = new THREE.Color().setHSL(rand(0.55, 0.72), rand(0.5, 1), rand(0.7, 0.92));
+  streakCol.set([c.r, c.g, c.b, c.r * 0.05, c.g * 0.1, c.b * 0.35], i * 6);
+}
+for (let i = 0; i < STREAKS; i++) resetStreak(i, -rand(10, STREAK_DEPTH));
+const streakGeo = new THREE.BufferGeometry();
+streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPos, 3));
+streakGeo.setAttribute('color', new THREE.BufferAttribute(streakCol, 3));
+const streakMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0,
+  blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+const streaks = new THREE.LineSegments(streakGeo, streakMat);
+streaks.frustumCulled = false;
+camera.add(streaks);
+const dustMat = scene.children.find(o => o.isPoints && o.geometry === dustGeo).material;
+
+function updateWarpFx(dt) {
+  if (state.mode === 'docked' || state.mode === 'over') state.warp = Math.max(0, state.warp - dt * 1.8);
+  const w = state.warp;
+  streaks.visible = w > 0.01;
+  streakMat.opacity = Math.min(1, w * 1.3);
+  dustMat.opacity = 0.75 * (1 - w);
+  $('warpfx').style.opacity = (w * w).toFixed(3);
+  if (streaks.visible) {
+    const v = (state.speed + w * 600) * dt, len = 1 + w * w * 110;
+    for (let i = 0; i < STREAKS; i++) {
+      const s = streakXY[i];
+      s[2] += v;
+      if (s[2] > -2) resetStreak(i, s[2] - STREAK_DEPTH);
+      streakPos.set([s[0], s[1], s[2], s[0], s[1], s[2] - len], i * 6);
+    }
+    streakGeo.attributes.position.needsUpdate = true;
+    streakGeo.attributes.color.needsUpdate = true;
+  }
+  // 엔진 험 (워프 중 지속음)
+  if (warpHum) {
+    const t = actx.currentTime;
+    warpHum.gain.gain.setTargetAtTime(state.sound && state.mode === 'flying' ? w * 0.07 : 0, t, 0.1);
+    warpHum.osc.frequency.setTargetAtTime(45 + w * 55, t, 0.15);
+    warpHum.filter.frequency.setTargetAtTime(200 + w * 900, t, 0.15);
+  }
+}
+let warpHum = null;
+function ensureHum() {
+  if (warpHum || !actx) return;
+  const osc = actx.createOscillator(), filter = actx.createBiquadFilter(), gain = actx.createGain();
+  osc.type = 'sawtooth'; osc.frequency.value = 45;
+  filter.type = 'lowpass'; filter.frequency.value = 200;
+  gain.gain.value = 0;
+  osc.connect(filter); filter.connect(gain); gain.connect(actx.destination);
+  osc.start();
+  warpHum = { osc, filter, gain };
+}
+function warpEngage() {
+  const f = $('warpflash');
+  f.style.transition = 'none'; f.style.opacity = 0.85;
+  requestAnimationFrame(() => { f.style.transition = 'opacity .7s ease-out'; f.style.opacity = 0; });
+  state.shake = Math.max(state.shake, 0.5);
+  ensureHum();
+  sfx('warpIn');
+}
+function warpDisengage() { sfx('warpOut'); }
 
 // =====================================================================
 // HUD
@@ -1339,6 +1445,7 @@ function attitude() {
 function statusInfo() {
   if (state.mode !== 'flying') return ['STANDBY', '#8ea3c6'];
   if (state.hitT > 0) return ['DAMAGE', '#ff5a5a'];
+  if (state.warp > 0.3) return ['WARP', '#a98bff'];
   if (state.prox) return ['PROXIMITY', '#ffb23e'];
   if (enemies.some(e => e.g.position.distanceTo(ship.position) < 600)) return ['COMBAT', '#ff5a5a'];
   if (state.nearDock) return ['DOCKING', '#ffb23e'];
@@ -1605,7 +1712,7 @@ function updateHud() {
   let best = 0;
   lvls.forEach((l, i) => { if (Math.abs(t - l) < Math.abs(t - lvls[best])) best = i; });
   modeEls.forEach((el, i) => el.classList.toggle('on', i === best));
-  $('modeLbl').textContent = state.mode === 'docked' ? 'DOCKED' : state.boosting ? 'BOOST' : state.nearDock ? 'APPROACH' : 'FREE FLIGHT';
+  $('modeLbl').textContent = state.mode === 'docked' ? 'DOCKED' : state.warp > 0.3 ? 'WARP DRIVE' : state.nearDock ? 'APPROACH' : 'FREE FLIGHT';
   const done = state.beaconsPassed + state.beaconsMissed;
   $('o1n').textContent = `${state.beaconsPassed}/${BEACON_N}`;
   $('o1').classList.toggle('done', done >= BEACON_N);
@@ -1670,7 +1777,7 @@ showCard(`<h1>STAR FLIGHT</h1><h2>ORBIT 07 · 궤도 비행 시뮬레이터</h2>
     <span><kbd>1</kbd>–<kbd>4</kbd></span><span>엔진 OFF · IDLE · CRUISE · FULL</span>
     <span><kbd>A</kbd><kbd>D</kbd></span><span>롤</span>
     <span><kbd>Space</kbd></span><span>레이저 발사 (누르고 있으면 연사, 과열 주의)</span>
-    <span><kbd>Shift</kbd></span><span>부스트 (연료 소모 큼)</span>
+    <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
   </div>
   <div class="go">ENTER — 출격</div>`);
