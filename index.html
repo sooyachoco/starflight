@@ -1181,7 +1181,7 @@ const state = {
   shake: 0, hitT: 0, sinceHit: 9, missionT: 0, navIdx: 0, invert: false, prox: false,
   heat: 0, overheat: false, kills: 0, spawnT: 7, sound: true, combat: false,
   mission: ['oncall', 'expansion'].includes(new URLSearchParams(location.search).get('mission'))
-    ? new URLSearchParams(location.search).get('mission') : 'orbit', budget: 100
+    ? new URLSearchParams(location.search).get('mission') : 'expansion', budget: 100
 };
 const rate = { p: 0, y: 0, r: 0 };
 
@@ -1503,7 +1503,7 @@ $('overlay').addEventListener('click', e => {
   if (act === 'oc-go') { ocBegin(); return; }
   if (act && act.startsWith('act-')) { chooseAction(+act.slice(4)); return; }
   if (act === 'res-retry') { startGame(); return; }
-  if (act === 'res-orbit') { state.mission = 'orbit'; openSelect(); return; }
+  if (act === 'res-orbit') { state.mission = 'expansion'; openSelect(); return; }
   if (act === 'close') { if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
   if ($('overlay').dataset.settings) return;
   primaryAction();
@@ -2610,7 +2610,7 @@ function ocFinish() {
     <div class="stats"><div>MTTR<b>${mttr.toFixed(1)}분</b></div><div>지킨 요청<b>${saved.toLocaleString('en-US')}</b></div>
       <div>재시도 성공<b>${(oc.rescued * OC_SAMPLE).toLocaleString('en-US')}</b></div><div>BUDGET<b>${Math.round(state.budget)}%</b></div></div>
     <p>단서 ${oc.clues}/3 · 잘못된 조치 ${oc.wrong}회 · 롤백 시각 ${ocHHMMSS(oc.fixT).slice(0, 5)}</p>
-    <button data-act="res-retry">다시 도전</button><button data-act="res-orbit">궤도 비행 모드</button>
+    <button data-act="res-retry">다시 도전</button><button data-act="res-orbit">EXPANSION 모드</button>
     <br><a class="lvlink" href="logverse.html">LOGVERSE에서 하루 전체 로그 보기 ↗</a>`, true);
   requestAnimationFrame(() => drawResultChart(base, act, rateAt));
   sfx('warpOut');
@@ -4152,27 +4152,30 @@ setupMission();
 state.throttle = 0.33;
 function showTitle() {
   state.mode = 'title';
-  showCard(`<h1>STAR FLIGHT</h1><h2>ORBIT 07 · 궤도 비행 시뮬레이터</h2>
-  <p>항법 비컨을 따라 비행해 우주 정거장의 도킹 포트에 접근하세요.<br>
-  도킹하려면 <b>120 m/s 이하</b>로 감속해야 합니다.<br>
-  <b style="color:#ff6a78">적 전투기</b>가 나타나면 레이저로 격추하세요. 빨간 원(리드 표시)을 조준하면 명중시키기 쉽습니다.</p>
-  <p class="touch-only">왼쪽 <b>스틱</b>으로 조종 · <b>FIRE</b> 레이저 · <b>WARP</b> 워프 · <b>↺ ↻</b> 롤 · <b>+ −</b> 추력<br>
+  if (state.mission !== 'oncall') state.mission = 'expansion';   // 타이틀에서는 EXPANSION만 (ON-CALL은 Logverse 링크로만 진입)
+  const oncall = state.mission === 'oncall';
+  showCard(`<h1>STAR FLIGHT</h1><h2>${oncall ? 'ON-CALL · 결제 API 장애 대응' : 'EXPANSION · 로그로 팽창하는 넥슨 우주'}</h2>
+  ${oncall ? `<p>Logverse에서 연결된 <b>ON-CALL 미션</b>으로 출격합니다.<br>로그 단서를 모아 결제 API 장애의 원인을 찾고 복구하세요.</p>`
+  : `<p><b>넥슨닷컴</b>을 중심 항성으로 <b>메이플스토리 · FC온라인 · 카트라이더</b> 은하가 떠 있는 우주입니다.<br>
+  웹 로그가 쌓일수록 <b>우주가 팽창</b>해 은하가 멀어지고, 새 페이지는 <b>새 행성</b>으로 태어납니다.<br>
+  미확인 엔드포인트를 관측하고, 시대(ERA)가 열릴 때마다 터지는 사건을 해결하세요.</p>
+  <div class="eras">
+    <div><b>ERA 1</b> 인플레이션 · 오픈런 블랙홀 — 대기열 위성 배치</div>
+    <div><b>ERA 2</b> 항성 형성 · 봇 해적단 — 정상 유저는 쏘지 않는 식별 사격</div>
+    <div><b>ERA 3</b> 은하 형성 · DDoS 군체와 무차별 대입 침투조</div>
+  </div>`}
+  <p class="touch-only">왼쪽 <b>스틱</b>으로 조종 · <b>FIRE</b> 레이저 · <b>WARP</b> 워프 · <b>FIELD</b> 레이트 리밋 필드 · <b>↺ ↻</b> 롤 · <b>+ −</b> 추력<br>
   엔진 레버를 위아래로 끌어도 추력이 바뀌고, NAV 화면을 탭하면 범위가 바뀝니다.</p>
   <div class="kgrid key-only">
     <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span><span>기수 조종 (피치 / 요)</span>
-    <span><kbd>W</kbd><kbd>S</kbd></span><span>추력 증가 / 감소</span>
-    <span><kbd>1</kbd>–<kbd>4</kbd></span><span>엔진 OFF · IDLE · CRUISE · FULL</span>
+    <span><kbd>W</kbd><kbd>S</kbd> · <kbd>1</kbd>–<kbd>4</kbd></span><span>추력 증가 / 감소 · 엔진 OFF · IDLE · CRUISE · FULL</span>
     <span><kbd>A</kbd><kbd>D</kbd></span><span>롤</span>
     <span><kbd>Space</kbd></span><span>레이저 발사 (누르고 있으면 연사, 과열 주의)</span>
     <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
-    <span><kbd>Q</kbd></span><span>레이트 리밋 필드 (EXPANSION ERA 3부터)</span>
+    ${oncall ? '' : '<span><kbd>Q</kbd></span><span>레이트 리밋 필드 (ERA 3부터 사용 가능)</span>'}
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
   </div>
-  <div class="missions">
-    <button class="mbtn${state.mission === 'orbit' ? ' on' : ''}" data-act="m-orbit"><b>ORBIT</b><span>궤도 비행 · 비컨 · 도킹 · 전투</span></button>
-    <button class="mbtn${state.mission === 'oncall' ? ' on' : ''}" data-act="m-oncall"><b>ON-CALL</b><span>관제 파일럿 · 결제 API 장애 대응</span></button>
-    <button class="mbtn${state.mission === 'expansion' ? ' on' : ''}" data-act="m-expansion"><i>NEW</i><b>EXPANSION</b><span>로그로 팽창하는 넥슨 우주</span></button>
-  </div>
+  <p style="color:#6f82a3;font-size:12px">상단 퀘스트 안내와 레이더의 목표 지점을 따라가세요.${oncall ? '' : ' · 모든 수치는 가상 데이터입니다.'}</p>
   <div class="go"><span class="key-only">ENTER</span><span class="touch-only-i">TAP</span> — 조종사 · 기체 선택</div>`);
 }
 showTitle();
