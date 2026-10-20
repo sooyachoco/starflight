@@ -342,6 +342,16 @@
   #bWarp { right: calc(max(18px, env(safe-area-inset-right)) + 96px); top: calc(var(--win-h) - 80px);
     color: #e6dcff; border-color: rgba(169, 139, 255, .75); background: rgba(34, 18, 70, .5); }
   #bWarp.on { background: rgba(169, 139, 255, .5); }
+  #bField { display: none; right: calc(max(18px, env(safe-area-inset-right)) + 162px); top: calc(var(--win-h) - 72px);
+    color: #d6f0ff; border-color: rgba(127, 208, 255, .75); font-size: 12px; }
+  body.touch.field-on #bField { display: grid; }
+  .fieldhint { display: none !important; }
+  body.field-on .fieldhint { display: inline-grid !important; }
+  body.field-on span.fieldhint, body.field-on i.fieldhint { display: inline-block !important; }
+  #fieldRow, #fieldBarW { display: none; }
+  body.field-on #fieldRow { display: flex; }
+  body.field-on #fieldBarW { display: block; }
+  #fieldBar { background: linear-gradient(90deg, #4aa8ff, #7fd0ff); }
   #bRollL { right: calc(max(18px, env(safe-area-inset-right)) + 96px); top: calc(var(--win-h) - 146px); width: 48px; height: 48px; }
   #bRollR { right: calc(max(18px, env(safe-area-inset-right)) + 20px); top: calc(var(--win-h) - 162px); width: 48px; height: 48px; }
   #bThrUp, #bThrDn { left: calc(max(18px, env(safe-area-inset-left)) + var(--stk) + 16px); width: 46px; height: 46px; font-size: 22px; }
@@ -404,6 +414,7 @@
     .tb { width: 48px; height: 48px; }
     #bFire { width: 70px; height: 70px; top: calc(var(--win-h) - 86px); }
     #bWarp { top: calc(var(--win-h) - 66px); right: calc(max(18px, env(safe-area-inset-right)) + 82px); }
+    #bField { top: calc(var(--win-h) - 60px); right: calc(max(18px, env(safe-area-inset-right)) + 140px); }
     #bRollL { top: calc(var(--win-h) - 122px); right: calc(max(18px, env(safe-area-inset-right)) + 82px); width: 42px; height: 42px; }
     #bRollR { top: calc(var(--win-h) - 134px); width: 42px; height: 42px; }
     #bThrUp, #bThrDn { width: 42px; height: 42px; }
@@ -489,7 +500,7 @@
   .card .eras { text-align: left; font-size: 13px; line-height: 1.8; color: var(--dim); margin: 10px auto; width: max-content; max-width: 100%; }
   .card .eras b { color: #e9f1ff; }
   .card .eras .lock { opacity: .55; }
-  @media (max-height: 520px) { .exbig b { font-size: 20px; } .exnext, .exnote, .exbar, #obj > .exrow { display: none; } #exMis .mt { padding-top: 4px; } }
+  @media (max-height: 520px) { .exbig b { font-size: 20px; } .exnext, .exnote, .exbar, #obj > .exrow { display: none; } #exMis .mt, #exMis .exrow ~ .exrow { display: none; } #exMis { margin-top: 2px; } }
 </style>
 </head>
 <body>
@@ -537,6 +548,8 @@
   <div id="wpn" class="glass">
     <div class="row"><span class="lbl">LASER</span><span id="wpnS">READY</span></div>
     <div class="hbar"><i id="heatBar"></i></div>
+    <div class="row" id="fieldRow" style="margin-top:8px"><span class="lbl">FIELD</span><span id="fieldS">READY</span></div>
+    <div class="hbar" id="fieldBarW"><i id="fieldBar"></i></div>
   </div>
   <div id="btns">
     <button class="glass" id="bPause" title="일시정지 (P)">
@@ -585,6 +598,7 @@
     <button class="tc tb" id="bRollR" data-k="KeyD" aria-label="오른쪽 롤">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 2.5v5h-5"/></svg></button>
     <button class="tc tb" id="bWarp" data-k="ShiftLeft">WARP</button>
+    <button class="tc tb" id="bField" data-k="KeyQ">FIELD</button>
     <button class="tc tb" id="bFire" data-k="Space">FIRE</button>
   </div>
   <div id="toast"></div>
@@ -620,6 +634,7 @@
       <kbd>A</kbd><kbd>D</kbd><span>ROLL</span><i></i>
       <kbd>Space</kbd><span>FIRE</span><i></i>
       <kbd>Shift</kbd><span>WARP</span><i></i>
+      <kbd class="fieldhint">Q</kbd><span class="fieldhint">FIELD</span><i class="fieldhint"></i>
       <kbd>M</kbd><span>MAP</span>
     </div>
   </div>
@@ -1779,6 +1794,12 @@ function updateBolts(dt) {
       if (!hit && state.mission !== 'oncall') for (const a of asteroids) {
         if (segDist(_p0, p1, a.mesh.position) < a.r * 0.9) { hit = true; hitAsteroid(a, p1); break; }
       }
+      if (!hit && exWorld.visible) for (let j = drones.length - 1; j >= 0; j--) {
+        if (segDist(_p0, p1, drones[j].p) < 3.6) { hit = true; exKillDrone(j); break; }
+      }
+      if (!hit && exWorld.visible) for (let j = exStealth.length - 1; j >= 0; j--) {
+        if (segDist(_p0, p1, exStealth[j].g.position) < ENEMY_HIT_R) { hit = true; exHitStealth(j, 25); break; }
+      }
       if (!hit && exWorld.visible) for (let j = exConvoys.length - 1; j >= 0; j--) {
         if (segDist(_p0, p1, exConvoys[j].g.position) < 6) { hit = true; exHitConvoy(j); break; }
       }
@@ -2248,6 +2269,7 @@ function applyWorld(m) {
   asteroids.forEach(a => { a.mesh.visible = m === 'orbit'; });
   $('obj').innerHTML = oc ? OBJ_ONCALL_HTML : exm ? OBJ_EX_HTML : OBJ_ORBIT_HTML;
   $('obj').dataset.world = m;
+  if (!exm) document.body.classList.remove('field-on');
   $('glHull').textContent = oc ? 'BUDGET' : 'HULL';
   $('glShd').textContent = oc ? 'SUCCESS' : 'SHIELD';
 }
@@ -2574,7 +2596,7 @@ const ERAS = [
   { name: '특이점', at: 0 },
   { name: '인플레이션', at: 2e8 },
   { name: '항성 형성', at: 8e8 },
-  { name: '은하 형성', at: 2e9 },
+  { name: '은하 형성', at: 1.5e9 },
 ];
 const EX_GAMES = [
   { id: 'nexon', name: 'NEXON.COM', ko: '넥슨닷컴', col: 0xffc861, hub: true, R: 42, daily: 30e6,
@@ -2803,16 +2825,16 @@ function exSpawnPirate() {
   enemies.push({ g, el, hp: 50, speed: rand(20, 25), fireCd: rand(1, 2.5), vel: new THREE.Vector3(), weave: rand(0, 6) });
   ex.pSpawned++;
 }
-function exSpawnConvoy() {
+function exSpawnConvoy(src, target) {
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 9, 12), convoyMat);
   body.rotation.x = Math.PI / 2; g.add(body);
   const lamp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0x3ee6c1, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
   lamp.scale.setScalar(16); lamp.position.z = 5; g.add(lamp);
-  const src = exGal[0].grp.position.clone().lerp(exGal[2].grp.position, .25).add(randomDir().multiplyScalar(40));
+  src = src || exGal[0].grp.position.clone().lerp(exGal[2].grp.position, .25).add(randomDir().multiplyScalar(40));
   g.position.copy(src);
   exWorld.add(g);
-  exConvoys.push({ g, speed: rand(16, 20) });
+  exConvoys.push({ g, speed: rand(16, 20), target: target || exMarketPlanet() });
 }
 function exRemovePirate(j) { const e = enemies[j]; scene.remove(e.g); e.el.remove(); enemies.splice(j, 1); }
 function exHitConvoy(j) {
@@ -2823,7 +2845,20 @@ function exHitConvoy(j) {
   flash(); sfx('hit');
   toast('정상 유저 차단! (오탐)', '#ff6a6a');
 }
+function exUpdateConvoys(dt) {
+  for (let j = exConvoys.length - 1; j >= 0; j--) {
+    const c = exConvoys[j], p = c.g.position, tp = c.target.world;
+    tmpV.copy(tp).sub(p);
+    const d = tmpV.length();
+    c.g.lookAt(tp);
+    p.addScaledVector(tmpV.normalize(), c.speed * dt);
+    if (d < c.target.R + 8) { exWorld.remove(c.g); exConvoys.splice(j, 1); ex.served++; }
+  }
+  return false;
+}
 function exClearShips() {
+  exClearDrones();
+  exClearStealth();
   while (enemies.length) exRemovePirate(0);
   while (exConvoys.length) { exWorld.remove(exConvoys[0].g); exConvoys.splice(0, 1); }
   bolts.forEach(b => scene.remove(b.mesh)); bolts.length = 0;
@@ -2844,7 +2879,8 @@ const OBJ_EX_HTML = `
 function setupExpansion() {
   applyWorld('expansion');
   Object.assign(ex, { day: 0, cum: 0, a: 1, era: 0, mission: null, crystals: 0, bhNear: false, q: 0, qMax: 0, sats: 0,
-    newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0 });
+    newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0, phase: 1, fieldOn: false, field: 100, pulses: 0, ddosStats: null });
+  exPulse.t = -1; exPulse.mesh.visible = exPulse.ring.visible = false;
   // 이후 탄생한 행성 제거, 발견 상태 초기화
   for (let i = exPlanets.length - 1; i >= 0; i--) {
     const pl = exPlanets[i];
@@ -2895,7 +2931,21 @@ function exBegin() {
 }
 function exEraCard(n) {
   state.mode = 'era';
-  const body = n === 1 ? `<h1>ERA 1</h1><h2>인플레이션 · 누적 로그 2억 돌파</h2>
+  const body = n === 3 && ex.phase === 2 ? `<h1>PHASE 2</h1><h2>연막 뒤의 침투조</h2>
+      <p>DDoS는 <b>연막</b>이었습니다. 넥슨닷컴 <b>/login</b> 주변에 보이지 않는 <b style="color:#ff6a78">침투조 6척</b>이 숨어 계정 대입을 시도하고 있습니다.</p>
+      <ol class="brief">
+        <li>침투조는 평소엔 거의 보이지 않습니다. <b style="color:#ffb23e">로그인 실패(401) 섬광</b>이 터지는 순간 1.3초 동안 드러납니다.</li>
+        <li><b>필드(Q)</b>를 터뜨리면 범위 안의 침투조가 3초 동안 드러나고 피해를 입습니다.</li>
+        <li><b>탈취 위험</b>이 100%가 되기 전에 6척을 모두 격추하세요.</li>
+      </ol>`
+    : n === 3 ? `<h1>ERA 3</h1><h2>은하 형성 · 누적 로그 15억 돌파</h2>
+      <p>넥슨닷컴 메인(<b>/</b>)으로 정체불명의 트래픽 군체가 몰려옵니다. <b style="color:#ff8a5a">DDoS 공격</b>입니다.</p>
+      <ol class="brief">
+        <li>새 무기 <b>레이트 리밋 필드</b> <span class="key-only">(Q)</span><span class="touch-only-i">(FIELD 버튼)</span>: 주변의 드론을 한꺼번에 날립니다. 8초마다 충전됩니다.</li>
+        <li>필드는 <b style="color:#3ee6c1">정상 유저 호송선</b>도 휘말리게 합니다. 호송선이 빠진 틈을 노리세요.</li>
+        <li><b>45초</b> 동안 서버 부하가 100%를 넘지 않게 버티세요. 드론은 레이저로도 떨어집니다.</li>
+      </ol>`
+    : n === 1 ? `<h1>ERA 1</h1><h2>인플레이션 · 누적 로그 2억 돌파</h2>
       <p><b>메이플스토리</b> 대규모 업데이트가 열리자 접속이 폭주합니다.<br>로그인 대기열이 감당하지 못하고 <b style="color:#ffb23e">블랙홀</b>로 붕괴하고 있습니다.</p>
       <ol class="brief">
         <li>메이플스토리 은하의 블랙홀로 가서 주변 <b>링 3개</b>를 통과해 <b>대기열 위성</b>을 배치하세요.</li>
@@ -2932,6 +2982,10 @@ function exStartMission() {
       buildBeacon(c.clone().add(new THREE.Vector3(Math.cos(a) * 140, (k - 1) * 28, Math.sin(a) * 140)), new THREE.Vector3(-Math.sin(a), 0, Math.cos(a)));
     }
     toast('ERA 1 · 오픈런 블랙홀 대응', '#ffb23e');
+  } else if (ex.era === 3 && ex.phase === 2) {
+    exStartStealth();
+  } else if (ex.era === 3) {
+    exStartDdos();
   } else if (ex.era === 2) {
     ex.mission = 'bots';
     exClearShips();
@@ -2953,21 +3007,33 @@ function exMissionDone() {
   const m = ex.mission;
   ex.mission = null;
   state.mode = 'exdone';
-  const reward = m === 'bh' ? 150 : 200;
+  const reward = m === 'bh' ? 150 : m === 'ddos' ? 120 : 200;
   ex.crystals += reward;
   if (m === 'bh') {
     showCard(`<h1>STABILIZED</h1><h2>ERA 1 완료 · 로그인 대기열 안정화</h2>
       <div class="stats"><div>최대 대기열<b>${exFmtBig(ex.qMax)}명</b></div><div>소요<b>${ex.mT.toFixed(0)}초</b></div><div>데이터 결정<b>+${reward}</b></div></div>
       <p>블랙홀이 증발하며 메이플스토리 은하가 다시 밝아집니다. 우주 팽창이 재개됩니다.</p>
       <button data-act="ex-cont">계속 관측</button>`, true);
-  } else {
+  } else if (m === 'bots') {
     const kills = state.kills - ex.pk0;
-    showCard(`<h1>PROTOTYPE COMPLETE</h1><h2>ERA 2 완료 · 이적시장 방어 성공</h2>
-      <div class="stats"><div>격추<b>${kills}</b></div><div>침투 허용<b>${ex.reached}</b></div><div>오탐<b>${ex.falsePos}</b></div>
-        <div>누적 로그<b>${exFmtBig(ex.cum)}</b></div><div>우주 규모<b>a ${ex.a.toFixed(2)}</b></div></div>
+    showCard(`<h1>DEFENDED</h1><h2>ERA 2 완료 · 이적시장 방어 성공</h2>
+      <div class="stats"><div>격추<b>${kills}</b></div><div>침투 허용<b>${ex.reached}</b></div><div>오탐<b>${ex.falsePos}</b></div><div>데이터 결정<b>+${reward}</b></div></div>
+      <p>다음 시대 <b>ERA 3 은하 형성</b>은 누적 로그 15억에서 열립니다.</p>
+      <button data-act="ex-cont">계속 관측</button>`, true);
+  } else if (m === 'ddos') {
+    ex.phase = 2;
+    ex.ddosStats = { kills: ex.drKills, pulses: ex.pulses, maxLoad: ex.loadMax, fp: ex.falsePos };
+    exEraCard(3);
+    return;
+  } else {
+    const d = ex.ddosStats || {};
+    showCard(`<h1>PROTOTYPE COMPLETE</h1><h2>ERA 3 완료 · DDoS와 침투조 동시 방어</h2>
+      <div class="stats"><div>드론 격추<b>${d.kills || 0}</b></div><div>최대 부하<b>${Math.round(d.maxLoad || 0)}%</b></div>
+        <div>침투조 격추<b>${ex.stKills}/6</b></div><div>탈취 위험<b>${Math.round(ex.risk)}%</b></div>
+        <div>오탐<b>${(d.fp || 0) + ex.falsePos}</b></div><div>필드 사용<b>${(d.pulses || 0) + ex.pulses}</b></div></div>
       <div class="eras">
         <div><b>ERA 0</b> 특이점 ✓</div><div><b>ERA 1</b> 인플레이션 · 오픈런 블랙홀 ✓</div><div><b>ERA 2</b> 항성 형성 · 봇 해적단 ✓</div>
-        <div class="lock">ERA 3 은하 형성 · 넥슨닷컴 쿠폰 중력파 🔒</div><div class="lock">ERA 4 초신성 · 결제 장애 연쇄 🔒</div>
+        <div><b>ERA 3</b> 은하 형성 · DDoS 군체 + 무차별 대입 침투조 ✓</div><div class="lock">ERA 4 초신성 · 결제 장애 연쇄 🔒</div>
         <div class="lock">ERA 5 은하단 · 해외 광속 지연 🔒</div><div class="lock">ERA 6 가속 팽창 · 업데이트 혜성 🔒</div>
         <div class="lock">ERA 7 지평선 · 기억 수집 🔒</div>
       </div>
@@ -3025,7 +3091,13 @@ function exUpdate(dt, now) {
     }
   }
   // 시대 진입
-  if (!ex.mission && ex.era < 2 && ex.cum >= ERAS[ex.era + 1].at) { ex.era++; exEraCard(ex.era); return; }
+  if (!ex.mission && ex.era < 3 && ex.cum >= ERAS[ex.era + 1].at) { ex.era++; ex.phase = 1; exEraCard(ex.era); return; }
+  // 레이트 리밋 필드
+  if (ex.fieldOn) {
+    ex.field = Math.min(100, ex.field + dt * 12.5);
+    if (keys.KeyQ && !ex.qPrev) exFieldPulse();
+  }
+  ex.qPrev = !!keys.KeyQ;
   // 미션
   ex.bhNear = false;
   if (ex.mission === 'bh') {
@@ -3051,6 +3123,7 @@ function exUpdate(dt, now) {
     ex.pSpawnT -= dt; ex.cSpawnT -= dt;
     if (ex.pSpawnT <= 0 && ex.pSpawned < 22) { exSpawnPirate(); ex.pSpawnT = rand(1.6, 2.6); }
     if (ex.cSpawnT <= 0) { exSpawnConvoy(); ex.cSpawnT = rand(1.1, 1.8); }
+    if (exUpdateConvoys(dt)) return;
     const ef = new THREE.Vector3(), eu = new THREE.Vector3(), toShip = new THREE.Vector3();
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j], p = e.g.position;
@@ -3077,16 +3150,15 @@ function exUpdate(dt, now) {
         toast(`봇 침투 ${ex.reached}/5 · 이적시장 부하 증가`, '#ff6a6a');
       }
     }
-    for (let j = exConvoys.length - 1; j >= 0; j--) {
-      const c = exConvoys[j], p = c.g.position;
-      tmpV.copy(tp).sub(p);
-      const d = tmpV.length();
-      c.g.lookAt(tp);
-      p.addScaledVector(tmpV.normalize(), c.speed * dt);
-      if (d < exMarketPlanet().R + 8) { exWorld.remove(c.g); exConvoys.splice(j, 1); ex.served++; }
-    }
     if (ex.reached >= 5) { exMissionFail('봇 5척이 이적시장에 침투했습니다'); return; }
     if (state.kills - ex.pk0 >= 12) { exMissionDone(); return; }
+  } else if (ex.mission === 'ddos') {
+    ex.mT += dt;
+    if (exUpdateDdos(dt, now)) return;
+    exUpdateConvoys(dt);
+  } else if (ex.mission === 'stealth') {
+    ex.mT += dt;
+    if (exUpdateStealth(dt, now)) return;
   }
 }
 
@@ -3145,6 +3217,7 @@ function exFrame(dt, now) {
       if (!exBH.collapse) exBH.grp.visible = false;
     } else exBH.grp.scale.setScalar(qs);
   }
+  exFrameEra3(dt, now);
   // 라벨
   exGal.forEach(g => { tmpW.copy(g.grp.position); tmpW.y += g.G.R + 30; placeLabel(g.label, tmpW, 4); });
   exPlanets.forEach(pl => {
@@ -3176,6 +3249,10 @@ function exRadar(g, toRadar, R, range) {
   }
   g.fillStyle = '#3ee6c1';
   for (const c of exConvoys) { const p = toRadar(c.g.position, false); if (p) g.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
+  g.fillStyle = 'rgba(255,138,90,.8)';
+  for (let k = 0; k < drones.length; k += 2) { const p = toRadar(drones[k].p, false); if (p) g.fillRect(p[0] - 1, p[1] - 1, 2, 2); }
+  g.fillStyle = '#ff4a5a';
+  for (const st of exStealth) if (st.exposed > 0) { const p = toRadar(st.g.position, true); g.beginPath(); g.arc(p[0], p[1], 4, 0, Math.PI * 2); g.fill(); }
 }
 function exTarget() {
   if (ex.mission === 'bh') {
@@ -3183,6 +3260,8 @@ function exTarget() {
     return { pos: exBH.grp.getWorldPosition(new THREE.Vector3()), col: '#a98bff', size: 40 };
   }
   if (ex.mission === 'bots') { const pl = exMarketPlanet(); return { pos: pl.world, col: '#ffb23e', size: pl.R * 1.4 }; }
+  if (ex.mission === 'ddos') { const pl = exGal[0].planets[0]; return { pos: pl.world, col: '#ff8a5a', size: pl.R * 1.6 }; }
+  if (ex.mission === 'stealth') { const pl = exGal[0].planets[1]; return { pos: pl.world, col: '#ffb23e', size: 130 }; }
   let best = null, bd = Infinity;
   for (const pl of exPlanets) {
     if (!pl.formed || pl.discovered) continue;
@@ -3244,7 +3323,286 @@ function exHud() {
       <div class="exrow"><span>격추</span><b>${state.kills - ex.pk0}/12</b></div>
       <div class="exrow"><span>침투 허용</span><b style="color:${ex.reached >= 3 ? 'var(--red)' : ''}">${ex.reached}/5</b></div>
       <div class="exrow"><span>오탐 · 정상 통과</span><b>${ex.falsePos} · ${ex.served}</b></div>`;
+  } else if (ex.mission === 'ddos') {
+    mis.innerHTML = `<div class="mt">DDoS 군체 · 넥슨닷컴 /</div>
+      <div class="exrow"><span>서버 부하</span><b style="color:${ex.load > 70 ? 'var(--red)' : ''}">${Math.round(ex.load)}%</b></div>
+      <div class="exbar"><i style="width:${Math.min(100, ex.load)}%"></i></div>
+      <div class="exrow"><span>버티기</span><b>${Math.max(0, 45 - ex.mT).toFixed(0)}초</b></div>
+      <div class="exrow"><span>드론 격추 · 오탐</span><b>${ex.drKills} · ${ex.falsePos}</b></div>`;
+  } else if (ex.mission === 'stealth') {
+    mis.innerHTML = `<div class="mt">무차별 대입 침투조 · /login</div>
+      <div class="exrow"><span>계정 탈취 위험</span><b style="color:${ex.risk > 70 ? 'var(--red)' : ''}">${Math.round(ex.risk)}%</b></div>
+      <div class="exbar"><i style="width:${Math.min(100, ex.risk)}%"></i></div>
+      <div class="exrow"><span>침투조 격추</span><b>${ex.stKills}/6</b></div>`;
   } else if (mis.innerHTML) mis.innerHTML = '';
+  // 필드 게이지
+  document.body.classList.toggle('field-on', !!ex.fieldOn);
+  if (ex.fieldOn) {
+    const f = ex.field;
+    $('fieldBar').style.width = f + '%';
+    $('fieldS').textContent = f >= 100 ? 'READY' : 'CHARGING';
+    $('fieldS').style.color = f >= 100 ? 'var(--teal)' : 'var(--dim)';
+    $('bField').style.background = `conic-gradient(rgba(127,208,255,.55) ${f * 3.6}deg, rgba(8,14,28,.55) 0)`;
+  }
+}
+
+
+// =====================================================================
+// EXPANSION ERA 3 — 레이트 리밋 필드 · DDoS 군체 · 무차별 대입 침투조
+// =====================================================================
+// ---------- 레이트 리밋 필드 ----------
+const FIELD_R = 170, FIELD_T = .6;
+const exPulse = { t: -1, id: 0, origin: new THREE.Vector3() };
+exPulse.mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 3), new THREE.MeshBasicMaterial({ color: 0x7fd0ff, wireframe: true,
+  transparent: true, opacity: .4, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+exPulse.ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: ringTexFor(), color: 0x7fd0ff, transparent: true,
+  blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+exPulse.mesh.visible = exPulse.ring.visible = false;
+exWorld.add(exPulse.mesh, exPulse.ring);
+function ringTexFor() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.strokeStyle = '#fff'; g.lineWidth = 6; g.shadowColor = '#fff'; g.shadowBlur = 12;
+  g.beginPath(); g.arc(64, 64, 54, 0, Math.PI * 2); g.stroke();
+  return new THREE.CanvasTexture(c);
+}
+function exFieldPulse() {
+  if (state.mode !== 'flying') return;
+  if (ex.field < 100) { toast('FIELD 충전 중', '#7fd0ff'); return; }
+  ex.field = 0; ex.pulses++;
+  exPulse.t = 0; exPulse.id++;
+  exPulse.origin.copy(ship.position);
+  exPulse.mesh.visible = exPulse.ring.visible = true;
+  state.shake = Math.max(state.shake, .4);
+  flashColor('#7fd0ff');
+  sfx('warpIn');
+}
+function flashColor(col) {
+  const f = $('flash');
+  f.style.background = `radial-gradient(transparent 40%, ${col}66)`;
+  f.style.transition = 'none'; f.style.opacity = .8;
+  requestAnimationFrame(() => { f.style.transition = 'opacity .5s'; f.style.opacity = 0; setTimeout(() => { f.style.background = ''; }, 520); });
+}
+function exPulseUpdate(dt) {
+  if (exPulse.t < 0) return;
+  exPulse.t += dt;
+  const k = Math.min(1, exPulse.t / FIELD_T), r = FIELD_R * (1 - Math.pow(1 - k, 3));
+  exPulse.mesh.position.copy(exPulse.origin); exPulse.mesh.scale.setScalar(Math.max(1, r));
+  exPulse.mesh.rotation.y += dt * 2;
+  exPulse.mesh.material.opacity = .4 * (1 - k);
+  exPulse.ring.position.copy(exPulse.origin); exPulse.ring.scale.setScalar(Math.max(1, r * 2.2));
+  exPulse.ring.material.opacity = .9 * (1 - k);
+  // 범위 안 대상에 효과 (한 번씩)
+  const id = exPulse.id, o = exPulse.origin;
+  for (let j = drones.length - 1; j >= 0; j--) if (drones[j].p.distanceTo(o) < r) exKillDrone(j, true);
+  for (let j = exConvoys.length - 1; j >= 0; j--) {
+    const c = exConvoys[j];
+    if (c.pid !== id && c.g.position.distanceTo(o) < r) { c.pid = id; exHitConvoy(j); }
+  }
+  for (let j = exStealth.length - 1; j >= 0; j--) {
+    const st = exStealth[j];
+    if (st.pid !== id && st.g.position.distanceTo(o) < r) { st.pid = id; st.exposed = Math.max(st.exposed, 3); exHitStealth(j, 25); }
+  }
+  for (let j = enemies.length - 1; j >= 0; j--) {
+    const e = enemies[j];
+    if (e.pid !== id && e.g.position.distanceTo(o) < r) { e.pid = id; e.hp -= 25; if (e.hp <= 0) killEnemy(j, true); }
+  }
+  if (k >= 1) { exPulse.t = -1; exPulse.mesh.visible = exPulse.ring.visible = false; }
+}
+
+// ---------- DDoS 군체 ----------
+const DR_MAX = 480;
+const drMesh = new THREE.InstancedMesh(new THREE.OctahedronGeometry(1.9, 0),
+  new THREE.MeshBasicMaterial({ color: 0xff7a3a, fog: false }), DR_MAX);
+drMesh.count = 0;
+drMesh.frustumCulled = false;
+exWorld.add(drMesh);
+const drones = [];
+const _dObj = new THREE.Object3D();
+let exBotnets = [];
+function exClearDrones() { drones.length = 0; drMesh.count = 0; exBotnets.forEach(b => exWorld.remove(b)); exBotnets = []; }
+function exStartDdos() {
+  exClearShips();
+  ex.mission = 'ddos';
+  ex.fieldOn = true; ex.field = 100;
+  Object.assign(ex, { load: 0, loadMax: 0, drKills: 0, falsePos: 0, served: 0, pulses: 0, drSpawnAcc: 0, cSpawnT: 2 });
+  const tp = exGal[0].planets[0].world;
+  ex.ddosDirs = [0, 1, 2].map(() => randomDir().setY(rand(-.3, .5)).normalize());
+  exBotnets = ex.ddosDirs.map(d => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTexture([[0, '#ffd2b0'], [.25, '#ff6a3a88'], [.6, '#ff2a5a33'], [1, '#00000000']]),
+      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
+    sp.position.copy(tp).addScaledVector(d, 640); sp.scale.setScalar(300);
+    exWorld.add(sp);
+    return sp;
+  });
+  toast('ERA 3 · DDoS 군체 접근 — FIELD(Q) 해금', '#ff8a5a');
+}
+function exKillDrone(j, byField) {
+  const d = drones[j];
+  if (!byField || Math.random() < .35) burst(d.p, 0xff9a5a, byField ? 8 : 16, 10, .6);
+  drones[j] = drones[drones.length - 1]; drones.pop();
+  ex.drKills++;
+}
+function exUpdateDdos(dt, now) {
+  const tp = exGal[0].planets[0].world, tR = exGal[0].planets[0].R;
+  // 생성: 파도처럼 몰려옴
+  if (ex.mT < 42) {
+    ex.drSpawnAcc += dt * (14 + 8 * Math.max(0, Math.sin(ex.mT * .45)));
+    while (ex.drSpawnAcc >= 1 && drones.length < DR_MAX) {
+      ex.drSpawnAcc -= 1;
+      const dir = ex.ddosDirs[Math.floor(Math.random() * 3)];
+      const p = tp.clone().addScaledVector(dir, rand(560, 700)).add(randomDir().multiplyScalar(rand(0, 90)));
+      drones.push({ p, v: new THREE.Vector3(), spd: rand(34, 44), ph: rand(0, 6) });
+    }
+  }
+  // 정상 유저: 무리 지어 간헐적으로
+  ex.cSpawnT -= dt;
+  if (ex.cSpawnT <= 0) {
+    const d = randomDir();
+    for (let k = 0; k < 3; k++) exSpawnConvoy(tp.clone().addScaledVector(d, 520).add(randomDir().multiplyScalar(30)), exGal[0].planets[0]);
+    ex.cSpawnT = rand(5.5, 7.5);
+  }
+  // 이동 & 도달
+  for (let j = drones.length - 1; j >= 0; j--) {
+    const d = drones[j];
+    tmpV.copy(tp).sub(d.p);
+    const dist = tmpV.length();
+    tmpV.divideScalar(dist || 1).multiplyScalar(d.spd);
+    tmpV.x += Math.sin(now * 3 + d.ph) * 8; tmpV.y += Math.cos(now * 2.6 + d.ph) * 8;
+    d.v.lerp(tmpV, Math.min(1, dt * 1.6));
+    d.p.addScaledVector(d.v, dt);
+    if (dist < tR + 4) {
+      drones[j] = drones[drones.length - 1]; drones.pop();
+      ex.load += .5;
+      continue;
+    }
+    if (d.p.distanceTo(ship.position) < 5) {
+      drones[j] = drones[drones.length - 1]; drones.pop();
+      if (damagePlayer(3, null, .25)) return true;
+    }
+  }
+  ex.load = Math.max(0, ex.load - dt * 3);
+  ex.loadMax = Math.max(ex.loadMax, ex.load);
+  if (ex.load >= 100) { exMissionFail('서버 부하 100% — 넥슨닷컴 메인이 응답하지 않습니다'); return true; }
+  if (ex.mT >= 45 && ex.load < 100) {
+    // 남은 드론 정리 후 PHASE 2
+    for (let j = drones.length - 1; j >= 0; j--) exKillDrone(j, true);
+    exBotnets.forEach(b => exWorld.remove(b)); exBotnets = [];
+    exMissionDone();
+    return true;
+  }
+  return false;
+}
+
+// ---------- 무차별 대입 침투조 ----------
+const exStealth = [];
+const exBeams = [];
+for (let k = 0; k < 8; k++) {
+  const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+    new THREE.LineBasicMaterial({ color: 0xffb23e, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  ln.frustumCulled = false; ln.visible = false;
+  exWorld.add(ln); exBeams.push({ ln, life: 0 });
+}
+let exBeamIdx = 0;
+function exClearStealth() {
+  while (exStealth.length) { const st = exStealth.pop(); exWorld.remove(st.g); st.el.remove(); }
+  exBeams.forEach(b => { b.ln.visible = false; b.life = 0; });
+}
+function exStartStealth() {
+  exClearShips();
+  ex.mission = 'stealth';
+  Object.assign(ex, { risk: 0, stKills: 0, falsePos: 0, pulses: 0 });
+  ex.field = 100;
+  for (let k = 0; k < 6; k++) {
+    const g = buildEnemy();
+    const mats = [];
+    g.traverse(o => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; mats.push(o.material); } });
+    exWorld.add(g);
+    const el = document.createElement('div');
+    el.className = 'emk';
+    el.innerHTML = '<i class="c c1"></i><i class="c c2"></i><i class="c c3"></i><i class="c c4"></i><span class="d"></span><span class="hp"><i></i></span>';
+    $('emarks').appendChild(el);
+    exStealth.push({ g, el, mats, hp: 50, ang: k * 1.05, rad: rand(60, 140), y: rand(-35, 35), spd: rand(.18, .32) * (k % 2 ? 1 : -1),
+      attemptT: rand(1.2, 3.2), exposed: 0, jumpT: rand(4, 8), pid: -1 });
+  }
+  toast('PHASE 2 · /login 주변 침투조 추적', '#ffb23e');
+}
+function exHitStealth(j, dmg) {
+  const st = exStealth[j];
+  st.hp -= dmg;
+  st.exposed = Math.max(st.exposed, 1);
+  burst(st.g.position, 0x9ff6ff, 22, 12, .7);
+  hitMarker(); sfx('hit', 200);
+  if (st.hp <= 0) {
+    burst(st.g.position, 0xffffff, 110, 32, 1.3);
+    burst(st.g.position, 0xffb23e, 120, 20, 1.6);
+    sfx('boom', st.g.position.distanceTo(ship.position));
+    exWorld.remove(st.g); st.el.remove(); exStealth.splice(j, 1);
+    ex.stKills++; state.score += 300;
+    toast(`침투조 격추 ${ex.stKills}/6`, '#ffb23e');
+  }
+}
+function exUpdateStealth(dt, now) {
+  const login = exGal[0].planets[1].world;
+  for (const st of exStealth) {
+    st.ang += st.spd * dt;
+    st.jumpT -= dt;
+    if (st.jumpT <= 0) { st.rad = rand(60, 140); st.y = rand(-35, 35); st.jumpT = rand(4, 8); }
+    tmpV.set(login.x + Math.cos(st.ang) * st.rad, login.y + st.y, login.z + Math.sin(st.ang) * st.rad);
+    st.g.position.lerp(tmpV, Math.min(1, dt * 1.5));
+    st.g.lookAt(login); st.g.rotateY(Math.PI);
+    st.exposed = Math.max(0, st.exposed - dt);
+    st.attemptT -= dt;
+    if (st.attemptT <= 0) {
+      st.attemptT = rand(2, 3.6);
+      st.exposed = Math.max(st.exposed, 1.3);
+      ex.risk += 1.2;
+      burst(st.g.position, 0xffb23e, 26, 14, .9);
+      const b = exBeams[exBeamIdx++ % exBeams.length];
+      b.ln.geometry.setFromPoints([st.g.position.clone(), login.clone()]);
+      b.ln.visible = true; b.life = .6;
+      if (st.g.position.distanceTo(ship.position) < 500) sfx('elaser', st.g.position.distanceTo(ship.position));
+    }
+  }
+  if (ex.risk >= 100) { exMissionFail('탈취 위험 100% — 계정 탈취가 발생했습니다'); return true; }
+  if (!exStealth.length) { exMissionDone(); return true; }
+  return false;
+}
+
+// ---------- 시각 효과 & 마커 ----------
+function exFrameEra3(dt, now) {
+  exPulseUpdate(dt);
+  drMesh.count = drones.length;
+  for (let k = 0; k < drones.length; k++) {
+    const d = drones[k];
+    _dObj.position.copy(d.p);
+    _dObj.rotation.set(now * 3 + d.ph, now * 2 + d.ph, 0);
+    _dObj.updateMatrix();
+    drMesh.setMatrixAt(k, _dObj.matrix);
+  }
+  drMesh.instanceMatrix.needsUpdate = true;
+  for (const b of exBeams) if (b.life > 0) {
+    b.life -= dt; b.ln.material.opacity = Math.max(0, b.life / .6);
+    if (b.life <= 0) b.ln.visible = false;
+  }
+  const winH = innerHeight - dashH;
+  for (const st of exStealth) {
+    const vis = st.exposed > 0 ? Math.min(1, st.exposed * 2) : .05 + .04 * Math.sin(now * 5 + st.ang * 3);
+    st.mats.forEach(m => { m.opacity = vis; });
+    const el = st.el;
+    if (st.exposed <= 0) { el.style.display = 'none'; continue; }
+    const pr = project(st.g.position);
+    if (pr.behind || pr.x < 0 || pr.x > innerWidth || pr.y < 0 || pr.y > winH) { el.style.display = 'none'; continue; }
+    el.style.display = 'block';
+    el.classList.remove('off');
+    const sz = clamp(9 / pr.dist * focal() * 2, 26, 110);
+    el.style.width = el.style.height = sz + 'px';
+    el.style.left = pr.x + 'px'; el.style.top = pr.y + 'px';
+    el.style.transform = 'translate(-50%, -50%)';
+    el.querySelector('.d').textContent = Math.round(pr.dist * 10) + ' m';
+    el.querySelector('.hp i').style.width = st.hp * 2 + '%';
+  }
 }
 
 // =====================================================================
@@ -3270,6 +3628,8 @@ function statusInfo() {
   if (state.warp > 0.3) return ['WARP', '#a98bff'];
   if (exWorld.visible && ex.bhNear) return ['GRAVITY', '#a98bff'];
   if (exWorld.visible && ex.mission === 'bots') return ['DEFEND', '#ffb23e'];
+  if (exWorld.visible && ex.mission === 'ddos') return ['DDOS', '#ff8a5a'];
+  if (exWorld.visible && ex.mission === 'stealth') return ['STEALTH', '#ffb23e'];
   if (state.mission === 'oncall' && state.nearDock) return ['DOCKING', '#ffb23e'];
   if (state.mission === 'oncall' && oc.incident && !oc.fixed) return ['INCIDENT', '#ff5a5a'];
   if (state.mission === 'oncall' && oc.fixed) return ['RECOVERING', '#3ee6c1'];
@@ -3626,6 +3986,7 @@ function showTitle() {
     <span><kbd>A</kbd><kbd>D</kbd></span><span>롤</span>
     <span><kbd>Space</kbd></span><span>레이저 발사 (누르고 있으면 연사, 과열 주의)</span>
     <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
+    <span><kbd>Q</kbd></span><span>레이트 리밋 필드 (EXPANSION ERA 3부터)</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
   </div>
   <div class="missions">
