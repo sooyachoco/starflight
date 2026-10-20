@@ -93,6 +93,16 @@
   #edge { position: absolute; display: none; width: 0; height: 0; margin: -11px 0 0 -9px;
     border-left: 18px solid var(--amber); border-top: 11px solid transparent; border-bottom: 11px solid transparent;
     filter: drop-shadow(0 0 6px #ffb23e); }
+  #quest { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 10px;
+    max-width: min(560px, 48vw); padding: 7px 14px 7px 12px; border-radius: 999px; font-size: 15px; font-weight: 600;
+    letter-spacing: .03em; color: #e9f1ff; background: rgba(8, 14, 28, .72); border: 1px solid var(--qc, #3ee6c1);
+    box-shadow: 0 6px 18px #0008; backdrop-filter: blur(6px); }
+  #quest .qd { flex: none; width: 10px; height: 10px; transform: rotate(45deg); border: 2px solid var(--qc, #3ee6c1); }
+  #quest .qt { font-family: "Noto Sans KR", sans-serif; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #quest .qn { flex: none; font-variant-numeric: tabular-nums; color: var(--qc, #3ee6c1); }
+  #quest svg { flex: none; width: 16px; height: 16px; fill: var(--qc, #3ee6c1); transition: transform .15s linear; }
+  #quest.new { animation: qpulse .9s ease-out; }
+  @keyframes qpulse { 0% { transform: translateX(-50%) scale(1.12); box-shadow: 0 0 0 0 var(--qc); } 100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 0 14px transparent; } }
   #toast { position: absolute; left: 50%; top: calc(var(--win-h) * .3); transform: translate(-50%, -50%);
     font-size: 28px; font-weight: 700; letter-spacing: .08em; opacity: 0; white-space: nowrap; }
   #toast.show { animation: pop 1.3s ease-out forwards; }
@@ -348,9 +358,9 @@
   .fieldhint { display: none !important; }
   body.field-on .fieldhint { display: inline-grid !important; }
   body.field-on span.fieldhint, body.field-on i.fieldhint { display: inline-block !important; }
-  #fieldRow, #fieldBarW { display: none; }
-  body.field-on #fieldRow { display: flex; }
-  body.field-on #fieldBarW { display: block; }
+  #wpn #fieldRow, #wpn #fieldBarW { display: none; }
+  body.field-on #wpn #fieldRow { display: flex; }
+  body.field-on #wpn #fieldBarW { display: block; }
   #fieldBar { background: linear-gradient(90deg, #4aa8ff, #7fd0ff); }
   #bRollL { right: calc(max(18px, env(safe-area-inset-right)) + 96px); top: calc(var(--win-h) - 146px); width: 48px; height: 48px; }
   #bRollR { right: calc(max(18px, env(safe-area-inset-right)) + 20px); top: calc(var(--win-h) - 162px); width: 48px; height: 48px; }
@@ -369,6 +379,8 @@
     .g b { font-size: 15px; }
     .modes { font-size: 11px; }
     #toast { font-size: 18px; white-space: normal; width: 88vw; text-align: center; }
+    #quest { top: calc(var(--win-h) - 200px); max-width: 92vw; font-size: 13px; padding: 5px 12px 5px 10px; }
+    #quest .qt { font-size: 12px; }
     #speedBox { transform: scale(.78); transform-origin: 0 0; top: 50px; left: 14px; }
     #wpn { transform: scale(.78); transform-origin: 0 0; top: 158px; left: 14px; }
     #obj { transform: scale(.78); transform-origin: 100% 0; top: 64px; right: 12px; }
@@ -407,6 +419,9 @@
     #btns button { width: 38px; height: 38px; }
     #reticle { transform: scale(.6); }
     #toast { font-size: 20px; }
+    #quest { top: 8px; max-width: 46vw; font-size: 12px; padding: 4px 10px 4px 8px; gap: 7px; }
+    #brand .mode, #brand > i { display: none; }
+    #quest .qt { font-size: 11.5px; }
     .card { padding: 14px 18px; }
     .card h1 { font-size: 30px; }
     .card h2 { margin-bottom: 8px; }
@@ -601,6 +616,8 @@
     <button class="tc tb" id="bField" data-k="KeyQ">FIELD</button>
     <button class="tc tb" id="bFire" data-k="Space">FIRE</button>
   </div>
+  <div id="quest"><i class="qd"></i><span class="qt" id="questT"></span><span class="qn" id="questD"></span>
+    <svg id="questA" viewBox="0 0 16 16"><path d="M8 1 14.5 14 8 10.5 1.5 14z"/></svg></div>
   <div id="toast"></div>
   <div id="flash"></div>
 
@@ -3605,6 +3622,125 @@ function exFrameEra3(dt, now) {
   }
 }
 
+
+// =====================================================================
+// 퀘스트 안내 — 상단 트래커 · 레이더 목표 지점 · 헤딩 방위 표시
+// =====================================================================
+const Q_TEAL = '#3ee6c1', Q_AMBER = '#ffb23e', Q_BLUE = '#4aa8ff', Q_RED = '#ff6a78', Q_VIOLET = '#a98bff';
+function questInfo() {
+  if (!['flying', 'paused'].includes(state.mode)) return null;
+  if (exWorld.visible) {
+    if (ex.mission === 'bh') {
+      if (beacons[0]) return { text: `블랙홀 주변 위성 배치 지점 ${ex.sats + 1}/3 통과`, pos: beacons[0].mesh.position, col: Q_TEAL };
+      return { text: '위성 배치 완료 — 대기열이 줄어드는 중', pos: exBH.grp.getWorldPosition(new THREE.Vector3()), col: Q_VIOLET };
+    }
+    if (ex.mission === 'bots') return { text: `FC온라인 이적시장 방어 · 해적선 격추 ${state.kills - ex.pk0}/12`, pos: exMarketPlanet().world, col: Q_AMBER };
+    if (ex.mission === 'ddos') return { text: `넥슨닷컴 메인 근처에서 FIELD로 드론 제거 · ${Math.max(0, 45 - ex.mT).toFixed(0)}초`, pos: exGal[0].planets[0].world, col: '#ff8a5a' };
+    if (ex.mission === 'stealth') return { text: `/login 주변 침투조 추적 · 401 섬광 순간 사격 ${ex.stKills}/6`, pos: exGal[0].planets[1].world, col: Q_AMBER };
+    let best = null, bd = Infinity;
+    for (const pl of exPlanets) {
+      if (!pl.formed || pl.discovered) continue;
+      const d = pl.world.distanceTo(ship.position);
+      if (d < bd) { bd = d; best = pl; }
+    }
+    if (best) return { text: `미확인 엔드포인트 관측 · ${best.gal.G.hub ? '넥슨닷컴' : best.gal.G.ko + ' 은하'}`, pos: best.world, col: Q_BLUE };
+    const next = ERAS[ex.era + 1];
+    return { text: next ? `모든 엔드포인트 관측 — ERA ${ex.era + 1}까지 로그 축적 대기` : '모든 시대 완료 · 자유 관측', pos: null, col: Q_VIOLET };
+  }
+  if (ocWorld.visible) {
+    if (oc.fixed) return { text: '롤백 적용 — 결제 오류율 회복 확인 중', pos: null, col: Q_TEAL };
+    if (beacons[0]) return { text: `로그 단서 #${oc.clues + 1} 비컨 조사`, pos: beacons[0].mesh.position, col: Q_TEAL };
+    return { text: '결제 행성 옆 운영 정거장 도킹 · 120 m/s 이하', pos: dockWorld, col: Q_AMBER };
+  }
+  if (beacons[0]) return { text: `항법 비컨 ${state.beaconsPassed + state.beaconsMissed + 1}/${BEACON_N} 통과`, pos: beacons[0].mesh.position, col: Q_TEAL };
+  return { text: '정거장 도킹 포트로 접근 · 120 m/s 이하', pos: dockWorld, col: Q_AMBER };
+}
+const fmtDist = d => d * 10 >= 1000 ? (d / 100).toFixed(1) + ' km' : Math.round(d * 10) + ' m';
+let questLast = '', questNow = null;
+function updateQuest() {
+  const el = $('quest');
+  const q = questNow = questInfo();
+  if (!q) { el.style.display = 'none'; questLast = ''; return; }
+  el.style.display = 'flex';
+  el.style.setProperty('--qc', q.col);
+  const key = q.text.replace(/[\d.]+/g, '#');
+  if (key !== questLast) {
+    if (questLast) { el.classList.remove('new'); void el.offsetWidth; el.classList.add('new'); sfx('laser', 600); }
+    questLast = key;
+  }
+  $('questT').textContent = q.text;
+  const arr = $('questA'), dEl = $('questD');
+  if (!q.pos) { arr.style.display = dEl.style.display = 'none'; return; }
+  arr.style.display = dEl.style.display = '';
+  dEl.textContent = fmtDist(q.pos.distanceTo(ship.position));
+  // 화살표: 목표가 화면에서 어느 쪽에 있는지
+  camera.updateMatrixWorld();
+  const pr = project(q.pos), winH = innerHeight - dashH;
+  let dx = pr.x - innerWidth / 2, dy = pr.y - winH / 2;
+  if (pr.behind) { dx = -dx; dy = -dy; if (Math.abs(dx) + Math.abs(dy) < 1) dy = 1; }
+  const centered = !pr.behind && Math.hypot(dx, dy) < 60;
+  arr.style.transform = centered ? 'none' : `rotate(${Math.atan2(dy, dx) + Math.PI / 2}rad)`;
+}
+function drawQuestRadar(g, cx, cy, R, range) {
+  const q = questNow;
+  if (!q || !q.pos) return;
+  ship.updateMatrixWorld();
+  const l = ship.worldToLocal(tmpV.copy(q.pos));
+  let x = l.x / range * R, y = l.z / range * R;
+  const m = Math.hypot(x, y), lim = R - 7, out = m > lim;
+  if (out) { x *= lim / m; y *= lim / m; }
+  const px = cx + x, py = cy + y, t = performance.now() / 1000;
+  // 안내선
+  g.save();
+  g.strokeStyle = q.col; g.globalAlpha = .75; g.lineWidth = 1.4; g.setLineDash([3, 4]);
+  g.lineDashOffset = -t * 12;
+  g.beginPath(); g.moveTo(cx, cy); g.lineTo(px, py); g.stroke();
+  g.restore();
+  g.fillStyle = q.col; g.strokeStyle = q.col;
+  if (!out) {
+    const s2 = 6 + Math.sin(t * 5) * 1.5;
+    g.save(); g.translate(px, py); g.rotate(Math.PI / 4);
+    g.lineWidth = 2; g.strokeRect(-s2, -s2, s2 * 2, s2 * 2);
+    g.globalAlpha = .35 + .25 * Math.sin(t * 5); g.fillRect(-s2 - 4, -s2 - 4, s2 * 2 + 8, s2 * 2 + 8);
+    g.globalAlpha = 1; g.fillRect(-2.5, -2.5, 5, 5);
+    g.restore();
+  } else {
+    const a = Math.atan2(y, x);
+    g.save(); g.translate(px, py); g.rotate(a);
+    g.beginPath(); g.moveTo(8, 0); g.lineTo(-5, -6); g.lineTo(-2, 0); g.lineTo(-5, 6); g.closePath(); g.fill();
+    g.restore();
+  }
+  // 거리 · 고도 표시
+  const dist = q.pos.distanceTo(ship.position), vert = l.y > 40 ? ' ▲' : l.y < -40 ? ' ▼' : '';
+  g.font = '700 11px Rajdhani, sans-serif';
+  const label = fmtDist(dist) + vert, tw = g.measureText(label).width;
+  let lx = px + (px > cx ? -tw - 12 : 12), ly = py + (py > cy ? -10 : 16);
+  lx = clamp(lx, 4, cx * 2 - tw - 4);
+  g.fillStyle = 'rgba(5,10,20,.75)'; g.fillRect(lx - 3, ly - 10, tw + 6, 14);
+  g.fillStyle = q.col; g.textAlign = 'left'; g.fillText(label, lx, ly);
+}
+function drawBearingBug(g, hdg, cx, ty, tw, ppd, cp) {
+  const q = questNow;
+  if (!q || !q.pos) return;
+  const dx = q.pos.x - ship.position.x, dz = q.pos.z - ship.position.z;
+  const brg = (Math.atan2(dx, -dz) * DEG + 360) % 360;
+  let diff = ((brg - hdg + 540) % 360) - 180;
+  const half = tw / 2 - 6, x = cx + clamp(diff * ppd, -half, half), clamped = Math.abs(diff * ppd) > half;
+  g.save();
+  g.fillStyle = q.col; g.strokeStyle = q.col; g.lineWidth = 2;
+  if (!clamped) {
+    g.beginPath(); g.moveTo(x - 7, ty + 12); g.lineTo(x - 7, ty + 4); g.lineTo(x, ty + 9); g.lineTo(x + 7, ty + 4); g.lineTo(x + 7, ty + 12); g.closePath(); g.stroke();
+  } else {
+    const s2 = Math.sign(diff);
+    g.beginPath(); g.moveTo(x + s2 * 7, ty + 8); g.lineTo(x - s2 * 3, ty + 2); g.lineTo(x - s2 * 3, ty + 14); g.closePath(); g.fill();
+  }
+  if (!cp && clamped) {
+    g.font = '700 11px Rajdhani, sans-serif'; g.textAlign = clamped ? (diff > 0 ? 'right' : 'left') : 'center';
+    g.fillText(clamped ? `TGT ${String(Math.round(brg)).padStart(3, '0')}°` : 'TGT', clamped ? x - Math.sign(diff) * 10 : x, ty + 26);
+  }
+  g.restore();
+}
+
 // =====================================================================
 // HUD
 // =====================================================================
@@ -3693,6 +3829,7 @@ function drawNav() {
   g.fillStyle = '#ffb23e'; g.fillRect(-2.5, -2.5, 5, 5);
   g.restore();
   }
+  drawQuestRadar(g, cx, cy, R, range);
   // 내 기체
   g.fillStyle = '#fff';
   g.beginPath(); g.moveTo(cx, cy - 11); g.lineTo(cx + 8, cy + 7); g.lineTo(cx, cy + 3); g.lineTo(cx - 8, cy + 7); g.closePath(); g.fill();
@@ -3726,6 +3863,7 @@ function drawAtt(att, status) {
   g.fillStyle = '#ffb23e';
   g.beginPath(); g.moveTo(cx - 6, ty - 9); g.lineTo(cx + 6, ty - 9); g.lineTo(cx, ty - 1); g.closePath(); g.fill();
   g.beginPath(); g.moveTo(cx, ty + 1); g.lineTo(cx + 4, ty + 5); g.lineTo(cx, ty + 9); g.lineTo(cx - 4, ty + 5); g.closePath(); g.fill();
+  drawBearingBug(g, att.hdg, cx, ty, tw, ppd, cp);
 
   // 자세계 (ADI)
   const top = ty + (cp ? 8 : 18), bottom = H - (cp ? 22 : 36);
@@ -3922,6 +4060,7 @@ function updateHud() {
   $('heatBar').style.background = state.overheat ? 'var(--red)' : state.heat > 70 ? 'var(--amber)' : 'var(--blue)';
   $('wpnS').textContent = state.overheat ? 'OVERHEAT' : 'READY';
   $('wpnS').style.color = state.overheat ? 'var(--red)' : 'var(--teal)';
+  updateQuest();
   drawNav();
   drawAtt(attitude(), statusInfo());
   updateMarkers();
