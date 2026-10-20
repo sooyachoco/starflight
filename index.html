@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Star Flight</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,6 +11,7 @@
   :root {
     --dash-h: clamp(220px, 34vh, 330px);
     --win-h: calc(100vh - var(--dash-h));
+    --stk: 124px;
     --text: #dbe7ff;
     --dim: #8ea3c6;
     --line: #22385a;
@@ -20,7 +21,8 @@
     --amber: #ffb23e;
     --red: #ff5a5a;
   }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #02040c; color: var(--text);
+  html, body { margin: 0; height: 100%; overflow: hidden; touch-action: none; overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; background: #02040c; color: var(--text);
     font-family: Rajdhani, "Noto Sans KR", system-ui, sans-serif; user-select: none; }
   canvas#gl { display: block; position: fixed; inset: 0; }
   #hud { position: fixed; inset: 0; pointer-events: none; }
@@ -187,7 +189,7 @@
   #overlay { position: fixed; left: 0; right: 0; top: 0; height: var(--win-h); display: flex; align-items: center;
     justify-content: center; background: radial-gradient(#0009, #000a); cursor: pointer; pointer-events: auto; }
   #overlay.hidden { display: none; }
-  .card { text-align: center; padding: 26px 34px; max-width: 560px; max-height: calc(var(--win-h) - 40px); overflow: auto;
+  .card { touch-action: pan-y; text-align: center; padding: 26px 34px; max-width: 560px; max-height: calc(var(--win-h) - 40px); overflow: auto;
     box-sizing: border-box; font-family: "Noto Sans KR", sans-serif; }
   .card h1 { font-family: Rajdhani; font-size: 46px; letter-spacing: .2em; margin: 0; color: #fff; }
   .card h2 { font-family: Rajdhani; font-weight: 600; font-size: 18px; letter-spacing: .14em; margin: 4px 0 16px; color: var(--amber); }
@@ -312,6 +314,127 @@
     .dgrid { bottom: 14px; gap: 10px; }
     #obj { top: 70px; width: 230px; }
   }
+  /* 터치 조작 */
+  @supports (height: 100dvh) { :root { --win-h: calc(100dvh - var(--dash-h)); } }
+  #touch, .touch-only, .touch-only-i { display: none; }
+  body.touch #touch, body.touch .touch-only { display: block; }
+  body.touch .touch-only-i { display: inline; }
+  body.touch .key-only, body.touch .keys { display: none; }
+  body.touch .dgrid { bottom: 14px; }
+  body.touch .lever, body.touch #navScr { pointer-events: auto; touch-action: none; cursor: pointer; }
+  .tc { position: absolute; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #stick { left: max(18px, env(safe-area-inset-left)); top: calc(var(--win-h) - var(--stk) - 18px);
+    width: var(--stk); height: var(--stk); border-radius: 50%;
+    background: radial-gradient(circle, rgba(74, 168, 255, .12), rgba(8, 14, 28, .5) 70%);
+    border: 1.5px solid rgba(160, 200, 255, .38); box-shadow: inset 0 0 20px rgba(0, 0, 0, .55); }
+  #stick::before { content: ""; position: absolute; inset: 18%; border-radius: 50%; border: 1px dashed rgba(160, 200, 255, .22); }
+  #knob { position: absolute; left: 27%; top: 27%; width: 46%; height: 46%; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #6a7891, #1b2232 70%); border: 1.5px solid rgba(200, 225, 255, .65);
+    box-shadow: 0 5px 12px #000b; }
+  .tb { display: grid; place-items: center; padding: 0; width: 54px; height: 54px; border-radius: 50%;
+    font-family: Rajdhani, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: .08em; color: #dfe8fa;
+    background: rgba(8, 14, 28, .55); border: 1.5px solid rgba(160, 200, 255, .38); backdrop-filter: blur(4px); }
+  .tb.on { background: rgba(74, 168, 255, .38); border-color: #9fd0ff; }
+  .tb svg { width: 24px; height: 24px; }
+  #bFire { right: max(18px, env(safe-area-inset-right)); top: calc(var(--win-h) - 102px); width: 82px; height: 82px;
+    font-size: 16px; color: #ffd6da; border-color: rgba(255, 106, 120, .75); background: rgba(70, 8, 18, .5); }
+  #bFire.on { background: rgba(255, 74, 90, .5); }
+  #bWarp { right: calc(max(18px, env(safe-area-inset-right)) + 96px); top: calc(var(--win-h) - 80px);
+    color: #e6dcff; border-color: rgba(169, 139, 255, .75); background: rgba(34, 18, 70, .5); }
+  #bWarp.on { background: rgba(169, 139, 255, .5); }
+  #bRollL { right: calc(max(18px, env(safe-area-inset-right)) + 96px); top: calc(var(--win-h) - 146px); width: 48px; height: 48px; }
+  #bRollR { right: calc(max(18px, env(safe-area-inset-right)) + 20px); top: calc(var(--win-h) - 162px); width: 48px; height: 48px; }
+  #bThrUp, #bThrDn { left: calc(max(18px, env(safe-area-inset-left)) + var(--stk) + 16px); width: 46px; height: 46px; font-size: 22px; }
+  #bThrUp { top: calc(var(--win-h) - 126px); } #bThrDn { top: calc(var(--win-h) - 72px); }
+
+  /* 세로 화면(폰): 대시보드 2×2 */
+  @media (max-width: 640px) and (orientation: portrait) {
+    :root { --dash-h: 42vh; --stk: 112px; }
+    .dgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 10px; top: 16px; }
+    .dgrid > :nth-child(1), .dgrid > :nth-child(2) { grid-column: span 3; }
+    .dgrid > .gauges { grid-column: span 4; gap: 6px; }
+    .dgrid > .eng { grid-column: span 2; padding: 26px 6px 8px 8px; gap: 6px; }
+    .scr { border-width: 7px; }
+    .g .gl { font-size: 11px; letter-spacing: .06em; }
+    .g b { font-size: 15px; }
+    .modes { font-size: 10px; }
+    #toast { font-size: 18px; white-space: normal; width: 88vw; text-align: center; }
+    #speedBox { transform: scale(.78); transform-origin: 0 0; top: 50px; left: 14px; }
+    #wpn { transform: scale(.78); transform-origin: 0 0; top: 158px; left: 14px; }
+    #obj { transform: scale(.78); transform-origin: 100% 0; top: 64px; right: 12px; }
+    #brand { font-size: 13px; top: 14px; left: 14px; gap: 8px; }
+    #brand svg { width: 26px; height: 18px; }
+    #btns { top: 10px; right: 12px; }
+    #btns button { width: 38px; height: 38px; }
+    #reticle { transform: scale(.6); }
+  }
+  /* 낮은 가로 화면(폰 가로) */
+  @media (max-height: 520px) {
+    :root { --dash-h: 128px; --stk: 100px; }
+    .dgrid { top: 12px; bottom: 8px !important; gap: 8px; }
+    .scr { border-width: 6px; border-radius: 10px; }
+    .sl, .sr { top: 5px; font-size: 11px; left: 10px; }
+    .sr { left: auto; right: 10px; }
+    .gauges { gap: 6px; }
+    .g { gap: 1px; }
+    .g .gl { font-size: 11px; }
+    .g svg { width: min(72%, 13vh); }
+    .g b { font-size: 14px; }
+    .eng { padding: 22px 6px 6px 10px; gap: 6px; }
+    .lever, .modes { min-height: 60px; }
+    .modes { font-size: 10px; }
+    #handle { height: 20px; }
+    .keys { display: none; }
+    #dash .lip { height: 16px; top: -12px; }
+    #brand { font-size: 13px; top: 10px; left: 16px; gap: 8px; }
+    #brand svg { width: 26px; height: 18px; }
+    #speedBox { transform: scale(.66); transform-origin: 0 0; top: 38px; left: 16px; }
+    #wpn { display: none; }
+    #obj { transform: scale(.72); transform-origin: 100% 0; top: 54px; right: 14px; }
+    #obj .oi { display: none; }
+    #obj .oh { padding-bottom: 0; border-bottom: 0; margin-bottom: 0; }
+    #btns { top: 8px; right: 14px; }
+    #btns button { width: 38px; height: 38px; }
+    #reticle { transform: scale(.6); }
+    #toast { font-size: 20px; }
+    .card { padding: 14px 18px; }
+    .card h1 { font-size: 30px; }
+    .card h2 { margin-bottom: 8px; }
+    .card p { font-size: 12.5px; margin: 4px 0; }
+    .tb { width: 48px; height: 48px; }
+    #bFire { width: 70px; height: 70px; top: calc(var(--win-h) - 86px); }
+    #bWarp { top: calc(var(--win-h) - 66px); right: calc(max(18px, env(safe-area-inset-right)) + 82px); }
+    #bRollL { top: calc(var(--win-h) - 122px); right: calc(max(18px, env(safe-area-inset-right)) + 82px); width: 42px; height: 42px; }
+    #bRollR { top: calc(var(--win-h) - 134px); width: 42px; height: 42px; }
+    #bThrUp, #bThrDn { width: 42px; height: 42px; }
+    #bThrUp { top: calc(var(--win-h) - 110px); } #bThrDn { top: calc(var(--win-h) - 62px); }
+    /* 기체 선택 화면: 카드를 가로형으로 */
+    #select { padding: 10px 16px 10px; }
+    .sel-brand { font-size: 13px; }
+    .sel-brand svg { width: 26px; height: 18px; }
+    #select h1 { font-size: 22px; margin-top: 4px; }
+    #select .sub, .perk { display: none; }
+    #selSound { width: 38px; height: 38px; top: 10px; }
+    .sel-cards { margin: 14px 0 10px; }
+    .ship-card { flex-direction: row; }
+    .ship-card.sel { transform: none; }
+    .ship-card .tab { font-size: 12px; padding: 2px 22px; }
+    .art { flex: 0 0 46%; border-radius: 12px 0 0 12px; }
+    .art::after { display: none; }
+    .info { flex: 1; min-width: 0; padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; }
+    .ttl { font-size: 22px; }
+    .crew { font-size: 12px; } .crew b { font-size: 14px; }
+    .cls { font-size: 11px; padding-bottom: 6px; letter-spacing: .35em; }
+    .stat { grid-template-columns: 64px minmax(0, 1fr) 30px; gap: 8px; padding: 2px 0; font-size: 12px; }
+    .bars i { height: 7px; }
+    .pager { font-size: 17px; padding: 4px 14px; gap: 14px; }
+    #selBack { font-size: 13px; }
+    #selBack kbd, #selGo kbd { height: 24px; min-width: 28px; font-size: 12px; }
+    #selGo { font-size: 15px; padding: 6px 8px 6px 16px; gap: 12px; }
+    .sel-foot { grid-template-columns: 1fr auto 1fr; }
+    .pager { grid-row: auto; grid-column: auto; }
+  }
+
 </style>
 </head>
 <body>
@@ -397,13 +520,24 @@
     <path d="M-16-16-9-9M16-16 9-9M-16 16-9 9M16 16 9 9"/>
   </svg>
   <div id="edge"></div>
+  <div id="touch">
+    <div class="tc" id="stick"><div id="knob"></div></div>
+    <button class="tc tb" id="bThrUp" data-k="KeyW" aria-label="추력 증가">+</button>
+    <button class="tc tb" id="bThrDn" data-k="KeyS" aria-label="추력 감소">&minus;</button>
+    <button class="tc tb" id="bRollL" data-k="KeyA" aria-label="왼쪽 롤">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12a7 7 0 1 0 2.1-5"/><path d="M6.5 2.5v5h5"/></svg></button>
+    <button class="tc tb" id="bRollR" data-k="KeyD" aria-label="오른쪽 롤">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 2.5v5h-5"/></svg></button>
+    <button class="tc tb" id="bWarp" data-k="ShiftLeft">WARP</button>
+    <button class="tc tb" id="bFire" data-k="Space">FIRE</button>
+  </div>
   <div id="toast"></div>
   <div id="flash"></div>
 
   <div id="dash">
     <div class="lip"></div>
     <div class="dgrid">
-      <div class="scr"><span class="sl">NAV</span><span class="sr" id="navRange"></span><canvas id="nav"></canvas></div>
+      <div class="scr" id="navScr"><span class="sl">NAV</span><span class="sr" id="navRange"></span><canvas id="nav"></canvas></div>
       <div class="scr"><canvas id="att"></canvas></div>
       <div class="gauges">
         <div class="scr g"><span class="gl">HULL</span>
@@ -1002,7 +1136,7 @@ function gameOver(title, reason) {
   state.mode = 'over';
   showCard(`<h1>MISSION FAILED</h1><h2>${title}</h2><p>${reason}</p>
     <div class="stats"><div>SCORE<b>${state.score}</b></div><div>KILLS<b>${state.kills}</b></div><div>ORBIT<b>${String(state.orbit).padStart(2, '0')}</b></div></div>
-    <div class="go">ENTER — 기체 선택</div>`);
+    <div class="go"><span class="key-only">ENTER</span><span class="touch-only-i">TAP</span> — 기체 선택</div>`);
 }
 function docked() {
   state.mode = 'docked';
@@ -1013,7 +1147,7 @@ function docked() {
     <div class="stats"><div>TIME<b>${state.missionT.toFixed(1)}s</b></div><div>BEACONS<b>${state.beaconsPassed}/${BEACON_N}</b></div>
     <div>HULL<b>${Math.round(state.hull)}%</b></div><div>KILLS<b>${state.kills}</b></div><div>SCORE<b>${state.score}</b></div></div>
     <p>보너스 +${bonus} · 연료와 선체를 정비했습니다.</p>
-    <div class="go">ENTER — 다음 궤도로</div>`);
+    <div class="go"><span class="key-only">ENTER</span><span class="touch-only-i">TAP</span> — 다음 궤도로</div>`);
 }
 function pause(on) {
   state.mode = on ? 'paused' : 'flying';
@@ -1099,6 +1233,7 @@ function confirmShip() {
   startGame();
   sfx('warpIn');
   toast(`${shipDef.name} LAUNCH`, '#ffb23e');
+  if (isTouch && innerHeight > innerWidth) setTimeout(() => toast('가로 화면으로 돌리면 더 넓게 보여요', '#9fc6ff'), 1800);
 }
 function selectKey(code) {
   if (code === 'ArrowLeft' || code === 'KeyA') stepSelect(-1);
@@ -1118,6 +1253,72 @@ $('selSound').addEventListener('click', e => {
   renderSelect();
 });
 $('select').addEventListener('pointerdown', initAudio);
+
+// =====================================================================
+// 터치 조작 (모바일)
+// =====================================================================
+const touchIn = { x: 0, y: 0 };
+let isTouch = false;
+function stickCurve(v) {
+  const a = Math.abs(v), dz = 0.1;
+  return a < dz ? 0 : Math.sign(v) * Math.pow((a - dz) / (1 - dz), 1.35);
+}
+function enableTouch() {
+  if (isTouch) return;
+  isTouch = true;
+  document.body.classList.add('touch');
+  requestAnimationFrame(resize);
+}
+if (matchMedia('(pointer: coarse)').matches) enableTouch();
+addEventListener('touchstart', enableTouch, { passive: true });
+(function setupTouch() {
+  const stick = $('stick'), knob = $('knob');
+  let stickId = null;
+  const move = e => {
+    const r = stick.getBoundingClientRect(), R = r.width / 2, lim = R * 0.8;
+    let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+    const m = Math.hypot(dx, dy);
+    if (m > lim) { dx *= lim / m; dy *= lim / m; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    touchIn.x = dx / lim; touchIn.y = -dy / lim;
+  };
+  const end = e => {
+    if (e.pointerId !== stickId) return;
+    stickId = null; touchIn.x = touchIn.y = 0; knob.style.transform = '';
+  };
+  stick.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); stickId = e.pointerId; try { stick.setPointerCapture(e.pointerId); } catch (_) {} move(e); });
+  stick.addEventListener('pointermove', e => { if (e.pointerId === stickId) move(e); });
+  stick.addEventListener('pointerup', end);
+  stick.addEventListener('pointercancel', end);
+  // 누르고 있는 동안 키 입력으로 동작하는 버튼들
+  document.querySelectorAll('#touch [data-k]').forEach(b => {
+    const k = b.dataset.k;
+    const off = () => { keys[k] = false; b.classList.remove('on'); };
+    b.addEventListener('pointerdown', e => {
+      e.preventDefault(); initAudio();
+      keys[k] = true; b.classList.add('on');
+      try { b.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    b.addEventListener('pointerup', off);
+    b.addEventListener('pointercancel', off);
+    b.addEventListener('lostpointercapture', off);
+    b.addEventListener('contextmenu', e => e.preventDefault());
+  });
+  // 엔진 레버 드래그 → 추력
+  const lever = document.querySelector('.lever');
+  const setLever = e => {
+    const r = lever.getBoundingClientRect();
+    state.throttle = clamp(1 - (e.clientY - r.top - 13) / Math.max(1, r.height - 26), 0, 1);
+  };
+  lever.addEventListener('pointerdown', e => { if (!isTouch) return; try { lever.setPointerCapture(e.pointerId); } catch (_) {} setLever(e); });
+  lever.addEventListener('pointermove', e => { if (lever.hasPointerCapture(e.pointerId)) setLever(e); });
+  // NAV 화면 탭 → 범위 전환
+  $('navScr').addEventListener('click', () => {
+    if (!isTouch) return;
+    state.navIdx = (state.navIdx + 1) % NAV_RANGES.length;
+    toast(`NAV RANGE ${NAV_RANGES[state.navIdx] / 100} km`, '#4aa8ff');
+  });
+})();
 
 // =====================================================================
 // 입력
@@ -1165,9 +1366,9 @@ $('bSet').addEventListener('click', e => { e.currentTarget.blur(); if (state.mod
 function updateShip(dt, controlled) {
   let pi = 0, yi = 0, ri = 0;
   if (controlled) {
-    pi = (keys.ArrowUp ? 1 : 0) - (keys.ArrowDown ? 1 : 0);
+    pi = clamp((keys.ArrowUp ? 1 : 0) - (keys.ArrowDown ? 1 : 0) + stickCurve(touchIn.y), -1, 1);
     if (state.invert) pi = -pi;
-    yi = (keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0);
+    yi = clamp((keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0) - stickCurve(touchIn.x), -1, 1);
     ri = (keys.KeyA ? 1 : 0) - (keys.KeyD ? 1 : 0);
     if (keys.KeyW) state.throttle = Math.min(1, state.throttle + dt * 0.5);
     if (keys.KeyS) state.throttle = Math.max(0, state.throttle - dt * 0.5);
@@ -1736,11 +1937,12 @@ function drawAtt(att, status) {
   const cx = W / 2;
   // 헤딩
   g.textBaseline = 'alphabetic';
-  g.font = '600 14px Rajdhani, sans-serif'; g.fillStyle = '#b9c9e6'; g.textAlign = 'right';
-  g.fillText('HDG', cx - 10, 24);
-  g.font = '700 22px Rajdhani, sans-serif'; g.fillStyle = '#fff'; g.textAlign = 'left';
-  g.fillText(String(Math.round(att.hdg) % 360).padStart(3, '0') + '°', cx, 25);
-  const ty = 54, tw = Math.min(W * 0.72, 460), ppd = tw / 90;
+  const cp = H < 170;  // 낮은 화면에서는 압축 배치
+  g.font = `600 ${cp ? 11 : 14}px Rajdhani, sans-serif`; g.fillStyle = '#b9c9e6'; g.textAlign = 'right';
+  g.fillText('HDG', cx - 8, cp ? 14 : 24);
+  g.font = `700 ${cp ? 15 : 22}px Rajdhani, sans-serif`; g.fillStyle = '#fff'; g.textAlign = 'left';
+  g.fillText(String(Math.round(att.hdg) % 360).padStart(3, '0') + '°', cx, cp ? 15 : 25);
+  const ty = cp ? 34 : 54, tw = Math.min(W * 0.72, 460), ppd = tw / 90;
   g.strokeStyle = 'rgba(200,220,255,.5)'; g.lineWidth = 1;
   g.beginPath(); g.moveTo(cx - tw / 2, ty); g.lineTo(cx + tw / 2, ty); g.stroke();
   g.save(); g.beginPath(); g.rect(cx - tw / 2, ty - 30, tw, 34); g.clip();
@@ -1749,7 +1951,7 @@ function drawAtt(att, status) {
     const x = cx + (d - att.hdg) * ppd, n = ((d % 360) + 360) % 360;
     g.strokeStyle = 'rgba(200,220,255,.7)';
     g.beginPath(); g.moveTo(x, ty); g.lineTo(x, ty - (n % 30 === 0 ? 10 : n % 10 === 0 ? 6 : 3)); g.stroke();
-    if (n % 30 === 0) { g.fillStyle = '#d8e4fa'; g.fillText(String(n).padStart(3, '0'), x, ty - 14); }
+    if (n % 30 === 0 && !cp) { g.fillStyle = '#d8e4fa'; g.fillText(String(n).padStart(3, '0'), x, ty - 14); }
   }
   g.restore();
   g.fillStyle = '#ffb23e';
@@ -1757,7 +1959,7 @@ function drawAtt(att, status) {
   g.beginPath(); g.moveTo(cx, ty + 1); g.lineTo(cx + 4, ty + 5); g.lineTo(cx, ty + 9); g.lineTo(cx - 4, ty + 5); g.closePath(); g.fill();
 
   // 자세계 (ADI)
-  const top = ty + 18, bottom = H - 36;
+  const top = ty + (cp ? 8 : 18), bottom = H - (cp ? 22 : 36);
   const R = Math.max(20, Math.min((bottom - top) / 2, W * 0.22)), acy = (top + bottom) / 2;
   const k = R / 35;
   g.save();
@@ -1816,17 +2018,19 @@ function drawAtt(att, status) {
   g.fillStyle = '#4aa8ff';
   g.beginPath(); g.moveTo(ex - 3, vsY); g.lineTo(ex - 13, vsY - 5); g.lineTo(ex - 13, vsY + 5); g.closePath(); g.fill();
   g.font = '600 11px Rajdhani, sans-serif'; g.fillStyle = '#8ea3c6';
-  g.textAlign = 'left'; g.fillText('SPD', sx, sTop - 6);
-  g.textAlign = 'right'; g.fillText('V/S', ex, sTop - 6);
+  if (!cp) {
+    g.textAlign = 'left'; g.fillText('SPD', sx, sTop - 6);
+    g.textAlign = 'right'; g.fillText('V/S', ex, sTop - 6);
+  }
   // 상태 배지
   const [label, col] = status;
-  g.font = '700 13px Rajdhani, sans-serif'; g.textAlign = 'center';
-  const bw = Math.max(86, g.measureText(label).width + 30), by = H - 28;
+  g.font = `700 ${cp ? 10 : 13}px Rajdhani, sans-serif`; g.textAlign = 'center';
+  const bh = cp ? 15 : 22, bw = Math.max(cp ? 64 : 86, g.measureText(label).width + (cp ? 18 : 30)), by = H - bh - (cp ? 4 : 6);
   g.fillStyle = col + '22'; g.strokeStyle = col; g.lineWidth = 1.2;
   g.beginPath();
-  if (g.roundRect) g.roundRect(cx - bw / 2, by, bw, 22, 5); else g.rect(cx - bw / 2, by, bw, 22);
+  if (g.roundRect) g.roundRect(cx - bw / 2, by, bw, bh, 4); else g.rect(cx - bw / 2, by, bw, bh);
   g.fill(); g.stroke();
-  g.fillStyle = col; g.fillText(label, cx, by + 16);
+  g.fillStyle = col; g.fillText(label, cx, by + bh * 0.73);
 }
 
 const focal = () => (innerHeight + dashH) / 2 / Math.tan(camera.fov / 2 / DEG);
@@ -1994,7 +2198,9 @@ function showTitle() {
   <p>항법 비컨을 따라 비행해 우주 정거장의 도킹 포트에 접근하세요.<br>
   도킹하려면 <b>120 m/s 이하</b>로 감속해야 합니다.<br>
   <b style="color:#ff6a78">적 전투기</b>가 나타나면 레이저로 격추하세요. 빨간 원(리드 표시)을 조준하면 명중시키기 쉽습니다.</p>
-  <div class="kgrid">
+  <p class="touch-only">왼쪽 <b>스틱</b>으로 조종 · <b>FIRE</b> 레이저 · <b>WARP</b> 워프 · <b>↺ ↻</b> 롤 · <b>+ −</b> 추력<br>
+  엔진 레버를 위아래로 끌어도 추력이 바뀌고, NAV 화면을 탭하면 범위가 바뀝니다.</p>
+  <div class="kgrid key-only">
     <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span><span>기수 조종 (피치 / 요)</span>
     <span><kbd>W</kbd><kbd>S</kbd></span><span>추력 증가 / 감소</span>
     <span><kbd>1</kbd>–<kbd>4</kbd></span><span>엔진 OFF · IDLE · CRUISE · FULL</span>
@@ -2003,7 +2209,7 @@ function showTitle() {
     <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
   </div>
-  <div class="go">ENTER — 기체 선택</div>`);
+  <div class="go"><span class="key-only">ENTER</span><span class="touch-only-i">TAP</span> — 기체 선택</div>`);
 }
 showTitle();
 buildSelect();
