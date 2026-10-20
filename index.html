@@ -435,6 +435,42 @@
     .pager { grid-row: auto; grid-column: auto; }
   }
 
+  /* ON-CALL 미션 */
+  .card .missions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 4px; }
+  .card .mbtn { position: relative; text-align: left; padding: 12px 14px; margin: 0; border-radius: 10px;
+    border: 1px solid #ffffff2a; background: #ffffff0a; }
+  .card .mbtn b { display: block; font-family: Rajdhani, sans-serif; font-size: 20px; letter-spacing: .14em; color: #fff; }
+  .card .mbtn span { display: block; font-size: 12.5px; color: var(--dim); margin-top: 2px; }
+  .card .mbtn i { position: absolute; top: 9px; right: 10px; font-style: normal; font-family: Rajdhani, sans-serif; font-weight: 700;
+    font-size: 11px; letter-spacing: .1em; color: #120b02; background: var(--amber); border-radius: 4px; padding: 1px 6px; }
+  .card .mbtn.on { border-color: var(--amber); background: #ffb23e1c; box-shadow: 0 0 0 1px #ffb23e55; }
+  .card ol.brief { text-align: left; font-size: 13.5px; line-height: 1.75; color: #c9d6ea; padding-left: 22px; margin: 10px 0; }
+  .card .acts { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .card .acts button { margin: 0; text-align: left; font-size: 14px; padding: 11px 14px; }
+  .card .acts button.no { opacity: .4; text-decoration: line-through; pointer-events: none; }
+  .card .clue { text-align: left; font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #dfe8fa;
+    padding: 6px 10px; margin: 6px 0; background: #00000066; border: 1px solid #ffffff14; border-radius: 6px; }
+  .card .clue b { color: var(--amber); font-weight: 600; }
+  .card .fb { text-align: left; color: #ffc4c8; font-size: 13.5px; background: #ff4a5a1a; border: 1px solid #ff4a5a55;
+    border-radius: 8px; padding: 8px 12px; margin: 8px 0; }
+  .card canvas#ocChart { width: 100%; height: 130px; display: block; margin: 10px 0 4px; }
+  .card p.lg { font-size: 12px; color: var(--dim); margin: 0 0 6px; }
+  .card .lvlink { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--blue); }
+  .oclive { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ffffff14; }
+  .ocrow { display: flex; align-items: baseline; gap: 12px; font-weight: 600; }
+  .ocrow b { font-size: 22px; color: #fff; font-variant-numeric: tabular-nums; }
+  .ocrow span { font-size: 14px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  #ocSpark { display: block; width: 100%; height: 40px; margin-top: 6px; }
+  .occlues div { font-family: ui-monospace, Consolas, monospace; font-size: 11px; line-height: 1.45; color: #c9d6ea; padding: 4px 0;
+    border-top: 1px dashed #ffffff1a; }
+  .occlues div b { color: var(--amber); font-weight: 600; }
+  #lwLabels { position: absolute; inset: 0; display: none; }
+  .lwl { position: absolute; transform: translate(-50%, -100%); text-align: center; white-space: nowrap; text-shadow: 0 1px 4px #000; }
+  .lwl b { display: block; font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: #e9f1ff; }
+  .lwl span { font-size: 12px; font-weight: 600; color: var(--dim); }
+  .lwl.clue b { font-family: Rajdhani, sans-serif; font-size: 14px; letter-spacing: .1em; color: var(--teal); }
+  .lwl.cc b { font-family: Rajdhani, sans-serif; font-size: 14px; letter-spacing: .12em; }
+  @media (max-height: 520px) { #ocSpark, .occlues { display: none; } .oclive { margin-top: 0; padding-top: 0; border-top: 0; } }
 </style>
 </head>
 <body>
@@ -442,6 +478,7 @@
   <div id="canopy"></div>
   <div id="warpfx"></div>
   <div id="warpflash"></div>
+  <div id="lwLabels"></div>
   <svg id="frame" viewBox="0 0 1000 1000" preserveAspectRatio="none">
     <defs>
       <pattern id="strutTex" patternUnits="userSpaceOnUse" width="160" height="320">
@@ -540,11 +577,11 @@
       <div class="scr" id="navScr"><span class="sl">NAV</span><span class="sr" id="navRange"></span><canvas id="nav"></canvas></div>
       <div class="scr"><canvas id="att"></canvas></div>
       <div class="gauges">
-        <div class="scr g"><span class="gl">HULL</span>
+        <div class="scr g"><span class="gl" id="glHull">HULL</span>
           <svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="40"/><circle class="fg" id="hullRing" cx="50" cy="50" r="40"/>
             <path class="ico" d="M50 34 63 39v11c0 8-6 14-13 17-7-3-13-9-13-17V39z"/></svg>
           <b id="hullV">100%</b></div>
-        <div class="scr g"><span class="gl">SHIELD</span>
+        <div class="scr g"><span class="gl" id="glShd">SHIELD</span>
           <svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="40"/><circle class="fg" id="shdRing" cx="50" cy="50" r="40"/>
             <path class="ico" d="M50 34 63 39v11c0 8-6 14-13 17-7-3-13-9-13-17V39z"/></svg>
           <b id="shdV">100%</b></div>
@@ -1080,7 +1117,8 @@ const state = {
   mode: 'title', orbit: 7, score: 0, beaconsPassed: 0, beaconsMissed: 0,
   hull: 100, shield: 100, fuel: 100, throttle: 0.33, speed: 10, boosting: false, warp: 0,
   shake: 0, hitT: 0, sinceHit: 9, missionT: 0, navIdx: 0, invert: false, prox: false,
-  heat: 0, overheat: false, kills: 0, spawnT: 7, sound: true, combat: false
+  heat: 0, overheat: false, kills: 0, spawnT: 7, sound: true, combat: false,
+  mission: new URLSearchParams(location.search).get('mission') === 'oncall' ? 'oncall' : 'orbit', budget: 100
 };
 const rate = { p: 0, y: 0, r: 0 };
 
@@ -1120,6 +1158,8 @@ function startGame() {
   Object.assign(state, { mode: 'flying', orbit: 7, score: 0, hull: 100, shield: 100, fuel: 100,
     throttle: 0.66, speed: 12, shake: 0, hitT: 0, sinceHit: 9, kills: 0 });
   clearCombat();
+  if (state.mission === 'oncall') { setupOncall(); showBrief(); return; }
+  applyWorld('orbit');
   setupMission();
   hideCard();
 }
@@ -1139,6 +1179,7 @@ function gameOver(title, reason) {
     <div class="go"><span class="key-only">ENTER</span><span class="touch-only-i">TAP</span> — 기체 선택</div>`);
 }
 function docked() {
+  if (state.mission === 'oncall') { ocDocked(); return; }
   state.mode = 'docked';
   const bonus = 500 + Math.round(state.hull * 3) + Math.max(0, Math.round(120 - state.missionT) * 5);
   state.score += bonus;
@@ -1184,6 +1225,8 @@ function primaryAction() {
   if (state.mode === 'title' || state.mode === 'over') openSelect();
   else if (state.mode === 'docked') nextMission();
   else if (state.mode === 'paused') pause(false);
+  else if (state.mode === 'brief') ocBegin();
+  else if (state.mode === 'result') startGame();
 }
 
 // =====================================================================
@@ -1330,6 +1373,11 @@ addEventListener('keydown', e => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter'].includes(e.code)) e.preventDefault();
   if (e.repeat) return;
   if (state.mode === 'select') { selectKey(e.code); return; }
+  if (state.mode === 'decide') {
+    const n = { Digit1: 0, Digit2: 1, Digit3: 2 }[e.code];
+    if (n !== undefined) chooseAction(n);
+    return;
+  }
   if (e.code === 'Enter') primaryAction();
   if (e.code === 'KeyP' || e.code === 'Escape') {
     if (state.mode === 'flying') pause(true); else if (state.mode === 'paused') pause(false);
@@ -1346,10 +1394,16 @@ addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 $('overlay').addEventListener('click', e => {
   initAudio();
-  const act = e.target.dataset && e.target.dataset.act;
-  if (act === 'invert') { state.invert = !state.invert; e.target.textContent = `상하 반전: ${state.invert ? 'ON' : 'OFF'}`; return; }
-  if (act === 'sound') { state.sound = !state.sound; e.target.textContent = `효과음: ${state.sound ? 'ON' : 'OFF'}`; return; }
+  const actEl = e.target.closest('[data-act]');
+  const act = actEl && actEl.dataset.act;
+  if (act === 'invert') { state.invert = !state.invert; actEl.textContent = `상하 반전: ${state.invert ? 'ON' : 'OFF'}`; return; }
+  if (act === 'sound') { state.sound = !state.sound; actEl.textContent = `효과음: ${state.sound ? 'ON' : 'OFF'}`; return; }
   if (act === 'restart') { startGame(); return; }
+  if (act === 'm-orbit' || act === 'm-oncall') { state.mission = act === 'm-orbit' ? 'orbit' : 'oncall'; openSelect(); return; }
+  if (act === 'oc-go') { ocBegin(); return; }
+  if (act && act.startsWith('act-')) { chooseAction(+act.slice(4)); return; }
+  if (act === 'res-retry') { startGame(); return; }
+  if (act === 'res-orbit') { state.mission = 'orbit'; openSelect(); return; }
   if (act === 'close') { if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
   if ($('overlay').dataset.settings) return;
   primaryAction();
@@ -1409,10 +1463,12 @@ function updateBeacons() {
       state.beaconsPassed++;
       state.score += 150;
       state.fuel = Math.min(100, state.fuel + 4);
-      toast(`BEACON ${state.beaconsPassed + state.beaconsMissed}/${BEACON_N}  ·  FUEL +4%`);
+      if (state.mission === 'oncall') ocRevealClue();
+      else toast(`BEACON ${state.beaconsPassed + state.beaconsMissed}/${BEACON_N}  ·  FUEL +4%`);
       continue;
     }
     b.prevSide = side;
+    if (state.mission === 'oncall') continue;
     tmpW.copy(b.mesh.position).sub(ship.position);
     if (tmpW.dot(fwd) < -40 && tmpW.length() > 160) {  // 지나쳐버린 비컨
       scene.remove(b.mesh);
@@ -1427,6 +1483,7 @@ function updateBeacons() {
 
 function updateAsteroids(dt, collide) {
   state.prox = false;
+  if (state.mission === 'oncall' && ocWorld.visible) return;
   for (const a of asteroids) {
     a.mesh.rotateOnAxis(a.axis, a.spin * dt);
     a.mesh.position.addScaledVector(a.vel, dt);
@@ -1444,6 +1501,14 @@ function updateAsteroids(dt, collide) {
 }
 function damagePlayer(dmg, label, shake = 0.9) {
   dmg *= shipDef.armor;
+  if (state.mission === 'oncall') {
+    state.budget = Math.max(0, state.budget - dmg * 0.35);
+    state.shake = Math.max(state.shake, shake); state.hitT = 1.2;
+    flash(); sfx('hit');
+    if (label) toast(`${label}  BUDGET −${(dmg * 0.35).toFixed(1)}%`, '#ff6a6a');
+    if (state.budget <= 0 && state.mode === 'flying' && !oc.fixed) { ocFail('budget'); return true; }
+    return false;
+  }
   const absorbed = Math.min(state.shield, dmg * 0.8);
   state.shield -= absorbed;
   state.hull = Math.max(0, state.hull - (dmg - absorbed));
@@ -1580,6 +1645,7 @@ function hitMarker() {
 }
 
 function updateEnemies(dt) {
+  if (state.mission === 'oncall') return;
   // 스폰
   state.spawnT -= dt;
   if (state.spawnT <= 0) {
@@ -1681,8 +1747,11 @@ function updateBolts(dt) {
           break;
         }
       }
-      if (!hit) for (const a of asteroids) {
+      if (!hit && state.mission !== 'oncall') for (const a of asteroids) {
         if (segDist(_p0, p1, a.mesh.position) < a.r * 0.9) { hit = true; hitAsteroid(a, p1); break; }
+      }
+      if (!hit && state.mission === 'oncall') for (let j = debris.length - 1; j >= 0; j--) {
+        if (segDist(_p0, p1, debris[j].mesh.position) < 7) { hit = true; rescueDebris(j); break; }
       }
     }
     if (hit || b.life <= 0) { scene.remove(b.mesh); bolts.splice(i, 1); }
@@ -1751,6 +1820,7 @@ function sfx(type, dist = 0) {
 }
 
 function updateDocking() {
+  if (state.mission === 'oncall' && oc.fixed) { state.nearDock = false; return; }
   const d = ship.position.distanceTo(dockWorld);
   state.nearDock = d < 120;
   if (d < 20) {
@@ -1847,6 +1917,618 @@ function warpEngage() {
 }
 function warpDisengage() { sfx('warpOut'); }
 
+
+// =====================================================================
+// 관제 파일럿 (ON-CALL) — Logverse 연동: 결제 API 장애 대응
+// =====================================================================
+const LW = 6, OC_SAMPLE = 5, OC_NB = 24, OC_MIN = 90;
+const OC_EP = [
+  { path: '/',             w: .17, lat: 45,  col: 0x5fb4ff, r: 36,  a: 0.5 },
+  { path: '/static/*',     w: .15, lat: 14,  col: 0x9aa8c0, r: 52,  a: 2.3 },
+  { path: '/products',     w: .15, lat: 85,  col: 0x5fe0c0, r: 70,  a: -2.6 },
+  { path: '/product/:id',  w: .20, lat: 110, col: 0x8fd36a, r: 90,  a: 1.2 },
+  { path: '/search',       w: .11, lat: 190, col: 0xc89bff, r: 110, a: 2.9 },
+  { path: '/login',        w: .07, lat: 120, col: 0xff9fd0, r: 130, a: -0.4 },
+  { path: '/cart',         w: .09, lat: 95,  col: 0xffcf6a, r: 150, a: 2.0 },
+  { path: '/api/checkout', w: .06, lat: 280, col: 0xff8f5a, r: 172, a: -1.75 },
+];
+const CHK = 7, OC_NE = OC_EP.length;
+const OC_CC = [
+  { code: 'KR', w: .40, tz: 0 }, { code: 'US', w: .17, tz: -13 }, { code: 'JP', w: .12, tz: 0 }, { code: 'IN', w: .07, tz: -3.5 },
+  { code: 'DE', w: .07, tz: -7 }, { code: 'BR', w: .05, tz: -12 }, { code: 'GB', w: .06, tz: -8 }, { code: 'SG', w: .06, tz: -1 },
+  { code: 'BOT', w: 0, tz: 0, bot: true },
+];
+const T_START = 14 * 3600 + 9 * 60 + 20, T_INC = 14 * 3600 + 10 * 60, T_LIMIT = 15 * 3600, T_NATURAL = 14 * 3600 + 35 * 60;
+const OC_ERR_COST = .3;
+const CLUES = [
+  { t: '14:09:02', tag: '배포 이력', line: 'deploy payment-api v2.31.0 — canary → 100% 전환 완료' },
+  { t: '14:10:17', tag: '앱 오류 로그', line: 'ERROR PaymentClient: NullPointerException at TokenCache.get() (v2.31.0)' },
+  { t: '14:10:40', tag: '인프라 지표', line: 'payment-api CPU 41% · DB pool 18/100 · 외부 PG 응답 정상' },
+];
+const ACTIONS = [
+  { label: '결제 서버 증설 (+4 pods)', ok: false,
+    why: 'CPU 41%, DB 커넥션도 여유가 있습니다. 용량 부족이 아니라서 5xx는 그대로입니다.' },
+  { label: 'payment-api 롤백 (v2.31.0 → v2.30.4)', ok: true },
+  { label: '의심 IP 대역 차단 (WAF 규칙 추가)', ok: false,
+    why: '5xx는 정상 사용자 요청에서 나고 있습니다. 차단해도 오류율은 내려가지 않습니다.' },
+];
+const ocGb = (h, m, s2) => { let d = Math.abs(h - m); d = Math.min(d, 24 - d); return Math.exp(-d * d / (2 * s2 * s2)); };
+const ocCurve = h => .12 + .35 * ocGb(h, 9.5, 1.6) + .6 * ocGb(h, 12.7, 2.2) + .3 * ocGb(h, 16, 2.5) + .95 * ocGb(h, 21.2, 2);
+const ocBucket = l => clamp(Math.floor(Math.log(l / 5) / Math.log(4000) * OC_NB), 0, OC_NB - 1);
+const ocBucketUpper = b => 5 * Math.pow(4000, (b + 1) / OC_NB);
+const ocHHMMSS = t => { const s2 = Math.floor(t); return [s2 / 3600, s2 / 60 % 60, s2 % 60].map(v => String(Math.floor(v)).padStart(2, '0')).join(':'); };
+const ocMs = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + 's' : Math.round(ms) + 'ms';
+function ocPoisson(l) {
+  if (l > 30) return Math.max(0, Math.round(l + Math.sqrt(l) * ocGauss()));
+  const L = Math.exp(-l); let k = 0, q = 1;
+  do { k++; q *= Math.random(); } while (q > L);
+  return k - 1;
+}
+function ocGauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function ocPick(ws) { let t = 0; for (const w of ws) t += w; let r = Math.random() * t; for (let i = 0; i < ws.length; i++) { r -= ws[i]; if (r <= 0) return i; } return ws.length - 1; }
+
+const oc = { simT: T_START, fixed: false, fixT: 0, incident: false, clues: 0, wrong: 0, tried: [], rescued: 0, lost: 0,
+  success: 100, done: false, dockedOnce: false, feedback: '', lastM: 0 };
+const ocS = { n: new Uint32Array(OC_MIN * OC_NE), s5: new Uint32Array(OC_MIN * OC_NE), h: new Uint32Array(OC_MIN * OC_NE * OC_NB) };
+
+// ---------- 월드 ----------
+const ocWorld = new THREE.Group();
+ocWorld.visible = false;
+scene.add(ocWorld);
+ocWorld.add(new THREE.PointLight(0xffe6c0, 1.3, 0, 1));
+const ocSun = new THREE.Mesh(new THREE.SphereGeometry(80, 40, 30), new THREE.MeshBasicMaterial({ color: 0xffe2a8, fog: false }));
+ocWorld.add(ocSun);
+const ocSunGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: glowTexture([[0, '#ffffff'], [.15, '#ffe2a8'], [.4, '#ffb34766'], [1, '#ff8a0000']]),
+  blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
+ocSunGlow.scale.set(820, 820, 1);
+ocWorld.add(ocSunGlow);
+function ocBandTex(hex) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  const g = c.getContext('2d'), base = new THREE.Color(hex);
+  g.fillStyle = base.getStyle(); g.fillRect(0, 0, 256, 128);
+  for (let i = 0; i < 26; i++) {
+    g.fillStyle = base.clone().offsetHSL(rand(-.03, .03), rand(-.15, .1), rand(-.18, .12)).getStyle();
+    g.globalAlpha = rand(.35, .8);
+    g.fillRect(0, rand(0, 128), 256, rand(2, 12));
+  }
+  return new THREE.CanvasTexture(c);
+}
+const ocHaloTex = glowTexture([[0, '#ffffff00'], [.42, '#ffffff00'], [.5, '#ffffffaa'], [.62, '#ffffff33'], [1, '#ffffff00']], 128);
+const ocPlanets = OC_EP.map((e, i) => {
+  const R = 16 + 30 * Math.sqrt(e.w / .2);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(R, 40, 30), new THREE.MeshStandardMaterial({
+    map: ocBandTex(e.col), roughness: .85, metalness: .05, emissive: new THREE.Color(e.col).multiplyScalar(.1) }));
+  mesh.position.set(Math.cos(e.a) * e.r * LW, (i % 2 ? 1 : -1) * 14, Math.sin(e.a) * e.r * LW);
+  ocWorld.add(mesh);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: ocHaloTex, color: 0x3ee6c1, transparent: true, opacity: .7,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  halo.position.copy(mesh.position);
+  halo.scale.set(R * 3.6, R * 3.6, 1);
+  ocWorld.add(halo);
+  const pts = [];
+  for (let k = 0; k <= 160; k++) { const a = k / 160 * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * e.r * LW, mesh.position.y, Math.sin(a) * e.r * LW)); }
+  ocWorld.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0x2a4064, transparent: true, opacity: .35, fog: false })));
+  return { e, R, mesh, halo, hc: new THREE.Color(0x3ee6c1), e5: 0, rpm: 0 };
+});
+const ocClusters = OC_CC.map((c, i) => {
+  const pos = c.bot ? new THREE.Vector3(900, 1140, -1380)
+    : (() => { const a = i / (OC_CC.length - 1) * Math.PI * 2 + .3; return new THREE.Vector3(Math.cos(a) * 1920, (Math.sin(a * 2) * 26 - 20) * LW, Math.sin(a) * 1920); })();
+  const n = 80, arr = new Float32Array(n * 3);
+  for (let k = 0; k < n; k++) { const v = randomDir().multiplyScalar(Math.abs((Math.random() + Math.random() - 1) * 80)); arr.set([v.x, v.y, v.z], k * 3); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const grp = new THREE.Group();
+  grp.position.copy(pos);
+  grp.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: c.bot ? 0xb4a8ff : 0xbfd6ff, size: 6, map: dotTex,
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTexture([[0, c.bot ? '#d4ccff' : '#cfe0ff'], [.3, c.bot ? '#7a6cff55' : '#4a7cff55'], [1, '#0000']], 64),
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  glow.scale.set(260, 260, 1);
+  grp.add(glow);
+  ocWorld.add(grp);
+  return { c, pos };
+});
+
+// ---------- 요청 입자 ----------
+const OP = 2600;
+const opPos = new Float32Array(OP * 3), opCol = new Float32Array(OP * 3), otPos = new Float32Array(OP * 6), otCol = new Float32Array(OP * 6);
+const opS = new Float32Array(OP * 3), opO = new Float32Array(OP * 3), opT0 = new Float32Array(OP), opDur = new Float32Array(OP);
+const opEp = new Int16Array(OP), opSt = new Uint16Array(OP), opRGB = new Float32Array(OP * 3);
+const opFree = [], opAct = [];
+for (let i = OP - 1; i >= 0; i--) opFree.push(i);
+const opGeo = new THREE.BufferGeometry();
+opGeo.setAttribute('position', new THREE.BufferAttribute(opPos, 3));
+opGeo.setAttribute('color', new THREE.BufferAttribute(opCol, 3));
+const opPoints = new THREE.Points(opGeo, new THREE.PointsMaterial({ size: 8, map: dotTex, vertexColors: true, transparent: true,
+  blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+opPoints.frustumCulled = false;
+ocWorld.add(opPoints);
+const otGeo = new THREE.BufferGeometry();
+otGeo.setAttribute('position', new THREE.BufferAttribute(otPos, 3));
+otGeo.setAttribute('color', new THREE.BufferAttribute(otCol, 3));
+const otLines = new THREE.LineSegments(otGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true,
+  blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+otLines.frustumCulled = false;
+ocWorld.add(otLines);
+const OC_COL = { ok: new THREE.Color(0x3ee6c1), redir: new THREE.Color(0x4aa8ff), warn: new THREE.Color(0xffb23e),
+  err: new THREE.Color(0xff4a5a), bot: new THREE.Color(0xb4a8ff) };
+const _oa = new THREE.Vector3(), _ob = new THREE.Vector3();
+function ocSpawn(c, ep, st, lat, now) {
+  if (!opFree.length) return;
+  const i = opFree.pop();
+  opAct.push(i);
+  const s0 = _oa.copy(ocClusters[c].pos).add(randomDir().multiplyScalar(rand(0, 70)));
+  const end = ocPlanets[ep].mesh.position, d = s0.distanceTo(end);
+  const o = _ob.set(0, d * .18, 0).add(randomDir().multiplyScalar(d * .08));
+  opS.set([s0.x, s0.y, s0.z], i * 3);
+  opO.set([o.x, o.y, o.z], i * 3);
+  opT0[i] = now;
+  opDur[i] = clamp(1.1 + .4 * Math.log2(1 + lat / 40), 1.1, 5);
+  opEp[i] = ep; opSt[i] = st;
+  const col = st >= 500 ? OC_COL.err : st >= 400 ? OC_COL.warn : OC_CC[c].bot ? OC_COL.bot : st >= 300 ? OC_COL.redir : OC_COL.ok;
+  opRGB.set([col.r, col.g, col.b], i * 3);
+}
+function ocBez(i, u, out) {
+  const e = ocPlanets[opEp[i]].mesh.position, k = i * 3;
+  const sx = opS[k], sy = opS[k + 1], sz = opS[k + 2];
+  const cx = (sx + e.x) / 2 + opO[k], cy = (sy + e.y) / 2 + opO[k + 1], cz = (sz + e.z) / 2 + opO[k + 2];
+  const a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, c = u * u;
+  return out.set(a * sx + b * cx + c * e.x, a * sy + b * cy + c * e.y, a * sz + b * cz + c * e.z);
+}
+function ocClearParticles() {
+  for (const i of opAct) { opCol.fill(0, i * 3, i * 3 + 3); otCol.fill(0, i * 6, i * 6 + 6); opFree.push(i); }
+  opAct.length = 0;
+}
+const ocFlashes = [];
+for (let i = 0; i < 120; i++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  sp.visible = false; ocWorld.add(sp); ocFlashes.push({ sp, life: 0, base: 1 });
+}
+let ocFlashIdx = 0;
+function ocImpact(i) {
+  const pl = ocPlanets[opEp[i]], st = opSt[i];
+  const f = ocFlashes[ocFlashIdx++ % ocFlashes.length];
+  f.sp.visible = true; f.life = .45;
+  f.sp.position.set(opPos[i * 3], opPos[i * 3 + 1], opPos[i * 3 + 2]);
+  f.sp.material.color.setRGB(opRGB[i * 3], opRGB[i * 3 + 1], opRGB[i * 3 + 2]);
+  f.base = st >= 500 ? 26 : 12;
+  if (st >= 500 && opEp[i] === CHK && !oc.fixed && Math.random() < .5) spawnDebris(pl, f.sp.position);
+}
+
+// ---------- 오류 파편 (레이저로 재시도 구조) ----------
+const debris = [];
+const debrisGeo = new THREE.OctahedronGeometry(2.8, 0);
+const debrisMat = new THREE.MeshBasicMaterial({ color: 0xff4a5a, fog: false });
+const debrisGlow = new THREE.SpriteMaterial({ map: glowTexture([[0, '#ffd0d4'], [.3, '#ff4a5a88'], [1, '#ff4a5a00']], 64),
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+function spawnDebris(pl, at) {
+  if (debris.length >= 70) return;
+  const mesh = new THREE.Mesh(debrisGeo, debrisMat);
+  const gl = new THREE.Sprite(debrisGlow); gl.scale.set(16, 16, 1); mesh.add(gl);
+  ocWorld.add(mesh);
+  const rel = at.clone().sub(pl.mesh.position);
+  debris.push({ mesh, pl, ang: Math.atan2(rel.z, rel.x), rad: pl.R * rand(1.35, 2.7), y: rand(-1, 1) * pl.R * .9,
+    spd: rand(.15, .4) * (Math.random() < .5 ? -1 : 1), life: rand(16, 22) });
+}
+function removeDebris(j) { ocWorld.remove(debris[j].mesh); debris.splice(j, 1); }
+function rescueDebris(j) {
+  const d = debris[j];
+  burst(d.mesh.position, 0x3ee6c1, 40, 16, 0.9);
+  removeDebris(j);
+  oc.rescued++;
+  state.budget = Math.min(100, state.budget + .35);
+  hitMarker(); sfx('hit', 200);
+  if (oc.rescued % 5 === 1) toast(`RETRY OK  +${OC_SAMPLE} 요청`, '#3ee6c1');
+}
+
+// ---------- 트래픽 생성 & 통계 ----------
+function ocErrP() {
+  if (oc.simT < T_INC) return .004;
+  if (!oc.fixed) return .004 + .556 * Math.min(1, (oc.simT - T_INC) / 30);
+  return .004 + .556 * Math.exp(-(oc.simT - oc.fixT) / 35);
+}
+function ocRate(t) {
+  let sum = 0;
+  for (const c of OC_CC) sum += c.bot ? 3 : 190 * c.w * ocCurve(((t / 3600) + c.tz + 48) % 24);
+  return sum / 60 * (10 / OC_SAMPLE);
+}
+function ocGenerate(dtSim, visual, now) {
+  const t = oc.simT, n = ocPoisson(ocRate(t) * dtSim);
+  const m = clamp(Math.floor((t - 14 * 3600) / 60), 0, OC_MIN - 1);
+  const cw = OC_CC.map(c => c.bot ? 3 : 190 * c.w * ocCurve(((t / 3600) + c.tz + 48) % 24));
+  const ew = OC_EP.map(e => e.w);
+  const errP = ocErrP();
+  let spawned = 0;
+  for (let k = 0; k < n; k++) {
+    const c = ocPick(cw), ep = ocPick(ew);
+    let st = 200, lat = OC_EP[ep].lat * Math.exp(.45 * ocGauss());
+    if (ep === CHK) {
+      lat *= 1 + 16 * (errP - .004);
+      if (Math.random() < errP) { st = [500, 502, 503, 504][Math.floor(Math.random() * 4)]; if (st === 504) lat = rand(9000, 10000); }
+    } else {
+      const q = Math.random();
+      if (q < .0015) st = 500; else if (q < .02) st = 404; else if (q < .06) st = 304;
+    }
+    lat = clamp(lat, 2, 10000);
+    const i = m * OC_NE + ep;
+    ocS.n[i]++;
+    if (st >= 500) ocS.s5[i]++;
+    ocS.h[i * OC_NB + ocBucket(lat)]++;
+    if (ep === CHK && st >= 500) state.budget = Math.max(0, state.budget - OC_ERR_COST);
+    if (visual && spawned < 90) { ocSpawn(c, ep, st, lat, now); spawned++; }
+  }
+  oc.lastM = Math.max(oc.lastM, m);
+}
+function ocStats(win = 2) {
+  const m1 = clamp(Math.floor((oc.simT - 14 * 3600) / 60), 0, OC_MIN - 1), m0 = Math.max(0, m1 - win + 1);
+  return OC_EP.map((_, e) => {
+    let n = 0, s5 = 0; const h = new Array(OC_NB).fill(0);
+    for (let m = m0; m <= m1; m++) {
+      const i = m * OC_NE + e; n += ocS.n[i]; s5 += ocS.s5[i];
+      for (let b = 0; b < OC_NB; b++) h[b] += ocS.h[i * OC_NB + b];
+    }
+    let p95 = 0, acc = 0;
+    for (let b = 0; b < OC_NB; b++) { acc += h[b]; if (n && acc >= n * .95) { p95 = ocBucketUpper(b); break; } }
+    return { n, e5: n ? s5 / n : 0, p95, rpm: n / (m1 - m0 + 1) * OC_SAMPLE };
+  });
+}
+
+// ---------- 라벨 ----------
+const lwEl = $('lwLabels');
+const mkLabel = (cls, html) => { const d = document.createElement('div'); d.className = 'lwl ' + cls; d.innerHTML = html; lwEl.appendChild(d); return d; };
+const ocPL = OC_EP.map(e => mkLabel('', `<b>${e.path}</b><span></span>`));
+const ocCL = OC_CC.map(c => mkLabel('cc', `<b>${c.code}</b>`));
+const ocBL = [0, 1, 2].map(() => mkLabel('clue', '<b></b><span>로그 단서</span>'));
+function placeLabel(el, pos, dy) {
+  const pr = project(pos), winH = innerHeight - dashH;
+  if (pr.behind || pr.x < 0 || pr.x > innerWidth || pr.y < 0 || pr.y > winH) { el.style.display = 'none'; return false; }
+  el.style.display = 'block';
+  el.style.left = pr.x + 'px'; el.style.top = pr.y - dy + 'px';
+  return pr;
+}
+
+// ---------- 월드 전환 ----------
+const OBJ_ORBIT_HTML = $('obj').innerHTML;
+const OBJ_ONCALL_HTML = `
+  <div class="oh"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5a5a" stroke-width="2"><path d="M12 3 22 20H2z"/><path d="M12 10v4M12 17v.5"/></svg>결제 API 장애 대응</div>
+  <div class="oi" id="q1"><span class="ck"></span>로그 단서 조사<em id="q1n">0/3</em></div>
+  <div class="oi" id="q2"><span class="ck"></span>운영 정거장 도킹<em>&lt; 120 m/s</em></div>
+  <div class="oi" id="q3"><span class="ck"></span>원인 조치<em id="q3n"></em></div>
+  <div class="oi" id="q4"><span class="ck"></span>복구 확인<em id="q4n"></em></div>
+  <div class="oclive">
+    <div class="ocrow"><b id="ocClk">14:09:20</b><span id="ocErr"></span><span id="ocP95"></span></div>
+    <canvas id="ocSpark"></canvas>
+    <div class="occlues" id="ocClues"></div>
+  </div>`;
+function applyWorld(m) {
+  const on = m === 'oncall';
+  if (ocWorld.visible === on && $('obj').dataset.world === m) return;
+  ocWorld.visible = on;
+  lwEl.style.display = on ? 'block' : 'none';
+  planet.visible = !on; sun.visible = !on;
+  asteroids.forEach(a => { a.mesh.visible = !on; });
+  $('obj').innerHTML = on ? OBJ_ONCALL_HTML : OBJ_ORBIT_HTML;
+  $('obj').dataset.world = m;
+  $('glHull').textContent = on ? 'BUDGET' : 'HULL';
+  $('glShd').textContent = on ? 'SUCCESS' : 'SHIELD';
+}
+
+// ---------- 미션 흐름 ----------
+const _ocM = new THREE.Matrix4();
+function setupOncall() {
+  applyWorld('oncall');
+  ocS.n.fill(0); ocS.s5.fill(0); ocS.h.fill(0);
+  Object.assign(oc, { simT: T_START, fixed: false, fixT: 0, incident: false, clues: 0, wrong: 0, tried: [], rescued: 0,
+    lost: 0, success: 100, done: false, dockedOnce: false, feedback: '', lastM: 0 });
+  state.budget = 100;
+  state.navIdx = 2;
+  ocClearParticles();
+  while (debris.length) removeDebris(0);
+  // 2분 분량의 과거 트래픽을 미리 채워 그래프가 비어 보이지 않게
+  oc.simT = T_START - 600;
+  for (let k = 0; k < 600; k++) { ocGenerate(1, false); oc.simT += 1; }
+  state.budget = 100;
+
+  const cp = ocPlanets[CHK].mesh.position;
+  ship.position.set(420, 50, 260);
+  _ocM.lookAt(ship.position, cp, new THREE.Vector3(0, 1, 0));
+  ship.quaternion.setFromRotationMatrix(_ocM);
+  const toShip = ship.position.clone().sub(cp).normalize();
+  station.position.copy(cp).addScaledVector(toShip, ocPlanets[CHK].R + 180).add(new THREE.Vector3(0, 50, 0));
+  station.lookAt(ship.position);
+  station.rotateY(.45);
+  station.updateMatrixWorld(true);
+  dockWorld.copy(DOCK_LOCAL).applyMatrix4(station.matrixWorld);
+  dockAxis.set(0, 0, 1).transformDirection(station.matrixWorld);
+
+  clearBeacons();
+  const start = ship.position.clone(), approach = dockWorld.clone().addScaledVector(dockAxis, 200);
+  let prev = start;
+  for (let i = 1; i <= 3; i++) {
+    const t = i / 3.4;
+    const pt = start.clone().lerp(approach, t).add(randomDir().multiplyScalar(110 * Math.sin(t * Math.PI)));
+    buildBeacon(pt, pt.clone().sub(prev).normalize());
+    prev = pt;
+  }
+  Object.assign(state, { beaconsPassed: 0, beaconsMissed: 0, missionT: 0 });
+  $('ocClues').innerHTML = '';
+}
+function showBrief() {
+  state.mode = 'brief';
+  showCard(`<h1>ON-CALL</h1><h2>14:09 KST · 결제 API 장애 대응</h2>
+    <p>shop.example.com의 <b>결제 API(/api/checkout)</b>에서 곧 5xx 경보가 울립니다.<br>당신은 오늘의 당직 파일럿입니다.</p>
+    <ol class="brief">
+      <li>항법 비컨 3개를 지나며 <b>로그 단서</b>를 모으세요.</li>
+      <li>결제 행성 옆 <b>운영 정거장</b>에 120 m/s 이하로 도킹하세요.</li>
+      <li>단서를 바탕으로 <b>올바른 조치</b>를 고르세요. 잘못 고르면 4분이 흘러갑니다.</li>
+      <li>결제 행성 주변의 <b style="color:#ff6a78">빨간 오류 파편</b>을 레이저로 맞히면 요청을 재시도로 살립니다.</li>
+    </ol>
+    <p>입자 1개 = 요청 ${OC_SAMPLE}건 · 5xx 하나하나가 <b>에러 버짓(BUDGET)</b>을 깎습니다.<br>버짓이 0이 되거나 15:00까지 복구하지 못하면 실패입니다.</p>
+    <button data-act="oc-go">출격</button>`, true);
+}
+function ocBegin() {
+  hideCard();
+  state.mode = 'flying';
+  state.throttle = 0.66;
+  toast('ON-CALL · 결제 API로 출동', '#ffb23e');
+}
+function ocRevealClue() {
+  if (oc.clues >= CLUES.length) return;
+  const c = CLUES[oc.clues++];
+  toast(`단서 ${oc.clues}/3 · ${c.tag}`, '#ffb23e');
+  sfx('laser', 300);
+  $('ocClues').insertAdjacentHTML('beforeend', `<div><b>${c.t}</b> ${c.line}</div>`);
+}
+function ocDocked() {
+  oc.dockedOnce = true;
+  state.speed = 0;
+  openDecide();
+}
+function openDecide() {
+  state.mode = 'decide';
+  const got = CLUES.slice(0, oc.clues);
+  showCard(`<h1>OPS CONSOLE</h1><h2>${ocHHMMSS(oc.simT).slice(0, 5)} · 조치 선택</h2>
+    ${oc.feedback ? `<div class="fb">${oc.feedback}</div>` : ''}
+    ${got.length ? got.map(c => `<div class="clue"><b>${c.t} · ${c.tag}</b><br>${c.line}</div>`).join('')
+      : '<p>수집한 단서가 없습니다. 감으로 골라야 합니다…</p>'}
+    <div class="acts">${ACTIONS.map((a, i) => `<button data-act="act-${i}" class="${oc.tried.includes(i) ? 'no' : ''}"><span class="key-only">${i + 1} · </span>${a.label}</button>`).join('')}</div>`, true);
+}
+function chooseAction(i) {
+  if (state.mode !== 'decide' || oc.tried.includes(i)) return;
+  const a = ACTIONS[i];
+  if (a.ok) { ocFix(); return; }
+  oc.tried.push(i); oc.wrong++;
+  for (let k = 0; k < 240; k++) { ocGenerate(1, false); oc.simT += 1; }
+  sfx('alarm'); flash();
+  if (state.budget <= 0) { ocFail('budget'); return; }
+  if (oc.simT >= T_LIMIT) { ocFail('time'); return; }
+  oc.feedback = `<b>효과 없음</b> — ${a.why}<br>4분이 지났습니다 (${ocHHMMSS(oc.simT).slice(0, 5)}).`;
+  openDecide();
+}
+function ocFix() {
+  oc.fixed = true; oc.fixT = oc.simT; oc.feedback = '';
+  hideCard();
+  state.mode = 'flying';
+  state.throttle = 0.33;
+  ship.position.addScaledVector(dockAxis, 30);
+  toast('ROLLBACK · payment-api v2.30.4 배포', '#3ee6c1');
+  sfx('warpIn');
+}
+function ocFail(kind) {
+  gameOver(kind === 'budget' ? 'SLO VIOLATION' : 'TIMEOUT',
+    kind === 'budget' ? '에러 버짓을 모두 소진했습니다. 결제 실패가 고객에게 크게 번졌습니다.'
+      : '15:00까지 복구하지 못했습니다. 결제 장애가 50분 넘게 이어졌습니다.');
+}
+
+// 프레임마다 (비행 중)
+function ocUpdate(dt, now) {
+  const spd = oc.fixed ? 45 : 20;
+  const dtSim = dt * spd;
+  ocGenerate(dtSim, true, now);
+  oc.simT += dtSim;
+  if (!oc.incident && oc.simT >= T_INC) {
+    oc.incident = true;
+    sfx('alarm'); flash();
+    toast('⚠ INCIDENT · /api/checkout 5xx 급증', '#ff5a5a');
+  }
+  // 행성/항성 충돌
+  for (const pl of ocPlanets) {
+    const d = ship.position.distanceTo(pl.mesh.position);
+    if (d < pl.R + 5) {
+      tmpV.copy(ship.position).sub(pl.mesh.position).normalize();
+      ship.position.copy(pl.mesh.position).addScaledVector(tmpV, pl.R + 7);
+      state.speed *= .3;
+      if (damagePlayer(14 + state.speed * .3, 'COLLISION')) return;
+    }
+  }
+  if (ship.position.length() < 95) {
+    ship.position.setLength(97); state.speed *= .3;
+    if (damagePlayer(25, 'SOLAR FLARE')) return;
+  }
+  const st = ocStats(2);
+  oc.success = (1 - st[CHK].e5) * 100;
+  if (!oc.fixed) {
+    if (state.budget <= 0) { ocFail('budget'); return; }
+    if (oc.simT >= T_LIMIT) { ocFail('time'); return; }
+  } else if (!oc.done && oc.simT - oc.fixT > 180 && st[CHK].e5 < .02) ocFinish();
+}
+
+// 매 프레임 (시각 효과)
+function ocFrame(dt, now) {
+  const st = ocStats(2);
+  ocPlanets.forEach((pl, i) => {
+    const o = st[i];
+    pl.e5 = o.e5; pl.rpm = o.rpm;
+    const hc = o.e5 > .1 ? 0xff4a5a : (o.e5 > .02 || o.p95 > 1500) ? 0xffb23e : 0x3ee6c1;
+    pl.hc.lerp(new THREE.Color(hc), 1 - Math.exp(-dt * 3));
+    pl.halo.material.color.copy(pl.hc);
+    pl.halo.material.opacity = o.e5 > .1 ? .55 + .35 * Math.sin(now * 8) : .7;
+    pl.mesh.rotation.y += dt * .05;
+  });
+  ocSunGlow.scale.setScalar(820 * (1 + .05 * Math.sin(now * 2.2)));
+  // 입자
+  for (let k = opAct.length - 1; k >= 0; k--) {
+    const i = opAct[k], u = (now - opT0[i]) / opDur[i];
+    if (u >= 1) {
+      ocImpact(i);
+      opCol.fill(0, i * 3, i * 3 + 3); otCol.fill(0, i * 6, i * 6 + 6);
+      opAct[k] = opAct[opAct.length - 1]; opAct.pop(); opFree.push(i);
+      continue;
+    }
+    const ue = u * u * (3 - 2 * u);
+    ocBez(i, ue, _oa); ocBez(i, Math.max(0, ue - .06), _ob);
+    opPos.set([_oa.x, _oa.y, _oa.z], i * 3);
+    otPos.set([_oa.x, _oa.y, _oa.z, _ob.x, _ob.y, _ob.z], i * 6);
+    const r = opRGB[i * 3], g = opRGB[i * 3 + 1], b = opRGB[i * 3 + 2];
+    opCol.set([r, g, b], i * 3);
+    otCol.set([r * .7, g * .7, b * .7, 0, 0, 0], i * 6);
+  }
+  opGeo.attributes.position.needsUpdate = opGeo.attributes.color.needsUpdate = true;
+  otGeo.attributes.position.needsUpdate = otGeo.attributes.color.needsUpdate = true;
+  for (const f of ocFlashes) if (f.life > 0) {
+    f.life -= dt; if (f.life <= 0) { f.sp.visible = false; continue; }
+    const k = f.life / .45; f.sp.material.opacity = k; f.sp.scale.setScalar(f.base * (1.4 - k * .4));
+  }
+  // 파편 공전 & 소멸
+  const flying = state.mode === 'flying';
+  for (let j = debris.length - 1; j >= 0; j--) {
+    const d = debris[j], c = d.pl.mesh.position;
+    if (flying) { d.ang += d.spd * dt; d.life -= dt; }
+    d.mesh.position.set(c.x + Math.cos(d.ang) * d.rad, c.y + d.y, c.z + Math.sin(d.ang) * d.rad);
+    d.mesh.rotation.x += dt * 2; d.mesh.rotation.y += dt * 1.3;
+    if (d.life <= 0) {
+      burst(d.mesh.position, 0xff4a5a, 16, 8, 0.6);
+      removeDebris(j);
+      oc.lost++;
+      state.budget = Math.max(0, state.budget - .3);
+    }
+  }
+  // 라벨
+  ocPlanets.forEach((pl, i) => {
+    tmpW.copy(pl.mesh.position); tmpW.y += pl.R;
+    if (!placeLabel(ocPL[i], tmpW, 6)) return;
+    const sp = ocPL[i].querySelector('span');
+    sp.textContent = i === CHK && pl.e5 > .02 ? `5xx ${(pl.e5 * 100).toFixed(0)}%` : `${Math.round(pl.rpm).toLocaleString('en-US')}/m`;
+    sp.style.color = pl.e5 > .1 ? 'var(--red)' : '';
+  });
+  ocClusters.forEach((c, i) => placeLabel(ocCL[i], c.pos, 40));
+  ocBL.forEach((el, i) => {
+    const b = beacons[i];
+    if (!b) { el.style.display = 'none'; return; }
+    el.querySelector('b').textContent = `CLUE #${oc.clues + i + 1}`;
+    tmpW.copy(b.mesh.position); tmpW.y += BEACON_R + 4;
+    placeLabel(el, tmpW, 4);
+  });
+}
+
+function ocRadar(g, toRadar, R, range) {
+  const p0 = toRadar(ocSun.position, false);
+  if (p0) { g.fillStyle = '#ffd27a'; g.beginPath(); g.arc(p0[0], p0[1], clamp(80 * R / range, 3, 12), 0, Math.PI * 2); g.fill(); }
+  ocPlanets.forEach(pl => {
+    const p = toRadar(pl.mesh.position, false);
+    if (!p) return;
+    g.fillStyle = '#' + pl.hc.getHexString();
+    g.beginPath(); g.arc(p[0], p[1], clamp(pl.R * R / range, 2.5, 9), 0, Math.PI * 2); g.fill();
+  });
+  g.fillStyle = '#ff4a5a';
+  for (const d of debris) { const p = toRadar(d.mesh.position, false); if (p) g.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
+}
+
+function ocHud() {
+  const st = ocStats(2), c = st[CHK];
+  $('q1n').textContent = `${oc.clues}/3`;
+  $('q1').classList.toggle('done', oc.clues >= 3);
+  $('q2').classList.toggle('done', oc.dockedOnce);
+  $('q3').classList.toggle('done', oc.fixed);
+  $('q3n').textContent = oc.wrong ? `오조치 ${oc.wrong}` : '';
+  $('q4').classList.toggle('done', oc.done);
+  $('q4n').textContent = oc.fixed && !oc.done ? '확인 중' : '';
+  $('ocClk').textContent = ocHHMMSS(oc.simT);
+  const er = $('ocErr');
+  er.textContent = `5xx ${(c.e5 * 100).toFixed(1)}%`;
+  er.style.color = c.e5 > .1 ? 'var(--red)' : c.e5 > .02 ? 'var(--amber)' : 'var(--teal)';
+  $('ocP95').textContent = `p95 ${ocMs(c.p95)}`;
+  // 결제 API 5xx 스파크라인 (최근 20분)
+  const cv = $('ocSpark');
+  if (!cv || !cv.offsetWidth) return;
+  const W = cv.offsetWidth, H = cv.offsetHeight;
+  if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const m1 = clamp(Math.floor((oc.simT - 14 * 3600) / 60), 0, OC_MIN - 1), N = 20, bw = W / N;
+  for (let k = 0; k < N; k++) {
+    const m = m1 - N + 1 + k;
+    if (m < 0) continue;
+    const i = m * OC_NE + CHK, n = ocS.n[i], e = n ? ocS.s5[i] / n : 0;
+    g.fillStyle = e > .1 ? '#ff4a5a' : e > .02 ? '#ffb23e' : '#3ee6c1';
+    const h = Math.max(1.5, e * (H - 4));
+    g.fillRect(k * bw + 1, H - h, bw - 2, h);
+  }
+  g.fillStyle = '#8ea3c6'; g.font = '600 10.5px Rajdhani, sans-serif'; g.textAlign = 'left';
+  g.fillText('/api/checkout 5xx · 20분', 2, 10);
+}
+
+// ---------- 결과 ----------
+function ocFinish() {
+  oc.done = true;
+  state.mode = 'result';
+  const mttr = (oc.fixT - T_INC) / 60;
+  const grades = ['S', 'A', 'B', 'C'];
+  let gi = mttr <= 6 ? 0 : mttr <= 10 ? 1 : mttr <= 16 ? 2 : 3;
+  gi = Math.min(3, gi + oc.wrong);
+  // 조치 없음(가정): 14:35까지 장애 지속
+  const shareChk = OC_EP[CHK].w;
+  const rateAt = m => ocRate(14 * 3600 + m * 60 + 30) * 60 * shareChk;
+  const inOut = m => { const t = 14 * 3600 + m * 60 + 30; return t >= T_INC && t < T_NATURAL; };
+  const base = m => rateAt(m) * (inOut(m) ? .56 : .004);
+  const act = m => m <= oc.lastM ? ocS.s5[m * OC_NE + CHK] : rateAt(m) * .004;
+  let saved = 0;
+  for (let m = 10; m < 35; m++) saved += Math.max(0, base(m) - act(m));
+  saved = Math.round(saved * OC_SAMPLE + oc.rescued * OC_SAMPLE);
+  showCard(`<h1>RESOLVED</h1><h2>결제 API 장애 복구 · 등급 ${grades[gi]}</h2>
+    <canvas id="ocChart"></canvas>
+    <p class="lg"><span style="color:#ff4a5a">■</span> 실제 결제 5xx / 분 &nbsp; <span style="color:#ffb4b4">┅</span> 조치하지 않았다면 (14:35까지 지속 가정)</p>
+    <div class="stats"><div>MTTR<b>${mttr.toFixed(1)}분</b></div><div>지킨 요청<b>${saved.toLocaleString('en-US')}</b></div>
+      <div>재시도 성공<b>${(oc.rescued * OC_SAMPLE).toLocaleString('en-US')}</b></div><div>BUDGET<b>${Math.round(state.budget)}%</b></div></div>
+    <p>단서 ${oc.clues}/3 · 잘못된 조치 ${oc.wrong}회 · 롤백 시각 ${ocHHMMSS(oc.fixT).slice(0, 5)}</p>
+    <button data-act="res-retry">다시 도전</button><button data-act="res-orbit">궤도 비행 모드</button>
+    <br><a class="lvlink" href="logverse.html">LOGVERSE에서 하루 전체 로그 보기 ↗</a>`, true);
+  requestAnimationFrame(() => drawResultChart(base, act, rateAt));
+  sfx('warpOut');
+}
+function drawResultChart(base, act, rateAt) {
+  const cv = $('ocChart');
+  if (!cv) return;
+  const W = cv.offsetWidth, H = cv.offsetHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const M = 45, top = 18, bot = H - 16, ch = bot - top;
+  let mx = 1; for (let m = 0; m < M; m++) mx = Math.max(mx, base(m), act(m));
+  const x = m => 6 + m / (M - 1) * (W - 12);
+  // 실제 (막대)
+  for (let m = 0; m < M; m++) {
+    const v = act(m), h = v / mx * ch;
+    g.fillStyle = v > rateAt(m) * .05 ? '#ff4a5a' : '#3ee6c1';
+    g.fillRect(x(m) - 3, bot - h, 6, h);
+  }
+  // 조치 없음 (점선)
+  g.strokeStyle = '#ffb4b4'; g.setLineDash([4, 4]); g.lineWidth = 1.5; g.beginPath();
+  for (let m = 0; m < M; m++) { const y = bot - base(m) / mx * ch; m ? g.lineTo(x(m), y) : g.moveTo(x(m), y); }
+  g.stroke(); g.setLineDash([]);
+  // 롤백 시점
+  const fm = (oc.fixT - 14 * 3600) / 60;
+  g.strokeStyle = '#3ee6c1'; g.beginPath(); g.moveTo(x(fm), top - 4); g.lineTo(x(fm), bot); g.stroke();
+  g.font = '600 11px Rajdhani, sans-serif'; g.fillStyle = '#3ee6c1'; g.textAlign = 'center';
+  g.fillText('ROLLBACK', x(fm), top - 6);
+  g.fillStyle = '#8ea3c6'; g.textAlign = 'left';
+  [[0, '14:00', 'left'], [15, '14:15', 'center'], [30, '14:30', 'center'], [44, '14:45', 'right']].forEach(([m, l, a]) => { g.textAlign = a; g.fillText(l, x(m), H - 2); });
+}
+
 // =====================================================================
 // HUD
 // =====================================================================
@@ -1868,6 +2550,9 @@ function statusInfo() {
   if (state.mode !== 'flying') return ['STANDBY', '#8ea3c6'];
   if (state.hitT > 0) return ['DAMAGE', '#ff5a5a'];
   if (state.warp > 0.3) return ['WARP', '#a98bff'];
+  if (state.mission === 'oncall' && state.nearDock) return ['DOCKING', '#ffb23e'];
+  if (state.mission === 'oncall' && oc.incident && !oc.fixed) return ['INCIDENT', '#ff5a5a'];
+  if (state.mission === 'oncall' && oc.fixed) return ['RECOVERING', '#3ee6c1'];
   if (state.prox) return ['PROXIMITY', '#ffb23e'];
   if (enemies.some(e => e.g.position.distanceTo(ship.position) < 600)) return ['COMBAT', '#ff5a5a'];
   if (state.nearDock) return ['DOCKING', '#ffb23e'];
@@ -1900,8 +2585,9 @@ function drawNav() {
     if (m > R) { if (!clampEdge) return null; x *= R / m; y *= R / m; }
     return [cx + x, cy + y, m > R];
   };
+  if (state.mission === 'oncall' && ocWorld.visible) ocRadar(g, toRadar, R, range);
   g.fillStyle = 'rgba(160,190,230,.75)';
-  for (const a of asteroids) {
+  if (!(state.mission === 'oncall' && ocWorld.visible)) for (const a of asteroids) {
     const p = toRadar(a.mesh.position, false);
     if (!p) continue;
     g.beginPath(); g.arc(p[0], p[1], clamp(1.2 + a.r * R / range * 0.8, 1.2, 6), 0, Math.PI * 2); g.fill();
@@ -2042,7 +2728,7 @@ function project(pos) {
 }
 function updateMarkers() {
   const winH = innerHeight - dashH, stn = $('stn'), tgt = $('tgt'), edge = $('edge');
-  if (state.mode === 'title') { stn.style.display = tgt.style.display = edge.style.display = 'none'; return; }
+  if (state.mode === 'title' || (state.mission === 'oncall' && oc.fixed)) { stn.style.display = tgt.style.display = edge.style.display = 'none'; return; }
   camera.updateMatrixWorld();
   const target = beacons[0] ? beacons[0].mesh.position : dockWorld;
   const isBeacon = !!beacons[0];
@@ -2128,8 +2814,9 @@ function updateHud() {
   const spd = Math.round(state.speed * 10);
   $('spd').textContent = spd;
   $('spdBar').style.height = clamp(state.speed / (MAX_SPEED + BOOST), 0, 1) * 100 + '%';
-  setRing('hullRing', 'hullV', state.hull, '#3ee6c1');
-  setRing('shdRing', 'shdV', state.shield, '#4aa8ff');
+  const ocm = ocWorld.visible;  // 화면에 보이는 월드 기준
+  setRing('hullRing', 'hullV', ocm ? state.budget : state.hull, '#3ee6c1');
+  setRing('shdRing', 'shdV', ocm ? oc.success : state.shield, '#4aa8ff');
   setRing('fuelRing', 'fuelV', state.fuel, '#ffb23e');
   const t = state.throttle;
   $('handle').style.top = `calc(${(1 - t) * 100}% - ${(1 - t) * 26}px)`;
@@ -2137,16 +2824,19 @@ function updateHud() {
   let best = 0;
   lvls.forEach((l, i) => { if (Math.abs(t - l) < Math.abs(t - lvls[best])) best = i; });
   modeEls.forEach((el, i) => el.classList.toggle('on', i === best));
-  $('modeLbl').textContent = shipDef.name + '  ·  ' + (state.mode === 'docked' ? 'DOCKED' : state.warp > 0.3 ? 'WARP DRIVE' : state.nearDock ? 'APPROACH' : 'FREE FLIGHT');
-  const done = state.beaconsPassed + state.beaconsMissed;
-  $('o1n').textContent = `${state.beaconsPassed}/${BEACON_N}`;
-  $('o1').classList.toggle('done', done >= BEACON_N);
-  $('o2').classList.toggle('done', state.mode === 'docked');
+  $('modeLbl').textContent = shipDef.name + '  ·  ' + (ocm ? 'ON-CALL' : state.mode === 'docked' ? 'DOCKED' : state.warp > 0.3 ? 'WARP DRIVE' : state.nearDock ? 'APPROACH' : 'FREE FLIGHT');
+  if (ocm) ocHud();
+  else {
+    const done = state.beaconsPassed + state.beaconsMissed;
+    $('o1n').textContent = `${state.beaconsPassed}/${BEACON_N}`;
+    $('o1').classList.toggle('done', done >= BEACON_N);
+    $('o2').classList.toggle('done', state.mode === 'docked');
+    $('killN').textContent = state.kills;
+  }
   $('heatBar').style.width = state.heat + '%';
   $('heatBar').style.background = state.overheat ? 'var(--red)' : state.heat > 70 ? 'var(--amber)' : 'var(--blue)';
   $('wpnS').textContent = state.overheat ? 'OVERHEAT' : 'READY';
   $('wpnS').style.color = state.overheat ? 'var(--red)' : 'var(--teal)';
-  $('killN').textContent = state.kills;
   drawNav();
   drawAtt(attitude(), statusInfo());
   updateMarkers();
@@ -2173,12 +2863,14 @@ function loop() {
     if (state.mode === 'flying') updateEnemies(dt);
     if (state.mode === 'flying') updateBolts(dt);
     if (state.mode === 'flying') updateDocking();
+    if (state.mode === 'flying' && state.mission === 'oncall' && ocWorld.visible) ocUpdate(dt, now);
     if (state.mode === 'flying' && state.fuel <= 0 && state.speed < 0.5) gameOver('OUT OF FUEL', '연료가 바닥나 우주를 표류하게 되었습니다.');
   } else if (state.mode === 'title') {
     updateShip(dt, false);
     updateAsteroids(dt, false);
   }
   if (state.mode !== 'paused') updateBursts(dt);
+  if (ocWorld.visible) ocFrame(dt, now);
   updateCamera(dt);
   sky.position.copy(camera.position);
   clouds.rotation.y += dt * 0.004;
@@ -2208,6 +2900,10 @@ function showTitle() {
     <span><kbd>Space</kbd></span><span>레이저 발사 (누르고 있으면 연사, 과열 주의)</span>
     <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
+  </div>
+  <div class="missions">
+    <button class="mbtn${state.mission === 'orbit' ? ' on' : ''}" data-act="m-orbit"><b>ORBIT</b><span>궤도 비행 · 비컨 · 도킹 · 전투</span></button>
+    <button class="mbtn${state.mission === 'oncall' ? ' on' : ''}" data-act="m-oncall"><i>NEW</i><b>ON-CALL</b><span>관제 파일럿 · 결제 API 장애 대응</span></button>
   </div>
   <div class="go"><span class="key-only">ENTER</span><span class="touch-only-i">TAP</span> — 기체 선택</div>`);
 }

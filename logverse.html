@@ -28,6 +28,8 @@
   #head .brand a { margin-left: 10px; font-size: 12px; font-weight: 600; letter-spacing: .12em; color: var(--dim);
     text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
   #head .brand a:hover { color: #fff; border-color: #4b6a9a; }
+  #head .brand a.oc { margin-left: 0; color: #ffb23e; border-color: #ffb23e88; }
+  #head .brand a.oc:hover { color: #fff; border-color: #ffb23e; background: #ffb23e22; }
   #head .sub { margin-top: 4px; font-family: "Noto Sans KR", sans-serif; font-size: 12.5px; color: var(--dim); }
   #clock { margin-top: 10px; display: flex; align-items: baseline; gap: 10px; }
   #clock b { font-size: 44px; font-weight: 700; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
@@ -140,6 +142,7 @@
     </svg>
     LOGVERSE
     <a href="./">STAR FLIGHT ↗</a>
+    <a href="./?mission=oncall" class="oc">▶ 14:10 장애 출동</a>
   </div>
   <div class="sub">shop.example.com · 웹 액세스 로그 24시간 · 가상 데이터</div>
   <div id="clock"><b id="clk">00:00</b><span>KST · 2026-10-19</span></div>
