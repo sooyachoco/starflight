@@ -30,8 +30,15 @@
   /* 창틀 */
   #frame { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--win-h) + 2px); }
   #frame .side { fill: rgba(4, 8, 16, .45); }
-  #frame .strut { fill: url(#strutGrad); }
-  #frame .edge { fill: none; stroke: #2f4060; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  #frame .strut { fill: url(#strutTex); }
+  #frame .shade { fill: url(#strutShade); }
+  #frame .edge { fill: none; stroke: #6b7891; stroke-opacity: .55; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  #canopy { position: absolute; left: 0; right: 0; top: 0; height: var(--win-h); pointer-events: none;
+    background:
+      linear-gradient(to top, rgba(255, 170, 70, .07), transparent 11%),
+      linear-gradient(162deg, rgba(200, 220, 255, .07) 0%, transparent 26%),
+      linear-gradient(198deg, rgba(200, 220, 255, .04) 0%, transparent 20%),
+      radial-gradient(140% 120% at 50% 42%, transparent 62%, rgba(0, 0, 0, .5) 100%); }
   #frame .stripGlow { stroke: #ff9a2a55; stroke-width: 12; stroke-linecap: round; vector-effect: non-scaling-stroke; }
   #frame .strip { stroke: #ffb54a; stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 
@@ -98,21 +105,40 @@
   #flash { position: absolute; inset: 0; background: radial-gradient(transparent 45%, #ff2040aa); opacity: 0; }
 
   /* 대시보드 */
-  #dash { position: absolute; left: 0; right: 0; bottom: 0; height: var(--dash-h);
-    background: linear-gradient(180deg, #182133 0%, #0d1320 10%, #080c16 60%, #05080f 100%);
-    border-top: 1px solid #33425e; box-shadow: 0 -14px 40px #000c; }
-  #dash .lip { position: absolute; left: 50%; top: -12px; width: 46%; height: 12px; transform: translateX(-50%);
-    background: linear-gradient(#202a3d, #121a29); clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
-    border-top: 1px solid #3c4c6b; }
-  #dash .lip::before, #dash .lip::after { content: ""; position: absolute; top: 4px; width: 22px; height: 3px;
-    border-radius: 2px; background: #ffae3c; box-shadow: 0 0 8px #ffae3c; }
-  #dash .lip::before { left: 22%; } #dash .lip::after { right: 22%; }
-  .dgrid { position: absolute; top: 18px; bottom: 50px; left: max(2vw, calc((100% - 1520px) / 2));
+  #dash { position: absolute; left: 0; right: 0; bottom: 0; height: var(--dash-h); background-color: #07090e;
+    background-image: linear-gradient(180deg, rgba(8, 11, 18, .25) 0%, rgba(3, 5, 9, .7) 100%), url(assets/dash-metal.webp);
+    background-size: auto, max(100%, 1300px) auto; background-position: 0 0, center 38%;
+    box-shadow: 0 -18px 40px #000d; }
+  #dash::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 46px; pointer-events: none;
+    background: linear-gradient(rgba(0, 0, 0, .72), transparent); }
+  #dash .lip { position: absolute; left: -2px; right: -2px; top: -18px; height: 24px; border-radius: 16px 16px 0 0;
+    background-color: #0c0e13;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, .13) 0, rgba(255, 255, 255, .03) 22%, transparent 45%, rgba(0, 0, 0, .55) 100%),
+      url(assets/carbon.webp);
+    background-size: auto, 160px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 8px 14px rgba(0, 0, 0, .75), 0 -1px 0 #000; }
+  #dash .lip::before, #dash .lip::after { content: ""; position: absolute; top: 9px; width: 26px; height: 4px; border-radius: 2px;
+    background: linear-gradient(#ffe2a8, #ff9e2a); box-shadow: 0 0 10px #ff9e2a, 0 0 2px #fff4; }
+  #dash .lip::before { left: calc(50% - 160px); } #dash .lip::after { right: calc(50% - 160px); }
+  .dgrid { position: absolute; top: 22px; bottom: 54px; left: max(2vw, calc((100% - 1520px) / 2));
     right: max(2vw, calc((100% - 1520px) / 2)); display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr) minmax(0, 1.45fr) minmax(0, .72fr); gap: 16px; }
-  .scr { position: relative; border-radius: 12px; overflow: hidden;
-    background: radial-gradient(120% 90% at 50% 0%, #0e1c34, #070d1a 70%);
-    border: 1px solid #1f3354; box-shadow: inset 0 1px 0 #ffffff0d, 0 0 0 4px #0a0f1a, 0 0 0 5px #1b263b; }
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr) minmax(0, 1.45fr) minmax(0, .72fr); gap: 18px; }
+  .scr { position: relative; border-radius: 14px; overflow: hidden; border: 10px solid transparent;
+    background:
+      radial-gradient(120% 95% at 50% 0%, #0c1a31, #050a15 72%) padding-box,
+      radial-gradient(circle, #b9c1cd 0 1.2px, #59606c 1.8px, #1b1f27 2.7px, transparent 3.3px) left top / 10px 10px no-repeat border-box,
+      radial-gradient(circle, #b9c1cd 0 1.2px, #59606c 1.8px, #1b1f27 2.7px, transparent 3.3px) right top / 10px 10px no-repeat border-box,
+      radial-gradient(circle, #b9c1cd 0 1.2px, #59606c 1.8px, #1b1f27 2.7px, transparent 3.3px) left bottom / 10px 10px no-repeat border-box,
+      radial-gradient(circle, #b9c1cd 0 1.2px, #59606c 1.8px, #1b1f27 2.7px, transparent 3.3px) right bottom / 10px 10px no-repeat border-box,
+      linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .02) 12%, rgba(0, 0, 0, .1) 60%, rgba(0, 0, 0, .55)) border-box,
+      url(assets/bezel.webp) center / cover border-box;
+    box-shadow: inset 0 0 26px rgba(0, 0, 0, .9), inset 0 0 0 1px rgba(110, 170, 255, .2),
+      0 0 0 1px #000, 0 1px 0 1px rgba(255, 255, 255, .06), 0 12px 22px rgba(0, 0, 0, .7); }
+  .scr::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: 4px;
+    background:
+      linear-gradient(116deg, rgba(220, 235, 255, .085) 0%, rgba(220, 235, 255, .03) 33%, transparent 33.3%),
+      radial-gradient(130% 110% at 50% 45%, transparent 55%, rgba(0, 0, 0, .5) 100%),
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, .17) 0 1px, transparent 1px 3px); }
   .scr canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   .sl { position: absolute; top: 10px; left: 16px; font-size: 14px; font-weight: 600; letter-spacing: .12em; color: #b9c9e6; z-index: 1; }
   .sr { position: absolute; top: 10px; right: 16px; font-size: 13px; font-weight: 600; color: var(--dim); z-index: 1; }
@@ -128,20 +154,29 @@
   .g b { font-size: clamp(18px, 2.6vh, 26px); font-weight: 600; font-variant-numeric: tabular-nums; }
   .eng { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 34px 14px 14px 18px; gap: 10px; }
   .lever { position: relative; height: 100%; min-height: 90px; width: 100%; max-width: 92px; justify-self: center;
-    background: #05080f; border: 1px solid #1d2a42; border-radius: 8px; }
-  .lever .slot { position: absolute; top: 12px; bottom: 12px; width: 7px; background: #000; border-radius: 4px;
-    box-shadow: inset 0 0 0 1px #24324c; }
+    background: linear-gradient(90deg, #05070b, #121620 50%, #05070b); border: 1px solid #000; border-radius: 7px;
+    box-shadow: inset 0 3px 8px #000, inset 0 0 0 1px #262e3d, 0 1px 0 rgba(255, 255, 255, .06); }
+  .lever::after { content: ""; position: absolute; top: 12px; bottom: 12px; right: 4px; width: 6px; opacity: .55;
+    background: repeating-linear-gradient(180deg, #8ea3c6 0 1px, transparent 1px 10%); }
+  .lever .slot { position: absolute; top: 12px; bottom: 12px; width: 8px; background: #000; border-radius: 4px;
+    box-shadow: inset 0 0 4px #000, 0 0 0 1px #1d2533, 0 1px 0 1px rgba(255, 255, 255, .05); }
   .lever .slot:nth-child(1) { left: 34%; } .lever .slot:nth-child(2) { right: 34%; }
-  #handle { position: absolute; left: 6%; right: 6%; height: 26px; border-radius: 13px;
-    background: linear-gradient(#3b4252, #161b26 55%, #0d1119);
-    box-shadow: inset 4px 0 0 var(--amber), inset -4px 0 0 var(--amber), 0 0 12px #ffb23e66, 0 4px 8px #000; }
+  #handle { position: absolute; left: 5%; right: 5%; height: 26px; border-radius: 7px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .38) 0, rgba(255, 255, 255, .06) 22%, transparent 50%, rgba(0, 0, 0, .55) 100%),
+      repeating-linear-gradient(90deg, #444b58 0 2px, #1e222b 2px 4px);
+    box-shadow: inset 5px 0 0 var(--amber), inset -5px 0 0 var(--amber), 0 0 12px #ffb23e55, 0 7px 10px #000, 0 2px 0 #000; }
   .modes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-between;
     height: 100%; min-height: 90px; font-size: 13px; font-weight: 600; letter-spacing: .1em; color: #6f82a3; }
   .modes li { display: flex; align-items: center; gap: 8px; }
-  .modes li::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #2a3650; }
+  .modes li::before { content: ""; width: 9px; height: 9px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #4a5670, #1a2131 70%); box-shadow: 0 0 0 1px #000, 0 1px 0 1px rgba(255, 255, 255, .06); }
   .modes li.on { color: #ffd59a; }
-  .modes li.on::before { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
-  .keys { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; align-items: center;
+  .modes li.on::before { background: radial-gradient(circle at 35% 30%, #fff3d6, #ffb23e 45%, #c46a00);
+    box-shadow: 0 0 0 1px #000, 0 0 10px var(--amber); }
+  .keys { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center;
+    padding: 5px 16px; border-radius: 8px; background: rgba(0, 0, 0, .55);
+    box-shadow: inset 0 2px 5px #000, 0 1px 0 rgba(255, 255, 255, .07);
     gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: .1em; color: #b9c7de; white-space: nowrap; }
   .keys kbd { min-width: 22px; height: 24px; padding: 0 5px; box-sizing: border-box; display: inline-grid; place-items: center;
     border: 1.5px solid #c9d6ea; border-radius: 5px; font-family: inherit; font-size: 13px; color: #fff; }
@@ -281,22 +316,27 @@
 </head>
 <body>
 <div id="hud">
+  <div id="canopy"></div>
   <div id="warpfx"></div>
   <div id="warpflash"></div>
   <svg id="frame" viewBox="0 0 1000 1000" preserveAspectRatio="none">
     <defs>
-      <linearGradient id="strutGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0" stop-color="#070b14"/><stop offset="1" stop-color="#18213a"/>
+      <pattern id="strutTex" patternUnits="userSpaceOnUse" width="160" height="320">
+        <image href="assets/strut-metal.webp" width="160" height="320" preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <linearGradient id="strutShade" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#000" stop-opacity=".8"/><stop offset=".65" stop-color="#000" stop-opacity=".3"/>
+        <stop offset="1" stop-color="#a9bcdc" stop-opacity=".16"/>
       </linearGradient>
     </defs>
     <polygon class="side" points="0,560 100,1000 0,1000"/>
-    <polygon class="strut" points="0,400 30,380 150,1000 100,1000 0,560"/>
+    <polygon class="strut" points="0,400 30,380 150,1000 100,1000 0,560"/><polygon class="shade" points="0,400 30,380 150,1000 100,1000 0,560"/>
     <polyline class="edge" points="30,380 150,1000"/>
     <line class="stripGlow" x1="46" y1="540" x2="76" y2="700"/>
     <line class="strip" x1="46" y1="540" x2="76" y2="700"/>
     <g transform="translate(1000,0) scale(-1,1)">
       <polygon class="side" points="0,560 100,1000 0,1000"/>
-      <polygon class="strut" points="0,400 30,380 150,1000 100,1000 0,560"/>
+      <polygon class="strut" points="0,400 30,380 150,1000 100,1000 0,560"/><polygon class="shade" points="0,400 30,380 150,1000 100,1000 0,560"/>
       <polyline class="edge" points="30,380 150,1000"/>
       <line class="stripGlow" x1="46" y1="540" x2="76" y2="700"/>
       <line class="strip" x1="46" y1="540" x2="76" y2="700"/>
