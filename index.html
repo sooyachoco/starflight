@@ -2305,6 +2305,7 @@ const OBJ_EX_HTML = `
   <div class="exbar"><i id="exProg"></i></div><div class="exnext" id="exNext"></div>
   <div class="exrow"><span id="exDay">DAY 0</span><b id="exObs">관측 0/0</b></div>
   <div class="exrow"><span>데이터 결정</span><b id="exCry">0</b></div>
+  <div class="exrow" id="exFuelRow"><span>연료</span><b id="exFuel">100%</b></div>
   <div id="exMis"></div>
   <div class="exnote">가상 데이터 · 실제 서비스 지표와 무관</div>`;
 
@@ -2312,7 +2313,9 @@ const OBJ_EX_HTML = `
 function setupExpansion() {
   applyWorld('expansion');
   Object.assign(ex, { day: 0, cum: 0, a: 1, era: 0, mission: null, crystals: 0, bhNear: false, q: 0, qMax: 0, sats: 0,
-    newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0, phase: 1, fieldOn: false, field: 100, pulses: 0, ddosStats: null });
+    newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0, phase: 1, fieldOn: false, field: 100, pulses: 0, ddosStats: null,
+    reserveUsed: false, fuelWarn: 100, refueling: null, scooping: false, fuelBought: 0, scooped: 0 });
+  ex.crystals = 40;
   exPulse.t = -1; exPulse.mesh.visible = exPulse.ring.visible = false;
   // 이후 탄생한 행성 제거, 발견 상태 초기화
   for (let i = exPlanets.length - 1; i >= 0; i--) {
@@ -2352,6 +2355,8 @@ function showExBrief() {
       <li>은하를 돌며 <b>미확인 엔드포인트(?)</b>에 가까이 가서 관측하세요. 관측할 때마다 데이터 결정을 얻습니다.</li>
       <li>누적 로그가 <b>2억</b>을 넘으면 ERA 1, <b>8억</b>을 넘으면 ERA 2가 열리며 사건이 일어납니다.</li>
       <li>은하 내부는 중력으로 묶여 있어 팽창하지 않습니다. 멀어지는 건 은하와 은하 사이입니다.</li>
+      <li><b style="color:#3ee6c1">연료</b>: 은하마다 있는 <b>연료소(FUEL)</b>의 급유 고리 안에서 120 m/s 이하로 머물면 보급됩니다 (데이터 결정 1 = 연료 1%).
+        결정이 없으면 느리게 무료 급유됩니다. 항성 코로나를 스치듯 지나면 연료를 조금씩 모을 수도 있습니다.</li>
     </ol>
     <p style="color:#6f82a3">※ 모든 수치는 가상 데이터이며 실제 서비스 지표와 무관합니다.</p>
     <button data-act="ex-go">관측 시작</button>`, true);
@@ -2523,6 +2528,7 @@ function exUpdate(dt, now) {
       if (damagePlayer(25, 'STELLAR CORONA')) return;
     }
   }
+  if (fuelUpdate(dt, now)) return;
   // 시대 진입
   if (!ex.mission && ex.era < 3 && ex.cum >= ERAS[ex.era + 1].at) { ex.era++; ex.phase = 1; exEraCard(ex.era); return; }
   // 레이트 리밋 필드
@@ -2651,6 +2657,7 @@ function exFrame(dt, now) {
     } else exBH.grp.scale.setScalar(qs);
   }
   exFrameEra3(dt, now);
+  fuelFrame(dt, now);
   // 라벨
   exGal.forEach(g => { tmpW.copy(g.grp.position); tmpW.y += g.G.R + 30; placeLabel(g.label, tmpW, 4); });
   exPlanets.forEach(pl => {
@@ -2660,6 +2667,143 @@ function exFrame(dt, now) {
     pl.label.querySelector('b').textContent = pl.discovered ? pl.path : '?';
     pl.label.querySelector('span').textContent = pl.discovered ? '' : '미확인 엔드포인트';
   });
+}
+
+
+// =====================================================================
+// 연료 공급 시스템 — 연료소 급유 · 항성 코로나 수집 · 예비 탱크 · 저연료 안내
+// =====================================================================
+const DEPOT_R = 46, REFUEL_SPEED = 12, FUEL_RATE = 14, FREE_RATE = 4;
+const depotMetal = new THREE.MeshStandardMaterial({ color: 0xb8c2d0, metalness: .7, roughness: .35 });
+const depotDark = new THREE.MeshStandardMaterial({ color: 0x2b3343, metalness: .6, roughness: .5 });
+const depotLamp = new THREE.MeshBasicMaterial({ color: 0x3ee6c1, fog: false });
+function buildDepot() {
+  const g = new THREE.Group();
+  const add = (geo, mat, p = [0, 0, 0], r = [0, 0, 0]) => { const m = new THREE.Mesh(geo, mat); m.position.set(...p); m.rotation.set(...r); g.add(m); return m; };
+  add(new THREE.CylinderGeometry(6, 6, 24, 18), depotMetal);
+  add(new THREE.SphereGeometry(6, 18, 12), depotMetal, [0, 12, 0]);
+  add(new THREE.SphereGeometry(6, 18, 12), depotMetal, [0, -12, 0]);
+  for (let k = 0; k < 3; k++) {
+    const a = k * Math.PI * 2 / 3;
+    add(new THREE.CylinderGeometry(3.2, 3.2, 16, 12), depotDark, [Math.cos(a) * 11, 0, Math.sin(a) * 11]);
+    add(new THREE.BoxGeometry(10, 1.2, 1.2), depotDark, [Math.cos(a) * 6, 6, Math.sin(a) * 6], [0, -a, 0]);
+  }
+  add(new THREE.TorusGeometry(15, 1, 8, 40), depotLamp, [0, 0, 0], [Math.PI / 2, 0, 0]);
+  const zone = add(new THREE.TorusGeometry(DEPOT_R, .45, 6, 72), new THREE.MeshBasicMaterial({ color: 0x3ee6c1, transparent: true,
+    opacity: .35, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), [0, 0, 0], [Math.PI / 2, 0, 0]);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture([[0, '#c8fff0'], [.3, '#3ee6c155'], [1, '#00000000']], 64),
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  glow.scale.setScalar(90);
+  g.add(glow);
+  return { g, zone, glow };
+}
+const depots = exGal.map((gal, i) => {
+  const d = buildDepot();
+  const a = i * 1.9 + .8, r = gal.G.hub ? 240 : 185;
+  d.g.position.set(Math.cos(a) * r, 34, Math.sin(a) * r);
+  gal.grp.add(d.g);
+  d.gal = gal;
+  d.world = new THREE.Vector3();
+  d.label = exLabel('cc', `<b>FUEL</b><span>${gal.G.hub ? '넥슨닷컴' : gal.G.ko} 연료소</span>`);
+  d.label.style.display = 'none';
+  return d;
+});
+const fuelBeam = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+  new THREE.LineBasicMaterial({ color: 0x7fffe0, transparent: true, opacity: .8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+fuelBeam.frustumCulled = false; fuelBeam.visible = false;
+exWorld.add(fuelBeam);
+function nearestDepot() {
+  let best = null, bd = Infinity;
+  for (const d of depots) { const dist = d.world.distanceTo(ship.position); if (dist < bd) { bd = dist; best = d; } }
+  return best && { d: best, dist: bd };
+}
+let fuelSfxT = 0;
+function fuelUpdate(dt, now) {
+  depots.forEach(d => d.g.getWorldPosition(d.world));
+  // 연료소 급유
+  const nd = nearestDepot();
+  ex.refueling = null;
+  if (nd && nd.dist < 12) {   // 탱크에 부딪힘
+    tmpV.copy(ship.position).sub(nd.d.world).normalize();
+    ship.position.copy(nd.d.world).addScaledVector(tmpV, 14);
+    state.speed *= .3;
+  }
+  if (nd && nd.dist < DEPOT_R && state.fuel < 99.9) {
+    if (state.speed > REFUEL_SPEED) {
+      if (!ex.fastWarned) { toast('급유 고리 안 — 120 m/s 이하로 감속하세요', '#ffb23e'); ex.fastWarned = true; }
+    } else {
+      ex.fastWarned = false;
+      const paid = ex.crystals > 0;
+      const add = Math.min(100 - state.fuel, (paid ? FUEL_RATE : FREE_RATE) * dt);
+      state.fuel += add;
+      if (paid) { ex.crystals = Math.max(0, ex.crystals - add); ex.fuelBought += add; }
+      ex.refueling = { d: nd.d, paid };
+      fuelSfxT -= dt;
+      if (fuelSfxT <= 0) { sfx('laser', 650); fuelSfxT = .45; }
+      if (state.fuel >= 99.9) { toast(`급유 완료 · 결정 ${Math.round(ex.crystals)} 남음`, '#3ee6c1'); ex.fuelWarn = 100; }
+    }
+  } else ex.fastWarned = false;
+  // 항성 코로나 수집 (가까울수록 많이, 너무 가까우면 손상)
+  ex.scooping = false;
+  for (const g of exGal) {
+    const d = ship.position.distanceTo(g.grp.position) - g.G.R;
+    if (d < 80 && d > 8) {
+      ex.scooping = true;
+      const k = 1 - d / 80;
+      const add = Math.min(100 - state.fuel, (.6 + 2.4 * k) * dt);
+      state.fuel += add; ex.scooped += add;
+      if (d < 26) { ex.coronaT = (ex.coronaT || 0) + dt; if (ex.coronaT > .8) { ex.coronaT = 0; if (damagePlayer(4, 'CORONA HEAT', .3)) return true; } }
+    }
+  }
+  // 저연료 경고 & 예비 탱크
+  if (state.fuel < 25 && ex.fuelWarn > 25) { ex.fuelWarn = 25; toast('연료 25% — 가까운 연료소(FUEL)로 이동하세요', '#ffb23e'); sfx('alarm'); }
+  if (state.fuel < 10 && ex.fuelWarn > 10) { ex.fuelWarn = 10; toast('연료 10% — 위험!', '#ff6a6a'); sfx('alarm'); flash(); }
+  if (state.fuel <= 0 && !ex.reserveUsed) {
+    ex.reserveUsed = true; state.fuel = 15; ex.fuelWarn = 10;
+    toast('예비 탱크 사용 · 연료 15% — 마지막 기회입니다', '#ff6a6a'); sfx('warpIn'); flash();
+  }
+  return false;
+}
+function fuelFrame(dt, now) {
+  depots.forEach((d, i) => {
+    d.g.rotation.y += dt * .3;
+    const active = ex.refueling && ex.refueling.d === d;
+    d.zone.material.opacity = active ? .7 + .3 * Math.sin(now * 10) : .25 + .1 * Math.sin(now * 2 + i);
+    d.glow.material.opacity = active ? 1 : .7;
+    if (ship.position.distanceTo(d.world) < 1400) { tmpW.copy(d.world); tmpW.y += 30; placeLabel(d.label, tmpW, 4); }
+    else d.label.style.display = 'none';
+  });
+  const r = ex.refueling;
+  fuelBeam.visible = !!r;
+  if (r) {
+    tmpV.copy(ship.position).addScaledVector(new THREE.Vector3(0, -1, 0).applyQuaternion(ship.quaternion), 2);
+    fuelBeam.geometry.setFromPoints([r.d.world.clone(), tmpV.clone()]);
+    fuelBeam.material.opacity = .5 + .4 * Math.sin(now * 20);
+    fuelBeam.material.color.setHex(r.paid ? 0x7fffe0 : 0x9fb4d6);
+  }
+  const f = $('exFuel');
+  if (f) {
+    f.textContent = `${Math.round(state.fuel)}%${ex.refueling ? (ex.refueling.paid ? ' · 급유 중' : ' · 무료 급유') : ex.scooping ? ' · 수집 중' : ''}${ex.reserveUsed ? ' · 예비 사용' : ''}`;
+    f.style.color = state.fuel < 10 ? 'var(--red)' : state.fuel < 25 ? 'var(--amber)' : ex.refueling ? 'var(--teal)' : '';
+  }
+}
+function fuelRadar(g, toRadar) {
+  for (const d of depots) {
+    const p = toRadar(d.world, false);
+    if (!p) continue;
+    g.fillStyle = '#3ee6c1'; g.fillRect(p[0] - 4, p[1] - 4, 8, 8);
+    g.fillStyle = '#04121a'; g.font = '700 8px Rajdhani, sans-serif'; g.textAlign = 'center'; g.fillText('F', p[0], p[1] + 3);
+  }
+}
+function fuelQuest() {
+  if (ex.refueling) {
+    return { text: ex.refueling.paid ? `급유 중 ${Math.round(state.fuel)}% · 결정 ${Math.round(ex.crystals)}` : `무료 급유 중 ${Math.round(state.fuel)}% (결정 부족 · 느림)`,
+      pos: null, col: Q_TEAL };
+  }
+  const urgent = state.fuel < 12, low = state.fuel < 25 && !ex.mission;
+  if (!urgent && !low) return null;
+  const nd = nearestDepot();
+  return nd ? { text: `연료 ${Math.round(state.fuel)}% — 가까운 연료소로 · ${nd.d.gal.G.hub ? '넥슨닷컴' : nd.d.gal.G.ko}`, pos: nd.d.world, col: urgent ? Q_RED : Q_AMBER } : null;
 }
 
 // ---------- 레이더 / 목표 / HUD ----------
@@ -2682,6 +2826,7 @@ function exRadar(g, toRadar, R, range) {
   }
   g.fillStyle = '#3ee6c1';
   for (const c of exConvoys) { const p = toRadar(c.g.position, false); if (p) g.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
+  fuelRadar(g, toRadar);
   g.fillStyle = 'rgba(255,138,90,.8)';
   for (let k = 0; k < drones.length; k += 2) { const p = toRadar(drones[k].p, false); if (p) g.fillRect(p[0] - 1, p[1] - 1, 2, 2); }
   g.fillStyle = '#ff4a5a';
@@ -2744,7 +2889,7 @@ function exHud() {
   $('exDay').textContent = `DAY ${Math.floor(ex.day)} · ${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
   const formed = exPlanets.filter(p => p.formed);
   $('exObs').textContent = `관측 ${formed.filter(p => p.discovered).length}/${formed.length}`;
-  $('exCry').textContent = ex.crystals;
+  $('exCry').textContent = Math.round(ex.crystals);
   const mis = $('exMis');
   if (ex.mission === 'bh') {
     mis.innerHTML = `<div class="mt">오픈런 블랙홀 · 메이플스토리</div>
@@ -3046,6 +3191,8 @@ const Q_TEAL = '#3ee6c1', Q_AMBER = '#ffb23e', Q_BLUE = '#4aa8ff', Q_RED = '#ff6
 function questInfo() {
   if (!['flying', 'paused'].includes(state.mode)) return null;
   if (exWorld.visible) {
+    const fq = fuelQuest();
+    if (fq) return fq;
     if (ex.mission === 'bh') {
       if (beacons[0]) return { text: `블랙홀 주변 위성 배치 지점 ${ex.sats + 1}/3 통과`, pos: beacons[0].mesh.position, col: Q_TEAL };
       return { text: '위성 배치 완료 — 대기열이 줄어드는 중', pos: exBH.grp.getWorldPosition(new THREE.Vector3()), col: Q_VIOLET };
@@ -3173,6 +3320,8 @@ function statusInfo() {
   if (state.mode !== 'flying') return ['STANDBY', '#8ea3c6'];
   if (state.hitT > 0) return ['DAMAGE', '#ff5a5a'];
   if (state.warp > 0.3) return ['WARP', '#a98bff'];
+  if (exWorld.visible && ex.refueling) return ['REFUEL', '#3ee6c1'];
+  if (exWorld.visible && ex.scooping) return ['SCOOP', '#ffb23e'];
   if (exWorld.visible && ex.bhNear) return ['GRAVITY', '#a98bff'];
   if (exWorld.visible && ex.mission === 'bots') return ['DEFEND', '#ffb23e'];
   if (exWorld.visible && ex.mission === 'ddos') return ['DDOS', '#ff8a5a'];
