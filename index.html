@@ -682,6 +682,12 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 // =====================================================================
 // 유틸
@@ -739,6 +745,160 @@ scene.background = new THREE.Color(0x02040c);
 scene.fog = new THREE.FogExp2(0x030714, 0.00042);
 const camera = new THREE.PerspectiveCamera(62, 1, 0.5, 9000);
 
+
+// =====================================================================
+// 그래픽 품질 · 후처리 (블룸, 비네팅, 그레인, 워프 방사 블러·색수차) · 렌즈 플레어 · 충격파
+// =====================================================================
+const GFX_NAME = { low: '낮음', med: '보통', high: '높음' };
+let gfx = (() => { try { return localStorage.getItem('nxlog-gfx'); } catch (e) { return null; } })()
+  || (matchMedia('(pointer: coarse)').matches ? 'med' : 'high');
+let composer = null, bloomPass = null, finalPass = null;
+const FinalShader = {
+  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, warp: { value: 0 }, hit: { value: 0 },
+    center: { value: new THREE.Vector2(.5, .5) }, grain: { value: .03 }, vign: { value: .38 }, aspect: { value: 1 } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform float time, warp, hit, grain, vign, aspect; uniform vec2 center; varying vec2 vUv;
+    float rnd(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233)) + time * 43.1) * 43758.5453); }
+    void main() {
+      vec2 d = vUv - center;
+      vec3 col = vec3(0.0); float tot = 0.0;
+      float blur = warp * 0.06;
+      for (int i = 0; i < 8; i++) { float t = float(i) / 7.0; float w = 1.0 - t * 0.6; col += texture2D(tDiffuse, vUv - d * blur * t).rgb * w; tot += w; }
+      col /= tot;
+      float ca = warp * 0.007 + hit * 0.009;
+      if (ca > 0.0001) { col.r = texture2D(tDiffuse, vUv + d * ca).r; col.b = texture2D(tDiffuse, vUv - d * ca).b; }
+      col = pow(max(col, 0.0), vec3(1.06)) * 1.05;
+      vec2 dv = d; dv.x *= aspect;
+      col *= 1.0 - vign * smoothstep(0.35, 1.05, length(dv));
+      col += (rnd(vUv * vec2(1920.0, 1080.0)) - 0.5) * grain;
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+};
+function setupPost() {
+  if (!(THREE.EffectComposer && THREE.UnrealBloomPass && THREE.ShaderPass)) return;
+  let rt;
+  if (renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget) {
+    rt = new THREE.WebGLMultisampleRenderTarget(innerWidth, innerHeight, { format: THREE.RGBAFormat });
+    rt.samples = 4;
+  }
+  composer = new THREE.EffectComposer(renderer, rt);
+  composer.addPass(new THREE.RenderPass(scene, camera));
+  bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .55, .38, .84);
+  composer.addPass(bloomPass);
+  finalPass = new THREE.ShaderPass(FinalShader);
+  composer.addPass(finalPass);
+}
+function applyGfx() {
+  const pr = gfx === 'low' ? 1 : gfx === 'med' ? Math.min(devicePixelRatio, 1.5) : Math.min(devicePixelRatio, 2);
+  renderer.setPixelRatio(pr);
+  if (composer && composer.setPixelRatio) composer.setPixelRatio(pr);
+  if (bloomPass) bloomPass.strength = gfx === 'high' ? .55 : .45;
+  if (finalPass) finalPass.uniforms.grain.value = gfx === 'high' ? .03 : .02;
+  resize();
+  try { localStorage.setItem('nxlog-gfx', gfx); } catch (e) {}
+}
+function renderFrame(dt) {
+  if (composer && gfx !== 'low') {
+    const u = finalPass.uniforms;
+    u.time.value += dt;
+    u.warp.value = state.warp || 0;
+    u.hit.value = Math.min(1, state.shake || 0);
+    u.center.value.set(.5, 1 - ((innerHeight - dashH) / 2) / innerHeight);
+    u.aspect.value = innerWidth / innerHeight;
+    updateFlares();
+    composer.render(dt);
+  } else { updateFlares(); renderer.render(scene, camera); }
+}
+// 렌즈 플레어 (화면 공간 고스트 — 멀티샘플 렌더 타깃과 호환되게 직접 구현)
+function flareTex(kind) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  if (kind === 'ring') { gr.addColorStop(0, '#00000000'); gr.addColorStop(.72, '#00000000'); gr.addColorStop(.82, '#9fd0ff66'); gr.addColorStop(.92, '#00000000'); }
+  else if (kind === 'streak') { gr.addColorStop(0, '#ffffff'); gr.addColorStop(.1, '#fff0d088'); gr.addColorStop(1, '#00000000'); }
+  else { gr.addColorStop(0, '#bfe0ff55'); gr.addColorStop(.6, '#7fa8ff22'); gr.addColorStop(1, '#00000000'); }
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+const FLARE_T = { ring: flareTex('ring'), disc: flareTex('disc'), streak: flareTex('streak') };
+const FLARE_EL = [['streak', 0, .55, 3.2, .18], ['disc', .3, .08, 1, 1], ['ring', .55, .14, 1, 1], ['disc', .8, .1, 1, 1], ['ring', 1.15, .22, 1, 1], ['disc', 1.45, .05, 1, 1]];
+const flares = [];
+function addFlare(obj, tint = 0xffffff, strength = 1) {
+  const els = FLARE_EL.map(([k, t, size, sx, sy]) => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: FLARE_T[k], color: tint, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false }));
+    sp.renderOrder = 999; sp.frustumCulled = false;
+    scene.add(sp);
+    return { sp, t, size, sx, sy };
+  });
+  flares.push({ obj, els, strength });
+}
+const _fl = new THREE.Vector3(), _fw = new THREE.Vector3();
+function updateFlares() {
+  camera.updateMatrixWorld();
+  for (const f of flares) {
+    let vis = f.obj.visible && gfx !== 'low';
+    for (let o = f.obj.parent; o && vis; o = o.parent) vis = o.visible;
+    f.obj.getWorldPosition(_fl);
+    const ndc = _fl.clone().project(camera);
+    const behind = _fw.copy(_fl).applyMatrix4(camera.matrixWorldInverse).z > 0;
+    const off = Math.max(Math.abs(ndc.x), Math.abs(ndc.y));
+    const k = vis && !behind && off < 1.15 ? Math.max(0, 1 - off / 1.15) * f.strength : 0;
+    for (const e of f.els) {
+      e.sp.visible = k > .01;
+      if (!e.sp.visible) continue;
+      const x = ndc.x * (1 - 2 * e.t), y = ndc.y * (1 - 2 * e.t);
+      _fw.set(x, y, .5).unproject(camera).sub(camera.position).normalize().multiplyScalar(30).add(camera.position);
+      e.sp.position.copy(_fw);
+      e.sp.scale.set(30 * e.size * e.sx, 30 * e.size * e.sy, 1);
+      e.sp.material.opacity = k * (e.t === 0 ? .9 : .5);
+    }
+  }
+}
+// 폭발 충격파
+const shocks = [];
+const shockTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 30, 64, 64, 64);
+  gr.addColorStop(0, '#ffffff00'); gr.addColorStop(.7, '#ffe6c0cc'); gr.addColorStop(.85, '#ffb06044'); gr.addColorStop(1, '#ffffff00');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+})();
+const flashTex = glowTexture([[0, '#ffffff'], [.2, '#fff2d0'], [.5, '#ffb06055'], [1, '#00000000']], 64);
+function addShock(pos, scale) {
+  const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: shockTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+  ring.position.copy(pos); fl.position.copy(pos);
+  scene.add(ring, fl);
+  shocks.push({ ring, fl, t: 0, scale });
+}
+function updateShocks(dt) {
+  for (let i = shocks.length - 1; i >= 0; i--) {
+    const s2 = shocks[i];
+    s2.t += dt;
+    const k = s2.t / .7;
+    s2.ring.scale.setScalar(s2.scale * (.4 + k * 3));
+    s2.ring.material.opacity = Math.max(0, 1 - k);
+    s2.fl.scale.setScalar(s2.scale * 2.2 * (1 + k));
+    s2.fl.material.opacity = Math.max(0, 1 - k * 2.2);
+    if (k >= 1) { scene.remove(s2.ring, s2.fl); s2.ring.material.dispose(); s2.fl.material.dispose(); shocks.splice(i, 1); }
+  }
+}
+// 고해상도 우주 배경 + 금속 반사
+function loadSkybox() {
+  new THREE.TextureLoader().load('assets/skybox.webp?v=2', tex => {
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = tex;
+    try {
+      const pm = new THREE.PMREMGenerator(renderer);
+      scene.environment = pm.fromEquirectangular(tex).texture;
+      pm.dispose();
+      // 반사는 은은하게: 금속 재질만 약하게
+      scene.traverse(o => { const m = o.material; if (m && m.isMeshStandardMaterial) m.envMapIntensity = m.metalness > .5 ? .45 : .15; });
+    } catch (e) {}
+  });
+}
+
 let dashH = 0;
 const dpr = Math.min(devicePixelRatio, 2);
 function fitCanvas(c) {
@@ -749,6 +909,7 @@ function fitCanvas(c) {
 }
 function resize() {
   renderer.setSize(innerWidth, innerHeight);
+  if (composer) composer.setSize(innerWidth, innerHeight);
   dashH = $('dash').offsetHeight;
   // 투영 중심을 대시보드 위 '창' 영역의 중앙으로 옮김
   camera.aspect = innerWidth / (innerHeight + dashH);
@@ -1128,8 +1289,10 @@ function burst(pos, color, n = 90, speed = 25, size = 1) {
     color, size, map: dotTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
   scene.add(pts);
   bursts.push({ pts, vel, life: 1.2, max: 1.2 });
+  if (n >= 100 && size >= 1.1) addShock(pos, 8 + speed * .6);
 }
 function updateBursts(dt) {
+  updateShocks(dt);
   for (let i = bursts.length - 1; i >= 0; i--) {
     const b = bursts[i], arr = b.pts.geometry.attributes.position.array;
     b.life -= dt;
@@ -1263,6 +1426,7 @@ function openSettings() {
   showCard(`<h1>SETTINGS</h1><h2>설정</h2>
     <button data-act="invert">상하 반전: ${state.invert ? 'ON' : 'OFF'}</button>
     <button data-act="sound">효과음: ${state.sound ? 'ON' : 'OFF'}</button>
+    <button data-act="gfx">그래픽: ${GFX_NAME[gfx]}</button>
     <button data-act="restart">처음부터 다시</button>
     <button data-act="close">닫기</button>`, true);
 }
@@ -1486,6 +1650,7 @@ $('overlay').addEventListener('click', e => {
   const actEl = e.target.closest('[data-act]');
   const act = actEl && actEl.dataset.act;
   if (act === 'invert') { state.invert = !state.invert; actEl.textContent = `상하 반전: ${state.invert ? 'ON' : 'OFF'}`; return; }
+  if (act === 'gfx') { gfx = { high: 'med', med: 'low', low: 'high' }[gfx]; applyGfx(); actEl.textContent = `그래픽: ${GFX_NAME[gfx]}`; return; }
   if (act === 'sound') { state.sound = !state.sound; actEl.textContent = `효과음: ${state.sound ? 'ON' : 'OFF'}`; return; }
   if (act === 'restart') { startGame(); return; }
   if (act === 'ex-go') { exBegin(); return; }
@@ -4368,10 +4533,17 @@ function loop() {
   dockLight.color.setHSL(0.1, 1, 0.42 + 0.14 * Math.sin(now * 4));
   updateDust();
   updateHud();
-  renderer.render(scene, camera);
+  renderFrame(dt);
 }
 
 resize();
+setupPost();
+applyGfx();
+loadSkybox();
+addFlare(sun, 0xfff2d8, 1);
+addFlare(exGal[0].star, 0xffe2a8, .55);
+// 블룸이 빛을 더하므로 항성 후광 스프라이트는 한 단계 약하게
+exGal.forEach(g => { g.glow.material.opacity = g.G.hub ? .5 : .65; });
 setupMission();
 state.throttle = 0.33;
 function showTitle() {
