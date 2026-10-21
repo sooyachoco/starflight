@@ -2272,7 +2272,7 @@ function musicUpdate(dt) {
   const duck = state.mode === 'paused' || state.mode === 'over' ? .35 : 1;
   for (const [k, tr] of Object.entries(BGM.tracks)) {
     const on = k === want;
-    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * (k === 'space' ? .55 : 1) : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
+    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * (k === 'space' ? 1.35 : 1) : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
     if (on) { tr.idle = 0; if (tr.el.paused) tr.el.play().catch(() => {}); }
     else if (!tr.el.paused && (tr.idle += dt) > 5) tr.el.pause();
   }
@@ -2290,7 +2290,7 @@ function noise(len) {
   return noiseBufs[len];
 }
 // ---------- 영화풍 효과음: 장력 와이어를 튕긴 듯한 분산 처프 블래스터 · 폭발 · 피격 ----------
-const SW_SFX = { laser: ['blaster', .3], elaser: ['eblaster', .26], boom: ['boom', .6], hit: ['hit', .34] };
+const SW_SFX = { laser: ['blaster', .13], elaser: ['eblaster', .11], boom: ['boom', .4], hit: ['hit', .18] };
 const swCache = {};
 function swRender(len, fn) {
   const sr = actx.sampleRate, n = Math.floor(sr * len), buf = actx.createBuffer(1, n, sr), d = buf.getChannelData(0);
