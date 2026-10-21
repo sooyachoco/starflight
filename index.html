@@ -2252,7 +2252,7 @@ function initAudio() {
 
 // ---------- 배경음악: 타이틀 · 순항 · 전투, 상황에 따라 교차 페이드 ----------
 const BGM_MAX = .5;   // 슬라이더 100% = 게인 0.5
-const BGM_TRIM = { title: 1.9, space: 1.35 };   // 곡마다 마스터링 음량이 달라 맞춤 (title -20 dB, space -18.8 dB RMS)
+const BGM_TRIM = { title: 1.9, space: 1.35, combat: 1.2 };   // 곡마다 마스터링 음량이 달라 맞춤 (title -20, space -18.8, combat -15.2 dB RMS)
 const BGM = { tracks: {}, cur: null, vol: .26, on: true };
 try {
   BGM.on = localStorage.getItem('nxlog-music') !== 'off';
@@ -2263,7 +2263,7 @@ function setMusicVol(pct) {
   BGM.vol = pct / 100 * BGM_MAX;
   try { localStorage.setItem('nxlog-mvol', String(pct)); } catch (e) {}
 }
-for (const k of ['title', 'space']) {
+for (const k of ['title', 'space', 'combat']) {
   const el = new Audio(`assets/bgm/${k}.mp3?v=2`);
   el.loop = true; el.preload = k === 'title' ? 'auto' : 'none';
   BGM.tracks[k] = { el, g: null, idle: 0 };
@@ -2292,8 +2292,10 @@ function musicInit() {
 }
 // 어디든 첫 입력이 오면 오디오 잠금 해제 (사용자 활성화로 인정되는 이벤트들)
 ['pointerdown', 'pointerup', 'keydown', 'touchend'].forEach(ev => addEventListener(ev, () => initAudio(), { capture: true, passive: true }));
+const COMBAT_MISSIONS = ['bots', 'ddos', 'stealth'];   // 봇 해적단 · DDoS 군체 · 무차별 대입 침투조
 function musicWant() {
-  return ['title', 'select'].includes(state.mode) ? 'title' : 'space';
+  if (['title', 'select'].includes(state.mode)) return 'title';
+  return exWorld.visible && COMBAT_MISSIONS.includes(ex.mission) ? 'combat' : 'space';
 }
 function musicUpdate(dt) {
   if (!BGM.ready) return;
