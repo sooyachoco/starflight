@@ -236,6 +236,11 @@
   .emk.off .c, .emk.off .d, .emk.off .hp { display: none; }
   .emk.off::after { content: ""; position: absolute; left: -7px; top: -7px; border-left: 13px solid #ff4a5a;
     border-top: 7px solid transparent; border-bottom: 7px solid transparent; }
+  #scanUI { position: absolute; left: 50%; top: calc(var(--win-h) / 2); width: 74px; height: 74px; margin: -37px 0 0 -37px;
+    border-radius: 50%; display: none; pointer-events: none;
+    -webkit-mask: radial-gradient(circle, transparent 31px, #000 32px); mask: radial-gradient(circle, transparent 31px, #000 32px); }
+  #scanT { position: absolute; left: 50%; top: calc(var(--win-h) / 2 + 44px); transform: translateX(-50%); display: none;
+    font-size: 13px; font-weight: 700; letter-spacing: .12em; white-space: nowrap; text-shadow: 0 1px 4px #000; }
   #lead { position: absolute; display: none; width: 14px; height: 14px; margin: -8px 0 0 -8px; border: 1.5px solid #ff6a78;
     border-radius: 50%; }
   #lead::after { content: ""; position: absolute; left: 5px; top: 5px; width: 4px; height: 4px; border-radius: 50%; background: #ff6a78; }
@@ -582,6 +587,7 @@
     <path d="M-16-16-9-9M16-16 9-9M-16 16-9 9M16 16 9 9"/>
   </svg>
   <div id="edge"></div>
+  <div id="scanUI"></div><div id="scanT"></div>
   <div id="touch">
     <div class="tc" id="stick"><div id="knob"></div></div>
     <button class="tc tb" id="bThrUp" data-k="KeyW" aria-label="추력 증가">+</button>
@@ -1812,6 +1818,7 @@ function updateBolts(dt) {
       if (!hit && exWorld.visible) for (let j = exStealth.length - 1; j >= 0; j--) {
         if (segDist(_p0, p1, exStealth[j].g.position) < ENEMY_HIT_R) { hit = true; exHitStealth(j, 25); break; }
       }
+      if (!hit && exWorld.visible) hit = dqBoltHit(_p0, p1);
       if (!hit && exWorld.visible) for (let j = DQ.orbs.length - 1; j >= 0; j--) {
         if (segDist(_p0, p1, DQ.orbs[j].sp.position) < 6) { hit = true; dqHitOrb(j); break; }
       }
@@ -2827,8 +2834,9 @@ function fuelQuest() {
 // =====================================================================
 // 데이터 의뢰 (DATA QUEST) — 관측소 · 샘플링 · 404 구조 · 이상치 · 유저 여정
 // =====================================================================
-const DQ = { active: null, done: 0, nextT: 3, order: [], orbs: [], packets: [], obs: [], last: '' };
-const DQ_TYPES = ['observe', 'sample', 'lost', 'outlier', 'funnel'];
+const DQ = { active: null, done: 0, nextT: 3, order: [], orbs: [], packets: [], obs: [], last: '',
+  convoy: [], vortex: [], moons: [], rocks: [], ships: [], gate: null };
+const DQ_TYPES = ['observe', 'evfunnel', 'sample', 'gate', 'lost', 'disguise', 'outlier', 'funnel'];
 const galName = pl => pl.gal.G.hub ? '넥슨닷컴' : pl.gal.G.ko;
 const dqRing = new THREE.Mesh(new THREE.TorusGeometry(1, .035, 8, 64), new THREE.MeshBasicMaterial({ color: 0x4aa8ff, transparent: true,
   opacity: .8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
@@ -2847,6 +2855,13 @@ function dqPickPlanet(filter) {
 function dqClearObjects() {
   DQ.orbs.forEach(o => exWorld.remove(o.sp)); DQ.orbs = [];
   DQ.packets.forEach(k => exWorld.remove(k.mesh)); DQ.packets = [];
+  DQ.convoy.forEach(c => exWorld.remove(c.g)); DQ.convoy = [];
+  DQ.vortex.forEach(v => exWorld.remove(v.sp)); DQ.vortex = [];
+  DQ.moons.forEach(m => { exGal[0].grp.remove(m.mesh); m.label.remove(); }); DQ.moons = [];
+  DQ.rocks.forEach(r => exWorld.remove(r.mesh)); DQ.rocks = [];
+  DQ.ships.forEach(sh => { exWorld.remove(sh.g); sh.label.remove(); }); DQ.ships = [];
+  if (DQ.gate) { exWorld.remove(DQ.gate.g); DQ.gate.label.remove(); DQ.gate = null; }
+  $('scanUI').style.display = $('scanT').style.display = 'none';
   dqRing.visible = false;
 }
 function dqReset() {
@@ -2856,7 +2871,7 @@ function dqReset() {
   Object.assign(DQ, { active: null, done: 0, nextT: 4, order: [], last: '' });
 }
 function dqStart() {
-  if (!DQ.order.length) DQ.order = DQ.done < 5 ? DQ_TYPES.slice(DQ.done) : DQ_TYPES.slice().sort(() => Math.random() - .5);
+  if (!DQ.order.length) DQ.order = DQ.done < DQ_TYPES.length ? DQ_TYPES.slice(DQ.done) : DQ_TYPES.slice().sort(() => Math.random() - .5);
   const type = DQ.order.shift();
   let q;
   if (type === 'observe') {
@@ -2887,6 +2902,12 @@ function dqStart() {
       exWorld.add(sp);
       DQ.orbs.push({ sp, ang: k * 1.05 + rand(0, .5), rad: rand(90, 220), y: rand(-50, 50), spd: rand(.12, .25) * (k % 2 ? 1 : -1), ms: Math.round(rand(2800, 9500)) });
     }
+  } else if (type === 'evfunnel') {
+    q = dqStartEventFunnel();
+  } else if (type === 'gate') {
+    q = dqStartGate();
+  } else if (type === 'disguise') {
+    q = dqStartDisguise();
   } else {
     const game = exGal[1 + Math.floor(Math.random() * 3)];
     const steps = [exGal[0].planets[0], exGal[0].planets[1], exGal[0].planets[2], game.planets[0]];
@@ -2910,6 +2931,7 @@ function dqComplete() {
     lost: `404 → 301 리다이렉트 ${q.need}건 등록 · 이탈 방지`,
     outlier: `p99 지연 원인: 외부 API 타임아웃 (가상) · 최대 ${Math.max(...q.ms || [0]) || 9400}ms`,
     funnel: `전환율 ${q.conv ? q.conv.join('% → ') + '%' : ''} · 소요 ${q.time ? q.time.toFixed(0) : 0}초`,
+    evfunnel: q.result, gate: q.result, disguise: q.result,
   }[q.type];
   DQ.last = res;
   toast(`의뢰 완료 · 결정 +${q.reward} · 연료 +10%`, '#3ee6c1');
@@ -2979,8 +3001,312 @@ function dqUpdate(dt, now) {
       q.pl = q.steps[q.prog];
     }
   }
+  else if (q.type === 'evfunnel') dqUpdateEventFunnel(q, dt);
+  else if (q.type === 'gate') dqUpdateGate(q, dt, now);
+  else if (q.type === 'disguise') dqUpdateDisguise(q, dt);
   // 이상치는 레이저 판정에서 처리
 }
+
+// ---------- 신규 의뢰: 이벤트 퍼널 · 직행 관문 방어 · 위장 함선 판별 (가상 수치) ----------
+const EVF_BASE = [1000, 720, 700, 260];          // 가상 기준 퍼널 (단계별 방문)
+const visitorMat = new THREE.MeshStandardMaterial({ color: 0x3ee6c1, emissive: 0x0e5a4a, metalness: .4, roughness: .4 });
+function makeVisitor(mat = visitorMat) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 7, 10), mat);
+  body.rotation.x = Math.PI / 2; g.add(body);
+  const lamp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: mat.color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
+  lamp.scale.setScalar(12); lamp.position.z = 4; g.add(lamp);
+  g.userData.body = body; g.userData.lamp = lamp;
+  return g;
+}
+const swirlTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.translate(64, 64);
+  for (let k = 0; k < 3; k++) {
+    x.rotate(Math.PI * 2 / 3);
+    x.strokeStyle = 'rgba(190,150,255,.8)'; x.lineWidth = 5; x.beginPath();
+    for (let t = 0; t < 1; t += .02) { const r = t * 58, a = t * 5; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    x.stroke();
+  }
+  return new THREE.CanvasTexture(c);
+})();
+function evStep(path, mesh, R) { return { path, mesh, R, world: new THREE.Vector3(), gal: exGal[0] }; }
+
+// 1) 이벤트 퍼널: 호송선을 이벤트 행성 4곳에 순서대로 안내, 이탈 소용돌이를 부숴 전환율 지키기
+function dqStartEventFunnel() {
+  const hub = exGal[0], ev = hub.planets.find(p => p.path === '/event');
+  const base = ev.mesh.position.clone(), out = base.clone().setY(0).normalize();
+  const side = new THREE.Vector3(-out.z, 0, out.x);
+  const names = ['/event/list', '/event/ongoing', '/event/detail'];
+  const steps = [ev];
+  names.forEach((nm, k) => {
+    const R = 9 - k * 1.5;
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(R, 24, 16), new THREE.MeshStandardMaterial({
+      map: lwBandTex([0xff9fd0, 0xffcf6a, 0xff8f5a][k]), roughness: .85, emissive: new THREE.Color(0x553322) }));
+    mesh.position.copy(base).addScaledVector(out, 140 * (k + 1)).addScaledVector(side, (k % 2 ? 1 : -1) * 70).add(new THREE.Vector3(0, 20 * (k + 1), 0));
+    hub.grp.add(mesh);
+    const st = evStep(nm, mesh, R);
+    st.label = exLabel('', `<b>${nm}</b><span>이벤트 ${['목록', '진행중', '상세'][k]}</span>`);
+    DQ.moons.push(st);
+    steps.push(st);
+  });
+  hub.grp.updateMatrixWorld(true);
+  DQ.moons.forEach(m => m.mesh.getWorldPosition(m.world));
+  // 호송선 24척: 내 뒤를 따라옴
+  for (let k = 0; k < 24; k++) {
+    const g = makeVisitor();
+    g.position.copy(ship.position).add(randomDir().multiplyScalar(rand(10, 30)));
+    exWorld.add(g);
+    DQ.convoy.push({ g, off: new THREE.Vector3(rand(-14, 14), rand(-8, 8), rand(14, 40)) });
+  }
+  // 이탈 소용돌이: 구간마다 2 · 3 · 6개 (마지막 구간이 가장 험함)
+  const counts = [2, 3, 6];
+  for (let seg = 0; seg < 3; seg++) {
+    const a = seg === 0 ? ev.world.clone() : DQ.moons[seg - 1].world, b = DQ.moons[seg].world;
+    for (let k = 0; k < counts[seg]; k++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: swirlTex, color: 0xb090ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      sp.scale.setScalar(34);
+      sp.position.copy(a).lerp(b, rand(.25, .85)).add(randomDir().multiplyScalar(rand(10, 35)));
+      exWorld.add(sp);
+      DQ.vortex.push({ sp, hp: 50, ph: rand(0, 6), home: sp.position.clone(), cap: seg === 2 ? 3 : 1, cool: 0 });
+    }
+  }
+  return { type: 'evfunnel', pl: steps[0], steps, start: 24, need: 4, prog: 0, reward: 80, reach: [24],
+    title: '이벤트 퍼널 · event → 목록 → 진행중 → 상세',
+    desc: `방문자 호송선 24척을 이벤트 행성 4곳에 순서대로 안내하세요. 보라색 이탈 소용돌이는 호송선을 빨아들입니다. 레이저로 부숴 길을 여세요. 가상 기준 최종 전환율 ${Math.round(EVF_BASE[3] / EVF_BASE[0] * 100)}% (마지막 구간 이탈이 큼).` };
+}
+function dqUpdateEventFunnel(q, dt) {
+  DQ.moons.forEach(m => m.mesh.getWorldPosition(m.world));
+  // 소용돌이가 호송선을 빨아들임
+  // 소용돌이마다 삼킬 수 있는 수가 정해져 있음 (모두 무시하면 가상 기준 전환율 근처)
+  DQ.vortex.forEach(v => { v.cool -= dt; });
+  for (let j = DQ.convoy.length - 1; j >= 0; j--) {
+    const c = DQ.convoy[j];
+    for (let i = DQ.vortex.length - 1; i >= 0; i--) {
+      const v = DQ.vortex[i];
+      if (v.cool > 0 || c.g.position.distanceTo(v.sp.position) > 26) continue;
+      burst(c.g.position, 0xb090ff, 20, 10, .7);
+      exWorld.remove(c.g); DQ.convoy.splice(j, 1);
+      v.cool = .35;
+      toast(`호송선 이탈 · ${DQ.convoy.length}/${q.start}`, '#b090ff');
+      if (--v.cap <= 0) { burst(v.sp.position, 0x6a4aa0, 30, 10, .9); exWorld.remove(v.sp); DQ.vortex.splice(i, 1); }
+      break;
+    }
+  }
+  const cur = q.steps[q.prog];
+  if (ship.position.distanceTo(cur.world) < cur.R + 50) {
+    q.prog++;
+    q.reach.push(DQ.convoy.length);
+    if (q.prog > 1) toast(`${cur.path} 도착 · 호송선 ${DQ.convoy.length}척 (${Math.round(DQ.convoy.length / q.start * 100)}%)`, '#3ee6c1');
+    sfx('laser', 300);
+    if (q.prog >= q.need) {
+      const mine = Math.round(DQ.convoy.length / q.start * 100), base = Math.round(EVF_BASE[3] / EVF_BASE[0] * 100);
+      q.reward = Math.round(40 + mine * .8);
+      q.result = `내 전환율 ${q.reach.slice(1).map(n => Math.round(n / q.start * 100)).join('% → ')}% · 기준 ${base}% 대비 ${mine >= base ? '+' : ''}${mine - base}%p`;
+      dqComplete();
+      return;
+    }
+    q.pl = q.steps[q.prog];
+  }
+}
+
+// 2) 직행 관문 방어: 북마크 유입 관문을 운석 떼로부터 40초 지키기
+function dqStartGate() {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(60, 4, 12, 72), new THREE.MeshStandardMaterial({ color: 0x9aa6b8, metalness: .7, roughness: .35 })));
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(52, 1.2, 8, 72), new THREE.MeshBasicMaterial({ color: 0xffb23e, fog: false })));
+  const disk = new THREE.Mesh(new THREE.CircleGeometry(50, 48), new THREE.MeshBasicMaterial({ color: 0x4aa8ff, transparent: true, opacity: .25,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  g.add(disk);
+  for (let k = 0; k < 8; k++) {
+    const a = k / 8 * Math.PI * 2;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(6, 10, 6), depotDark);
+    m.position.set(Math.cos(a) * 64, Math.sin(a) * 64, 0); m.rotation.z = a; g.add(m);
+  }
+  const dir = randomDir().setY(.15).normalize();
+  g.position.copy(dir).multiplyScalar(720);
+  g.lookAt(0, 0, 0);
+  exWorld.add(g);
+  DQ.gate = { g, disk, world: g.position.clone(), dir, label: exLabel('cc', '<b>BOOKMARK 관문</b><span>직행 유입</span>') };
+  return { type: 'gate', pl: { world: DQ.gate.world, R: 60, path: 'BookMark', gal: exGal[0] }, need: 40, prog: 0, hp: 100, spawnT: 1, flowT: 0, reward: 65,
+    title: '직행 관문 방어 · BookMark 유입 관문',
+    desc: '즐겨찾기로 곧장 들어오는 방문자가 가장 많은 관문입니다. 날아드는 운석을 40초 동안 레이저로 막으세요. 운석이 관문에 닿을 때마다 내구도가 깎이고, 관문이 약해지면 유입 트래픽도 줄어듭니다.' };
+}
+function dqUpdateGate(q, dt, now) {
+  q.prog += dt;
+  const gw = DQ.gate.world;
+  q.spawnT -= dt;
+  if (q.spawnT <= 0 && q.prog < q.need - 4) {
+    const r = rand(4, 10);
+    const mesh = new THREE.Mesh(astGeos[Math.floor(Math.random() * astGeos.length)], astMats[Math.floor(Math.random() * astMats.length)]);
+    mesh.scale.setScalar(r);
+    mesh.position.copy(gw).add(randomDir().multiplyScalar(rand(520, 680)));
+    exWorld.add(mesh);
+    DQ.rocks.push({ mesh, r, hp: r * 6, spd: rand(20, 30), spin: randomDir() });
+    q.spawnT = rand(.7, 1.3) * (q.prog > 20 ? .7 : 1);
+  }
+  for (let j = DQ.rocks.length - 1; j >= 0; j--) {
+    const rk = DQ.rocks[j];
+    tmpV.copy(gw).sub(rk.mesh.position);
+    const d = tmpV.length();
+    rk.mesh.position.addScaledVector(tmpV.normalize(), rk.spd * dt);
+    rk.mesh.rotateOnAxis(rk.spin, dt);
+    if (d < 62) {
+      burst(rk.mesh.position, 0xffa040, 60, 22, 1.1);
+      exWorld.remove(rk.mesh); DQ.rocks.splice(j, 1);
+      q.hp = Math.max(0, q.hp - 7);
+      flashColor('#ffb23e'); sfx('boom', ship.position.distanceTo(gw));
+      toast(`관문 피격 · 내구도 ${Math.round(q.hp)}%`, '#ffb23e');
+    } else if (rk.mesh.position.distanceTo(ship.position) < rk.r + 3) {
+      burst(rk.mesh.position, 0xffa040, 60, 22, 1.1);
+      exWorld.remove(rk.mesh); DQ.rocks.splice(j, 1);
+      damagePlayer(10, 'IMPACT');
+    }
+  }
+  // 관문에서 넥슨닷컴으로 흘러가는 유입 트래픽 (내구도에 비례)
+  q.flowT -= dt * (q.hp / 100) * 12;
+  while (q.flowT <= 0) {
+    q.flowT += 1;
+    const pl = exGal[0].planets[Math.floor(Math.random() * 3)];
+    exSpawn(gw.clone().add(randomDir().multiplyScalar(30)), exPlanets.indexOf(pl), LW_COL.ok, now);
+  }
+  if (q.hp <= 0) {
+    toast('관문 붕괴 — 직행 유입이 끊겼습니다. 잠시 후 다시 의뢰가 들어옵니다', '#ff6a6a');
+    DQ.order.unshift('gate');
+    dqClearObjects(); DQ.active = null; DQ.nextT = 8;
+    return;
+  }
+  if (q.prog >= q.need) {
+    q.reward = Math.round(30 + q.hp * .6);
+    q.result = `관문 유지 · 유입 보존율 ${Math.round(q.hp)}% · 북마크 방문 흐름 정상화`;
+    dqComplete();
+  }
+}
+
+// 3) 위장 함선 판별: 조준 스캔으로 봇(해상도 800×600 위장)을 가려내 격추
+function dqStartDisguise() {
+  const hub = exGal[0], pl = hub.planets[0];
+  const n = 14, bots = new Set();
+  while (bots.size < 4) bots.add(Math.floor(Math.random() * n));
+  for (let k = 0; k < n; k++) {
+    const g = makeVisitor(visitorMat.clone());
+    exWorld.add(g);
+    const sh = { g, bot: bots.has(k), scanned: false, scanT: 0, ang: k / n * Math.PI * 2, rad: rand(150, 200), y: rand(-30, 30), spd: rand(.08, .14),
+      res: bots.has(k) ? '800×600' : ['1920×1080', '2560×1440', '1536×864', '1920×1080'][k % 4],
+      label: exLabel('', '<b></b><span></span>') };
+    sh.label.style.display = 'none';
+    DQ.ships.push(sh);
+  }
+  return { type: 'disguise', pl, need: 4, prog: 0, fp: 0, reward: 75,
+    title: '위장 함선 판별 · 넥슨닷컴 메인 궤도',
+    desc: '정상 방문선처럼 보이는 함선 14척 중 4척은 해상도 800×600으로 위장한 봇입니다. 조준선을 함선에 1초 맞춰 스캔하고, 봇으로 판별된 함선만 격추하세요. 정상 함선을 쏘면 오탐입니다.' };
+}
+function dqUpdateDisguise(q, dt) {
+  const ui = $('scanUI'), tx = $('scanT');
+  let target = null, best = .9965;
+  shipBasis();
+  for (const sh of DQ.ships) {
+    tmpV.copy(sh.g.position).sub(ship.position);
+    const d = tmpV.length();
+    if (d > 520) continue;
+    const dot = tmpV.dot(fwd) / d;
+    if (dot > best) { best = dot; target = sh; }
+  }
+  if (target && !target.scanned) {
+    target.scanT += dt;
+    const pct = Math.min(1, target.scanT / 1);
+    ui.style.display = tx.style.display = 'block';
+    ui.style.background = `conic-gradient(#ffb23e ${pct * 360}deg, rgba(255,178,62,.15) 0)`;
+    tx.style.color = '#ffb23e'; tx.textContent = `SCAN ${Math.round(pct * 100)}%`;
+    if (pct >= 1) {
+      target.scanned = true;
+      const m = target.g.userData.body.material;
+      if (target.bot) { m.color.setHex(0xff4a5a); m.emissive.setHex(0x5a0a14); target.g.userData.lamp.material.color.setHex(0xff4a5a); }
+      else { m.color.setHex(0x7fffb0); }
+      toast(target.bot ? `봇 판별 · 해상도 ${target.res} · 헤드리스 의심` : `정상 방문선 · ${target.res}`, target.bot ? '#ff6a78' : '#3ee6c1');
+      sfx(target.bot ? 'alarm' : 'laser', 300);
+    }
+  } else if (target && target.scanned) {
+    ui.style.display = tx.style.display = 'block';
+    ui.style.background = target.bot ? 'conic-gradient(#ff4a5a 360deg, transparent 0)' : 'conic-gradient(#3ee6c1 360deg, transparent 0)';
+    tx.style.color = target.bot ? '#ff6a78' : '#3ee6c1'; tx.textContent = target.bot ? 'BOT · 격추' : '정상 · 사격 금지';
+  } else ui.style.display = tx.style.display = 'none';
+}
+function dqBoltHit(a, b) {
+  for (let j = DQ.vortex.length - 1; j >= 0; j--) {
+    const v = DQ.vortex[j];
+    if (segDist(a, b, v.sp.position) < 14) {
+      v.hp -= 25; burst(v.sp.position, 0xb090ff, 20, 12, .7); hitMarker(); sfx('hit', 200);
+      if (v.hp <= 0) { burst(v.sp.position, 0xffffff, 60, 20, 1.1); exWorld.remove(v.sp); DQ.vortex.splice(j, 1); toast('이탈 소용돌이 제거', '#b090ff'); }
+      return true;
+    }
+  }
+  for (let j = DQ.rocks.length - 1; j >= 0; j--) {
+    const rk = DQ.rocks[j];
+    if (segDist(a, b, rk.mesh.position) < rk.r * .9) {
+      rk.hp -= 25; burst(b, 0xffc080, 16, 10, .6);
+      if (rk.hp <= 0) { burst(rk.mesh.position, 0xffa040, 70, 18, 1.1); exWorld.remove(rk.mesh); DQ.rocks.splice(j, 1); sfx('boom', 300); }
+      return true;
+    }
+  }
+  const q = DQ.active;
+  for (let j = DQ.ships.length - 1; j >= 0; j--) {
+    const sh = DQ.ships[j];
+    if (segDist(a, b, sh.g.position) < 5) {
+      burst(sh.g.position, sh.bot ? 0xff4a5a : 0x3ee6c1, 60, 20, 1.1);
+      exWorld.remove(sh.g); sh.label.remove(); DQ.ships.splice(j, 1);
+      if (q && q.type === 'disguise') {
+        if (sh.bot) { q.prog++; toast(`봇 격추 ${q.prog}/${q.need}`, '#ff6a78'); }
+        else { q.fp++; flash(); toast('오탐! 정상 방문선을 격추했습니다', '#ff6a6a'); }
+        if (q.prog >= q.need) {
+          const acc = Math.round(q.need / (q.need + q.fp) * 100);
+          q.reward = Math.max(20, 75 - q.fp * 15);
+          q.result = `봇 ${q.need}척 차단 · 오탐 ${q.fp} · 판별 정확도 ${acc}%`;
+          dqComplete();
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+function dqFrameNew(dt, now) {
+  const q = DQ.active, flying = state.mode === 'flying' && !ex.mission;
+  // 호송선: 내 뒤를 무리 지어 따라옴
+  DQ.convoy.forEach((c, k) => {
+    tmpV.copy(c.off).applyQuaternion(ship.quaternion).add(ship.position);
+    c.g.position.lerp(tmpV, 1 - Math.exp(-dt * (1.4 + (k % 5) * .15)));
+    c.g.quaternion.slerp(ship.quaternion, 1 - Math.exp(-dt * 3));
+  });
+  DQ.vortex.forEach(v => {
+    v.sp.material.rotation += dt * 2.5;
+    v.sp.position.copy(v.home).add(tmpW.set(Math.sin(now * .7 + v.ph) * 12, Math.cos(now * .9 + v.ph) * 8, 0));
+  });
+  DQ.moons.forEach(m => { tmpW.copy(m.world); tmpW.y += m.R + 3; placeLabel(m.label, tmpW, 4); });
+  if (DQ.gate) {
+    DQ.gate.g.rotation.z += dt * .2;
+    DQ.gate.disk.material.opacity = .15 + .15 * (q && q.hp != null ? q.hp / 100 : 1) + .05 * Math.sin(now * 3);
+    tmpW.copy(DQ.gate.world); tmpW.y += 80; placeLabel(DQ.gate.label, tmpW, 4);
+  }
+  if (q && q.type === 'disguise') {
+    const c = q.pl.world;
+    DQ.ships.forEach(sh => {
+      if (flying) sh.ang += sh.spd * dt;
+      sh.g.position.set(c.x + Math.cos(sh.ang) * sh.rad, c.y + sh.y, c.z + Math.sin(sh.ang) * sh.rad);
+      sh.g.lookAt(c.x + Math.cos(sh.ang + .1) * sh.rad, c.y + sh.y, c.z + Math.sin(sh.ang + .1) * sh.rad);
+      if (sh.scanned) {
+        tmpW.copy(sh.g.position); tmpW.y += 6;
+        if (placeLabel(sh.label, tmpW, 4)) {
+          sh.label.querySelector('b').textContent = sh.bot ? 'BOT' : '정상';
+          sh.label.querySelector('span').textContent = sh.res;
+          sh.label.querySelector('b').style.color = sh.bot ? '#ff6a78' : '#7fffb0';
+        }
+      }
+    });
+  } else if (!q || q.type !== 'disguise') { if ($('scanUI').style.display !== 'none') $('scanUI').style.display = $('scanT').style.display = 'none'; }
+}
+
 function dqHitOrb(j) {
   const o = DQ.orbs[j], q = DQ.active;
   burst(o.sp.position, 0xc080ff, 50, 18, 1);
@@ -2995,12 +3321,12 @@ function dqHitOrb(j) {
 function dqFrame(dt, now) {
   const q = DQ.active;
   // 목표 고리
-  if (q && !ex.mission && ['observe', 'funnel', 'sample', 'lost', 'outlier'].includes(q.type)) {
+  if (q && !ex.mission && ['observe', 'funnel', 'sample', 'lost', 'outlier', 'evfunnel', 'disguise'].includes(q.type)) {
     dqRing.visible = true;
-    const r = q.pl.R + (q.type === 'funnel' ? 60 : q.type === 'observe' ? 70 : 40);
+    const r = q.pl.R + (q.type === 'funnel' || q.type === 'evfunnel' ? 50 : q.type === 'observe' ? 70 : q.type === 'disguise' ? 120 : 40);
     dqRing.position.copy(q.pl.world); dqRing.scale.setScalar(r);
     dqRing.lookAt(camera.position);
-    dqRing.material.color.setHex(q.type === 'observe' && q.hold ? 0x3ee6c1 : q.type === 'outlier' ? 0xc080ff : q.type === 'lost' ? 0xffb23e : 0x4aa8ff);
+    dqRing.material.color.setHex(q.type === 'observe' && q.hold ? 0x3ee6c1 : q.type === 'outlier' ? 0xc080ff : q.type === 'lost' ? 0xffb23e : q.type === 'disguise' ? 0xff6a78 : 0x4aa8ff);
     dqRing.material.opacity = .45 + .35 * Math.sin(now * 4);
   } else dqRing.visible = false;
   // 이상치 궤도
@@ -3018,6 +3344,7 @@ function dqFrame(dt, now) {
       pk.mesh.position.lerp(tmpV, 1 - Math.exp(-dt * 5)); n++;
     } else pk.mesh.position.y += Math.sin(now * 1.5 + pk.ph) * dt * 4;
   }
+  dqFrameNew(dt, now);
   // 관측소 공전
   DQ.obs.forEach(o => {
     o.ang += dt * .4;
@@ -3030,6 +3357,14 @@ function dqRadar(g, toRadar) {
   for (const o of DQ.orbs) { const p = toRadar(o.sp.position, false); if (p) { g.beginPath(); g.arc(p[0], p[1], 3, 0, Math.PI * 2); g.fill(); } }
   g.fillStyle = '#ffb23e';
   for (const pk of DQ.packets) { if (pk.carried) continue; const p = toRadar(pk.mesh.position, false); if (p) g.fillRect(p[0] - 2, p[1] - 2, 4, 4); }
+  g.fillStyle = '#3ee6c1';
+  for (const c of DQ.convoy) { const p = toRadar(c.g.position, false); if (p) g.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
+  g.fillStyle = '#9a7fd0';
+  for (const v of DQ.vortex) { const p = toRadar(v.sp.position, false); if (p) { g.beginPath(); g.arc(p[0], p[1], 4, 0, Math.PI * 2); g.fill(); } }
+  g.fillStyle = '#b0a898';
+  for (const r of DQ.rocks) { const p = toRadar(r.mesh.position, false); if (p) g.fillRect(p[0] - 2, p[1] - 2, 4, 4); }
+  for (const sh of DQ.ships) { const p = toRadar(sh.g.position, false); if (!p) continue; g.fillStyle = sh.scanned && sh.bot ? '#ff4a5a' : '#3ee6c1'; g.fillRect(p[0] - 2, p[1] - 2, 4, 4); }
+  if (DQ.gate) { const p = toRadar(DQ.gate.world, true); g.strokeStyle = '#ffb23e'; g.lineWidth = 2; g.strokeRect(p[0] - 5, p[1] - 5, 10, 10); }
 }
 function dqMetrics(pl) {
   const rpm = Math.round(pl.gal.G.daily / 1440 * pl.share * exDiurnal((ex.day % 1) * 24) / EX_DMEAN);
@@ -3055,6 +3390,15 @@ function dqQuest() {
     let best = null, bd = Infinity;
     for (const o of DQ.orbs) { const dd = o.sp.position.distanceTo(ship.position); if (dd < bd) { bd = dd; best = o; } }
     return { text: `이상치 탐지 · ${galName(q.pl)} ${q.pl.path} 보라색 지연 요청 격추 ${q.prog}/${q.need}`, pos: best ? best.sp.position : q.pl.world, col, size: 18 };
+  }
+  if (q.type === 'evfunnel') {
+    const cur = q.steps[q.prog];
+    return { text: `이벤트 퍼널 ${q.prog + 1}/4 · ${cur.path} · 호송선 ${DQ.convoy.length}/${q.start}`, pos: cur.world, col: Q_TEAL, size: cur.R + 50 };
+  }
+  if (q.type === 'gate') return { text: `직행 관문 방어 · 관문 내구도 ${Math.round(q.hp)}% · ${Math.max(0, q.need - q.prog).toFixed(0)}초`, pos: DQ.gate.world, col: Q_AMBER, size: 70 };
+  if (q.type === 'disguise') {
+    const tgt = DQ.ships.find(sh => sh.scanned && sh.bot) || DQ.ships.find(sh => !sh.scanned);
+    return { text: `위장 함선 판별 · 조준해서 스캔 → 봇만 격추 ${q.prog}/${q.need} · 오탐 ${q.fp}`, pos: tgt ? tgt.g.position : q.pl.world, col: Q_RED, size: 14 };
   }
   const cur = q.steps[q.prog];
   return { text: `유저 여정 ${q.prog + 1}/4 · ${galName(cur)} ${cur.path} 통과`, pos: cur.world, col, size: cur.R + 60 };
