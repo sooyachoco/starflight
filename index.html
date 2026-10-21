@@ -260,28 +260,25 @@
   .t-sub::after { background: linear-gradient(270deg, transparent, #ffb23ecc); }
   .t-tag { margin: clamp(14px, 2.4vw, 30px) 0 0; font-size: clamp(13px, 1.35vw, 18px); font-weight: 500; letter-spacing: .32em;
     margin-right: -.32em; color: #e6eefc; text-shadow: 0 2px 10px #000; }
-  .t-go { position: relative; margin-top: clamp(24px, 3.6vw, 44px); display: flex; align-items: center; justify-content: center;
-    gap: 24px; width: min(360px, 82vw); height: clamp(58px, 5.6vw, 74px); padding: 0 26px 0 50px; box-sizing: border-box;
-    font: 700 clamp(22px, 2.2vw, 30px) "Noto Sans KR", sans-serif; letter-spacing: .3em; color: #fff; cursor: pointer;
-    border: 0; background: #5ff2e0d0; isolation: isolate;
-    clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
-    transition: transform .2s, filter .2s; }
-  .t-go::before { content: ""; position: absolute; inset: 2px; z-index: -1; pointer-events: none;
-    background: linear-gradient(180deg, #0f3a44, #061419);
-    clip-path: polygon(13px 0, calc(100% - 13px) 0, 100% 13px, 100% calc(100% - 13px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px), 0 13px); }
-  .t-go::after { content: ""; position: absolute; inset: 2px; z-index: -1; pointer-events: none;
-    background: radial-gradient(ellipse 60% 90% at 50% 120%, #3ee6c155, transparent 70%); animation: tGlow 2.4s ease-in-out infinite; }
-  @keyframes tGlow { 50% { opacity: .35; } }
-  .t-go:hover, .t-go:focus-visible { transform: translateY(-1px); filter: brightness(1.18); outline: none; }
+  /* 타이틀 버튼: 이미지 프레임 (비행 시작 = 청록·주황, 조작법 = 청록, 세계관 = 주황) */
+  .t-go, .t-links button { position: relative; display: flex; align-items: center; justify-content: center; gap: 14px; padding: 0;
+    border: 0; cursor: pointer; background: center / 100% 100% no-repeat; transition: transform .2s, filter .2s; }
+  .t-go { margin-top: clamp(24px, 3.6vw, 44px); width: min(400px, 84vw); aspect-ratio: 900 / 179;
+    background-image: url(assets/btn-start.webp?v=1);
+    font: 700 clamp(22px, 2.2vw, 30px) "Noto Sans KR", sans-serif; letter-spacing: .3em; padding-left: .3em; color: #fff;
+    text-shadow: 0 0 14px #3ee6ff99, 0 2px 4px #000; }
+  .t-go:hover, .t-go:focus-visible, .t-links button:hover, .t-links button:focus-visible { transform: translateY(-1px); filter: brightness(1.2); outline: none; }
+  .t-go:active, .t-links button:active { transform: translateY(1px); filter: brightness(.95); }
   .t-go svg { width: 16px; height: 16px; flex: none; stroke: #8ff5e8; }
   .t-hint { display: flex; align-items: center; gap: 14px; margin-top: 18px; font-size: 14px; letter-spacing: .24em; color: #cfe0f5;
     text-shadow: 0 1px 6px #000; }
   .t-hint kbd { padding: 3px 10px; border: 1.5px solid #8fb4d8; border-radius: 5px; font: 700 13px Rajdhani; letter-spacing: .12em;
     color: #fff; background: #0a1a2acc; }
-  .t-links { display: flex; gap: 10px; margin-top: 22px; }
-  .t-links button { font: 600 13px "Noto Sans KR", sans-serif; letter-spacing: .08em; color: #b9c9e6; background: #06101dbb;
-    border: 1px solid #ffffff2a; border-radius: 6px; padding: 7px 14px; cursor: pointer; }
-  .t-links button:hover { color: #fff; border-color: #ffffff55; }
+  .t-links { display: flex; gap: 12px; margin-top: 18px; }
+  .t-links button { width: min(214px, 42vw); aspect-ratio: 900 / 186; font: 700 16px "Noto Sans KR", sans-serif; letter-spacing: .2em;
+    padding-left: .2em; color: #e6f6ff; text-shadow: 0 0 10px #3ee6ff88, 0 1px 3px #000; }
+  #tHelp { background-image: url(assets/btn-controls.webp?v=1); }
+  #tLore { background-image: url(assets/btn-story.webp?v=1); color: #fff3dc; text-shadow: 0 0 10px #ffb23e88, 0 1px 3px #000; }
   .t-note { position: absolute; left: 0; right: 0; bottom: max(14px, env(safe-area-inset-bottom)); text-align: center;
     font-size: 12px; letter-spacing: .04em; color: #b9c7de; text-shadow: 0 1px 4px #000; pointer-events: none; }
   .t-set { position: absolute; top: max(18px, env(safe-area-inset-top)); right: max(18px, env(safe-area-inset-right));
@@ -300,8 +297,7 @@
     .t-tag { letter-spacing: .16em; margin-right: -.16em; }
     .t-hint { font-size: 13px; letter-spacing: .14em; }
   }
-  @media (prefers-reduced-motion: reduce) { .t-bg, .t-main, .t-go::after { animation: none; } }
-  .t-links button + button { margin-left: 0; }
+  @media (prefers-reduced-motion: reduce) { .t-bg, .t-main { animation: none; } }
   /* 세계관: 관측 보조 AI 로기가 등장해 설명 */
   #lore { position: fixed; inset: 0; z-index: 28; overflow: hidden; font-family: "Noto Sans KR", sans-serif; cursor: pointer;
     background: radial-gradient(ellipse 80% 70% at 28% 60%, #0a2a3acc, #02050ce6 70%); user-select: none; }
