@@ -2455,24 +2455,36 @@ const ERAS = [
 // stat: 리포트 항목 비율을 따른 가상 프로필 (visit·sn·pv·ses는 가상 배율, re·male은 비율, age는 연령대별 %)
 const EX_AGE = ['0–13', '14–16', '17–19', '20–24', '25–29', '30–39', '40–49', '50–59', '60+'];
 const EX_GAMES = [
-  { id: 'nexon', name: 'NEXON.COM', ko: '넥슨닷컴', col: 0xffc861, hub: true, R: 42, daily: 2960000,
+  { id: 'nexon', name: 'NEXON.COM', ko: '넥슨닷컴', col: 0xffc861, hub: true, R: 42, daily: 2840000,
     stat: {visit: 51300.0, sn: 37550.0, pv: 140170.0, ses: 60090.0, re: 0.289, dt: 118, bounce: 42.7, pcb: 23.2, male: 0.811, age: [0.0, 0.0, 0.6, 7.8, 25.9, 43.0, 7.7, 10.3, 4.6]},
     eps: [['/', .3], ['/login', .25], ['/launcher', .2], ['/cash', .1], ['/event', .15]] },
-  { id: 'maple', name: 'MAPLESTORY', ko: '메이플스토리', col: 0xff9a3d, ang: .45, R: 30, daily: 92580000,
+  { id: 'maple', name: 'MAPLESTORY', ko: '메이플스토리', col: 0xff9a3d, ang: .45, R: 30, daily: 88780000,
     stat: {visit: 728440.0, sn: 273610.0, pv: 4386620.0, ses: 940710.0, re: 0.702, dt: 272, bounce: 49.6, pcb: 23.9, male: 0.837, age: [0.0, 0.1, 1.6, 11.3, 23.0, 31.5, 12.5, 14.7, 5.3]},
     eps: [['/', .25], ['/news', .15], ['/ranking', .2], ['/guide', .15], ['/login', .25]] },
-  { id: 'fc', name: 'FC ONLINE', ko: 'FC온라인', col: 0x4fe08a, ang: 2.6, R: 24, daily: 5540000,
+  { id: 'fc', name: 'FC ONLINE', ko: 'FC온라인', col: 0x4fe08a, ang: 2.6, R: 24, daily: 5310000,
     stat: {visit: 44200.0, sn: 16270.0, pv: 262280.0, ses: 56970.0, re: 0.757, dt: 157, bounce: 38.9, pcb: 7.5, male: 0.888, age: [0.0, 0.0, 0.0, 1.0, 20.5, 53.7, 13.0, 6.3, 5.4]},
     eps: [['/', .3], ['/transfer-market', .3], ['/squad', .2], ['/news', .2]] },
-  { id: 'dnf', name: 'DUNGEON &amp; FIGHTER', ko: '던전앤파이터', col: 0xff5a4e, ang: 4.45, R: 26, daily: 10930000,
+  { id: 'dnf', name: 'DUNGEON &amp; FIGHTER', ko: '던전앤파이터', col: 0xff5a4e, ang: 4.45, R: 26, daily: 10480000,
     stat: {visit: 170040.0, sn: 131330.0, pv: 517730.0, ses: 228550.0, re: 0.805, dt: 82, bounce: 49.0, pcb: 7.6, male: 0.838, age: [0.0, 0.0, 0.3, 8.8, 37.3, 39.7, 1.9, 8.4, 3.6]},
     eps: [['/', .3], ['/news', .2], ['/guide', .2], ['/community', .15], ['/login', .15]] },
+  { id: 'mabi', name: 'MABINOGI', ko: '마비노기', col: 0xc49bff, ang: 1.5, R: 22, daily: 3420000,
+    stat: {visit: 32630.0, sn: 18790.0, pv: 168830.0, ses: 55610.0, re: 0.849, dt: 223, bounce: 42.4, pcb: 1.9, male: 0.565, age: [0.0, 0.0, 0.0, 1.1, 13.9, 61.5, 9.4, 5.5, 8.6]},
+    eps: [['/', .3], ['/news', .2], ['/guide', .15], ['/community', .2], ['/event', .15]] },
+  { id: 'els', name: 'ELSWORD', ko: '엘소드', col: 0x46d0ff, ang: 3.5, R: 20, daily: 700000,
+    stat: {visit: 4820.0, sn: 3990.0, pv: 34800.0, ses: 6840.0, re: 0.669, dt: 257, bounce: 31.9, pcb: 8.4, male: 0.607, age: [0.0, 0.0, 0.2, 16.4, 40.8, 13.2, 4.4, 18.7, 6.4]},
+    eps: [['/', .3], ['/news', .2], ['/guide', .2], ['/ranking', .15], ['/community', .15]] },
+  { id: 'heroes', name: 'MABINOGI HEROES', ko: '마비노기 영웅전', col: 0xb8c6dc, ang: 5.4, R: 20, daily: 470000,
+    stat: {visit: 4100.0, sn: 2400.0, pv: 23400.0, ses: 5510.0, re: 0.715, dt: 167, bounce: 41.1, pcb: 5.2, male: 0.848, age: [0.0, 0.0, 0.0, 0.4, 9.5, 47.5, 24.0, 11.2, 7.5]},
+    eps: [['/', .3], ['/news', .25], ['/guide', .2], ['/community', .25]] },
 ];
 const EX_NEW = [
   { g: 0, path: '/event/anniversary', share: .12, day: 1.1 },
   { g: 1, path: '/update/new-world', share: .2, day: 2.4 },
   { g: 3, path: '/update/new-raid', share: .15, day: 3.6 },
   { g: 2, path: '/event/toty', share: .15, day: 5.2 },
+  { g: 4, path: '/event/festival', share: .15, day: 6.4 },
+  { g: 5, path: '/update/new-episode', share: .15, day: 7.5 },
+  { g: 6, path: '/update/raid', share: .15, day: 8.6 },
 ];
 const exDiurnal = h => .3 + .7 * Math.min(1, .45 * lwGb(h, 12.5, 2.5) + lwGb(h, 21, 2.2));
 const EX_DMEAN = (() => { let t = 0; for (let h = 0; h < 24; h += .1) t += exDiurnal(h); return t / 240; })();
@@ -2797,7 +2809,7 @@ function exPlaceGalaxies() {
 function showExBrief() {
   state.mode = 'brief';
   showCard(`<h1>EXPANSION</h1><h2>ERA 0 · 특이점</h2>
-    <p><b>넥슨닷컴</b>을 중심 항성으로, <b>메이플스토리 · FC온라인 · 던전앤파이터</b>가 은하로 떠 있는 우주입니다.<br>
+    <p><b>넥슨닷컴</b>을 중심 항성으로, <b>메이플스토리 · FC온라인 · 던전앤파이터 · 마비노기 · 엘소드 · 마비노기 영웅전</b>이 은하로 떠 있는 우주입니다.<br>
     웹 로그가 쌓일수록 <b>우주가 팽창</b>해 은하 사이가 멀어지고, 새 페이지가 생기면 <b>새 행성이 탄생</b>합니다.</p>
     <ol class="brief">
       <li>은하를 돌며 <b>미확인 엔드포인트(?)</b>에 가까이 가서 관측하세요. 관측할 때마다 데이터 결정을 얻습니다.</li>
@@ -3336,7 +3348,7 @@ function dqStart() {
   } else if (type === 'disguise') {
     q = dqStartDisguise();
   } else {
-    const game = exGal[1 + Math.floor(Math.random() * 3)];
+    const game = exGal[1 + Math.floor(Math.random() * (exGal.length - 1))];
     const steps = [exGal[0].planets[0], exGal[0].planets[1], exGal[0].planets[2], game.planets[0]];
     const conv = [100, Math.round(rand(58, 72)), Math.round(rand(38, 50)), Math.round(rand(26, 36))];
     q = { type, pl: steps[0], steps, conv, need: 4, prog: 0, reward: 70, time: 0,
@@ -4791,7 +4803,7 @@ function showTitle() {
 function showHelp() {
   $('titleScr').classList.add('hidden');
   showCard(`<h1>NXLOG FLIGHT</h1><h2>EXPANSION · 로그로 팽창하는 넥슨 우주</h2>
-  <p><b>넥슨닷컴</b>을 중심 항성으로 <b>메이플스토리 · FC온라인 · 던전앤파이터</b> 은하가 떠 있는 우주입니다.<br>
+  <p><b>넥슨닷컴</b>을 중심 항성으로 <b>메이플스토리 · FC온라인 · 던전앤파이터 · 마비노기 · 엘소드 · 마비노기 영웅전</b> 은하가 떠 있는 우주입니다.<br>
   웹 로그가 쌓일수록 <b>우주가 팽창</b>해 은하가 멀어지고, 새 페이지는 <b>새 행성</b>으로 태어납니다.<br>
   미확인 엔드포인트를 관측하고, 시대(ERA)가 열릴 때마다 터지는 사건을 해결하세요.</p>
   <div class="eras">
