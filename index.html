@@ -76,6 +76,19 @@
     border: solid #04121a; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 
   /* 조준선 & 타깃 */
+  #reticle .fine { display: none; }
+  #reticle.prec { stroke: #ffb23e; }
+  #reticle.prec .fine { display: inline; }
+  #reticle.prec .norm { opacity: .3; }
+  #reticle.lock .dot { fill: #ff4a5a; }
+  #precLbl { position: absolute; left: 50%; top: calc(var(--win-h) / 2 + 30px); transform: translateX(-50%); display: none;
+    font-size: 12px; font-weight: 700; letter-spacing: .2em; color: #ffb23e; text-shadow: 0 1px 4px #000; }
+  #lockMk { position: absolute; display: none; width: 18px; height: 18px; margin: -11px 0 0 -11px; border: 2px solid #ff4a5a;
+    transform: rotate(45deg); }
+  #lockMk::after { content: "LOCK"; position: absolute; left: 22px; top: -2px; transform: rotate(-45deg); transform-origin: 0 0;
+    font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #ff6a78; }
+  #bAim { right: calc(max(18px, env(safe-area-inset-right)) + 170px); top: calc(var(--win-h) - 146px); font-size: 12px; }
+  #bAim.on { background: rgba(255, 178, 62, .45); border-color: #ffb23e; color: #fff; }
   #reticle { position: absolute; left: 50%; top: calc(var(--win-h) / 2); width: 640px; height: 100px;
     margin: -50px 0 0 -320px; }
   #stn, #tgt { position: absolute; display: none; }
@@ -435,6 +448,7 @@
     #bFire { width: 70px; height: 70px; top: calc(var(--win-h) - 86px); }
     #bWarp { top: calc(var(--win-h) - 66px); right: calc(max(18px, env(safe-area-inset-right)) + 82px); }
     #bField { top: calc(var(--win-h) - 60px); right: calc(max(18px, env(safe-area-inset-right)) + 140px); }
+    #bAim { top: calc(var(--win-h) - 122px); right: calc(max(18px, env(safe-area-inset-right)) + 140px); }
     #bRollL { top: calc(var(--win-h) - 122px); right: calc(max(18px, env(safe-area-inset-right)) + 82px); width: 42px; height: 42px; }
     #bRollR { top: calc(var(--win-h) - 134px); width: 42px; height: 42px; }
     #bThrUp, #bThrDn { width: 42px; height: 42px; }
@@ -568,7 +582,8 @@
   </div>
 
   <svg id="reticle" viewBox="-320 -50 640 100" fill="none" stroke="#e9f1ff">
-    <circle r="22" stroke-width="1.6"/><circle r="2.6" fill="#e9f1ff" stroke="none"/>
+    <g class="fine" stroke-width="1.4"><circle r="9"/><path d="M0-20V-12M0 12V20M-20 0H-12M12 0H20"/><path d="M-34-6V6M34-6V6" opacity=".7"/></g>
+    <circle class="norm" r="22" stroke-width="1.6"/><circle class="dot" r="2.6" fill="#e9f1ff" stroke="none"/>
     <path d="M0-46V-30M0 30V46M-80 0H-44M44 0H80" stroke-width="1.6"/>
     <path d="M-300 0H-110M110 0H300" stroke-width="1" opacity=".45"/>
     <path d="M-250-5V5M250-5V5" stroke-width="1" opacity=".6"/>
@@ -588,6 +603,7 @@
   </svg>
   <div id="edge"></div>
   <div id="scanUI"></div><div id="scanT"></div>
+  <div id="precLbl">PRECISION</div><div id="lockMk"></div>
   <div id="touch">
     <div class="tc" id="stick"><div id="knob"></div></div>
     <button class="tc tb" id="bThrUp" data-k="KeyW" aria-label="추력 증가">+</button>
@@ -598,6 +614,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 2.5v5h-5"/></svg></button>
     <button class="tc tb" id="bWarp" data-k="ShiftLeft">WARP</button>
     <button class="tc tb" id="bField" data-k="KeyQ">FIELD</button>
+    <button class="tc tb" id="bAim">AIM</button>
     <button class="tc tb" id="bFire" data-k="Space">FIRE</button>
   </div>
   <div id="quest"><i class="qd"></i><span class="qt" id="questT"></span><span class="qn" id="questD"></span>
@@ -634,6 +651,7 @@
       <kbd>W</kbd><kbd>S</kbd><span>THRUST</span><i></i>
       <kbd>A</kbd><kbd>D</kbd><span>ROLL</span><i></i>
       <kbd>Space</kbd><span>FIRE</span><i></i>
+      <kbd>C</kbd><span>AIM</span><i></i>
       <kbd>Shift</kbd><span>WARP</span><i></i>
       <kbd class="fieldhint">Q</kbd><span class="fieldhint">FIELD</span><i class="fieldhint"></i>
       <kbd>M</kbd><span>MAP</span>
@@ -1490,10 +1508,17 @@ $('bSet').addEventListener('click', e => { e.currentTarget.blur(); if (state.mod
 function updateShip(dt, controlled) {
   let pi = 0, yi = 0, ri = 0;
   if (controlled) {
-    pi = clamp((keys.ArrowUp ? 1 : 0) - (keys.ArrowDown ? 1 : 0) + stickCurve(touchIn.y), -1, 1);
+    const kP = (keys.ArrowUp ? 1 : 0) - (keys.ArrowDown ? 1 : 0), kY = (keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0);
+    const kR = (keys.KeyA ? 1 : 0) - (keys.KeyD ? 1 : 0);
+    // 짧게 톡 누르면 작게, 누르고 있으면 점점 빠르게
+    aimRamp.p = kP ? Math.min(1, aimRamp.p + dt * 3.2) : 0;
+    aimRamp.y = kY ? Math.min(1, aimRamp.y + dt * 3.2) : 0;
+    aimRamp.r = kR ? Math.min(1, aimRamp.r + dt * 3.2) : 0;
+    const tap = v => .3 + .7 * v;
+    pi = clamp(kP * tap(aimRamp.p) + stickCurve(touchIn.y), -1, 1);
     if (state.invert) pi = -pi;
-    yi = clamp((keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0) - stickCurve(touchIn.x), -1, 1);
-    ri = (keys.KeyA ? 1 : 0) - (keys.KeyD ? 1 : 0);
+    yi = clamp(kY * tap(aimRamp.y) - stickCurve(touchIn.x), -1, 1);
+    ri = kR * tap(aimRamp.r);
     if (keys.KeyW) state.throttle = Math.min(1, state.throttle + dt * 0.5);
     if (keys.KeyS) state.throttle = Math.max(0, state.throttle - dt * 0.5);
     state.boosting = (keys.ShiftLeft || keys.ShiftRight) && state.fuel > 0;
@@ -1501,11 +1526,13 @@ function updateShip(dt, controlled) {
     state.fuel = Math.max(0, state.fuel - dt * (state.throttle * 0.42 + (state.boosting ? 1.6 : 0)) * shipDef.fuelUse * pilotDef.fuel);
   } else state.boosting = false;
 
-  const sm = 1 - Math.exp(-dt * 4);
+  aimPrec = controlled && state.mode === 'flying' && (keys.KeyC || aimMouse || touchPrec);
+  const pm = aimPrec ? .35 : 1;
+  const sm = 1 - Math.exp(-dt * (aimPrec ? 6 : 4));
   const tr = shipDef.turn * pilotDef.turn;
-  rate.p += (pi * 0.95 * tr - rate.p) * sm;
-  rate.y += (yi * 0.8 * tr - rate.y) * sm;
-  rate.r += (ri * 1.6 * tr - rate.r) * sm;
+  rate.p += (pi * 0.95 * tr * pm - rate.p) * sm;
+  rate.y += (yi * 0.8 * tr * pm - rate.y) * sm;
+  rate.r += (ri * 1.6 * tr * (aimPrec ? .5 : 1) - rate.r) * sm;
   ship.rotateX(rate.p * dt);
   ship.rotateY(rate.y * dt);
   ship.rotateZ(rate.r * dt);
@@ -1631,7 +1658,8 @@ function playerFire(dt) {
     if (d < 700 && tmpV.dot(fwd) / d > 0.995) conv = Math.min(conv, d);
   }
   const origin = ship.position.clone().addScaledVector(right, gunSide * 2.4).addScaledVector(up, -1.3).addScaledVector(fwd, 2);
-  const dir = ship.position.clone().addScaledVector(fwd, conv).sub(origin).normalize();
+  const at = aimTarget();
+  const dir = (at ? at.lead.clone() : ship.position.clone().addScaledVector(fwd, conv)).sub(origin).normalize();
   fireBolt(origin, dir, false, fwd.clone().multiplyScalar(state.speed));
   state.heat += 5;
   if (state.heat >= 100) { state.heat = 100; state.overheat = true; toast('LASER OVERHEAT', '#ff8a5a'); }
@@ -1910,7 +1938,8 @@ function updateCamera(dt) {
   }
   const w = state.warp;
   if (w > 0.01) camera.position.add(randomDir().multiplyScalar(w * 0.12));
-  const fov = 62 + w * w * 30;
+  aimZoom += ((aimPrec ? 1 : 0) - aimZoom) * (1 - Math.exp(-dt * 6));
+  const fov = 62 + w * w * 30 - aimZoom * 16;
   if (Math.abs(camera.fov - fov) > 0.05) {
     camera.fov += (fov - camera.fov) * (1 - Math.exp(-dt * 6));
     camera.updateProjectionMatrix();
@@ -3912,6 +3941,74 @@ function drawBearingBug(g, hdg, cx, ty, tw, ppd, cp) {
   g.restore();
 }
 
+
+// ---------- 정밀 조준 · 조준 보정 ----------
+const aimRamp = { p: 0, y: 0, r: 0 };
+let aimPrec = false, aimZoom = 0, aimMouse = false, touchPrec = false;
+function aimCandidates() {
+  const c = [];
+  enemies.forEach(e => c.push({ p: e.g.position, v: e.vel }));
+  if (typeof exWorld !== 'undefined' && exWorld.visible) {
+    exStealth.forEach(o => { if (o.exposed > 0) c.push({ p: o.g.position }); });
+    DQ.orbs.forEach(o => c.push({ p: o.sp.position }));
+    DQ.vortex.forEach(o => c.push({ p: o.sp.position }));
+    DQ.rocks.forEach(o => c.push({ p: o.mesh.position }));
+    DQ.ships.forEach(o => { if (o.scanned && o.bot) c.push({ p: o.g.position }); });   // 판별된 봇만 (오탐 방지)
+  }
+  return c;
+}
+const _aimV = new THREE.Vector3();
+function aimTarget() {
+  shipBasis();
+  const minDot = aimPrec ? .9997 : .9993;   // 정밀 모드는 더 좁은 원뿔(약 1.4°), 평소 약 2.1°
+  let best = null, bd = minDot;
+  for (const c of aimCandidates()) {
+    _aimV.copy(c.p).sub(ship.position);
+    const d = _aimV.length();
+    if (d > 900 || d < 5) continue;
+    const dot = _aimV.dot(fwd) / d;
+    if (dot > bd) { bd = dot; best = { c, d }; }
+  }
+  if (!best) return null;
+  const lead = best.c.p.clone();
+  if (best.c.v) lead.addScaledVector(tmpW.copy(best.c.v).sub(fwd.clone().multiplyScalar(state.speed)), best.d / BOLT_SPEED);
+  return { lead, d: best.d };
+}
+function updateAimUI() {
+  const ret = $('reticle'), mk = $('lockMk');
+  ret.classList.toggle('prec', aimPrec);
+  $('precLbl').style.display = aimPrec ? 'block' : 'none';
+  $('bAim').classList.toggle('on', touchPrec);
+  const at = state.mode === 'flying' ? aimTarget() : null;
+  ret.classList.toggle('lock', !!at);
+  if (!at) { mk.style.display = 'none'; return; }
+  camera.updateMatrixWorld();
+  const pr = project(at.lead);
+  if (pr.behind) { mk.style.display = 'none'; return; }
+  mk.style.display = 'block';
+  mk.style.left = pr.x + 'px'; mk.style.top = pr.y + 'px';
+}
+(function setupAimInput() {
+  const cv = renderer.domElement;
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('mousedown', e => {
+    if (state.mode !== 'flying' || isTouch) return;
+    if (e.button === 2) aimMouse = true;
+    if (e.button === 0) keys.Space = true;
+  });
+  addEventListener('mouseup', e => {
+    if (e.button === 2) aimMouse = false;
+    if (e.button === 0 && !isTouch) keys.Space = false;
+  });
+  addEventListener('mousemove', e => {
+    if (!aimMouse || state.mode !== 'flying') return;
+    const k = .0008 * shipDef.turn * pilotDef.turn;   // 약 0.05°/px
+    ship.rotateY(-e.movementX * k);
+    ship.rotateX(-e.movementY * k * (state.invert ? -1 : 1));
+  });
+  $('bAim').addEventListener('pointerdown', e => { e.preventDefault(); touchPrec = !touchPrec; sfx('laser', 600); });
+})();
+
 // =====================================================================
 // HUD
 // =====================================================================
@@ -4229,6 +4326,7 @@ function updateHud() {
   $('wpnS').textContent = state.overheat ? 'OVERHEAT' : 'READY';
   $('wpnS').style.color = state.overheat ? 'var(--red)' : 'var(--teal)';
   updateQuest();
+  updateAimUI();
   drawNav();
   drawAtt(attitude(), statusInfo());
   updateMarkers();
@@ -4294,7 +4392,8 @@ function showTitle() {
     <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span><span>기수 조종 (피치 / 요)</span>
     <span><kbd>W</kbd><kbd>S</kbd> · <kbd>1</kbd>–<kbd>4</kbd></span><span>추력 증가 / 감소 · 엔진 OFF · IDLE · CRUISE · FULL</span>
     <span><kbd>A</kbd><kbd>D</kbd></span><span>롤</span>
-    <span><kbd>Space</kbd></span><span>레이저 발사 (누르고 있으면 연사, 과열 주의)</span>
+    <span><kbd>Space</kbd> · 좌클릭</span><span>레이저 발사 (누르고 있으면 연사, 과열 주의)</span>
+    <span><kbd>C</kbd> · 우클릭</span><span>정밀 조준 (선회 감속 · 확대) · 우클릭한 채 마우스로 미세 조준</span>
     <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
     <span><kbd>Q</kbd></span><span>레이트 리밋 필드 (ERA 3부터 사용 가능)</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
