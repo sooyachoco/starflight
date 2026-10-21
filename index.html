@@ -636,13 +636,13 @@
     opacity: 0; visibility: hidden; transition: opacity 1.4s ease, visibility 0s 1.4s; }
   #godP.on { opacity: 1; visibility: visible; transition: opacity 1.8s ease, visibility 0s; }
   #godP.block { pointer-events: auto; cursor: pointer; }
-  .gp-dim { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 80% at 50% 45%, #0b0805b0, #000000e6 75%); }
+  .gp-dim { display: none; }   /* 배경을 덮지 않고, 얼굴만 반투명하게 떠오름 */
   .gp-wrap { position: absolute; left: 50%; top: 46%; height: min(122%, 112vw); aspect-ratio: 1200 / 1054; transform: translate(-50%, -50%) scale(1.06);
     transition: transform 6s cubic-bezier(.2, .7, .2, 1); }
   #godP.on .gp-wrap { transform: translate(-50%, -50%) scale(1); }
-  .gp-wrap img { width: 100%; height: 100%; mix-blend-mode: screen; opacity: .92; filter: contrast(1.12) saturate(.85);
+  .gp-wrap img { width: 100%; height: 100%; mix-blend-mode: screen; opacity: .62; filter: contrast(1.12) saturate(.85);
     animation: gpBreath 7s ease-in-out infinite, gpWarp 9s ease-in-out infinite; }
-  @keyframes gpBreath { 50% { opacity: .78; filter: contrast(1.2) saturate(.8) blur(.6px); } }
+  @keyframes gpBreath { 50% { opacity: .48; filter: contrast(1.2) saturate(.8) blur(.6px); } }
   @keyframes gpWarp { 0%, 100% { transform: none; } 33% { transform: skewX(.6deg) scale(1.01, .995); } 66% { transform: skewX(-.5deg) scale(.995, 1.01); } }
   .gp-eye { position: absolute; top: 40.2%; width: 9%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
     background: radial-gradient(circle, #fff6e0 0, #ffcf86cc 18%, #ff9a3a55 42%, transparent 70%); mix-blend-mode: screen;
