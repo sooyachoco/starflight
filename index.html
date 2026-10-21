@@ -212,6 +212,7 @@
   #overlay { position: fixed; left: 0; right: 0; top: 0; height: var(--win-h); display: flex; align-items: center;
     justify-content: center; background: radial-gradient(#0009, #000a); cursor: pointer; pointer-events: auto; }
   #overlay.hidden { display: none; }
+  #overlay.over-title { z-index: 30; height: 100%; background: radial-gradient(#000a, #000d); }
   .card { touch-action: pan-y; text-align: center; padding: 26px 34px; max-width: 560px; max-height: calc(var(--win-h) - 40px); overflow: auto;
     box-sizing: border-box; font-family: "Noto Sans KR", sans-serif; }
   .card h1 { font-family: Rajdhani; font-size: 46px; letter-spacing: .2em; margin: 0; color: #fff; }
@@ -283,18 +284,16 @@
   .t-links button:hover { color: #fff; border-color: #ffffff55; }
   .t-note { position: absolute; left: 0; right: 0; bottom: max(14px, env(safe-area-inset-bottom)); text-align: center;
     font-size: 12px; letter-spacing: .04em; color: #b9c7de; text-shadow: 0 1px 4px #000; pointer-events: none; }
-  .t-snd { position: absolute; top: max(18px, env(safe-area-inset-top)); right: max(18px, env(safe-area-inset-right));
+  .t-set { position: absolute; top: max(18px, env(safe-area-inset-top)); right: max(18px, env(safe-area-inset-right));
     width: 48px; height: 48px; display: grid; place-items: center; border-radius: 8px; cursor: pointer;
     border: 1px solid #ffffff38; background: #07111ecc; color: #dfe9f8; }
-  .t-snd svg { width: 22px; height: 22px; }
-  .t-snd::after { content: "사운드 켜기"; position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%);
+  .t-set:hover { border-color: #ffffff66; }
+  .t-set svg { width: 22px; height: 22px; }
+  .t-sndhint { position: absolute; top: calc(max(18px, env(safe-area-inset-top)) + 9px); right: calc(max(18px, env(safe-area-inset-right)) + 60px);
     padding: 6px 12px; border-radius: 6px; white-space: nowrap; font: 600 13px "Noto Sans KR", sans-serif; color: #06161d;
     background: #5ff2e0; box-shadow: 0 0 18px #3ee6c166; opacity: 0; pointer-events: none; transition: opacity .3s; }
-  #titleScr.mute-hint .t-snd { border-color: #5ff2e0; animation: tSndPulse 1.6s ease-in-out infinite; }
-  #titleScr.mute-hint .t-snd::after { opacity: 1; }
+  #titleScr.mute-hint .t-sndhint { opacity: 1; animation: tSndPulse 1.6s ease-in-out infinite; }
   @keyframes tSndPulse { 50% { box-shadow: 0 0 0 6px #5ff2e033; } }
-  .t-snd.off .w { display: none; }
-  .t-snd:not(.off) .x { display: none; }
   @media (max-width: 640px) {
     .t-bg { background-position: 47% 40%; }
     .t-main { top: 20%; }
@@ -805,8 +804,8 @@
     <div class="t-hint"><kbd class="key-only">ENTER</kbd><kbd class="touch-only-i">TAP</kbd><span>조종사 · 기체 선택</span></div>
     <div class="t-links"><button id="tHelp">조작법 · 세계관</button></div>
   </div>
-  <button class="t-snd" id="tSnd" aria-label="소리 켜기/끄기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path class="w" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="x" d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>
+  <div class="t-sndhint">클릭하면 사운드가 켜져요</div>
+  <button class="t-set" id="tSet" aria-label="설정"><svg viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>
   <div class="t-note">모든 수치는 가상 데이터입니다 · 넥슨 서비스 지표와 무관</div>
 </div>
 
@@ -1604,6 +1603,8 @@ function pause(on) {
 }
 function openSettings() {
   if (state.mode === 'flying') state.mode = 'paused';
+  const onTitle = state.mode === 'title';
+  $('overlay').classList.toggle('over-title', onTitle);   // 타이틀 화면 위에 카드를 띄움
   showCard(`<h1>SETTINGS</h1><h2>설정</h2>
     <button data-act="invert">상하 반전: ${state.invert ? 'ON' : 'OFF'}</button>
     <button data-act="sound">효과음: ${state.sound ? 'ON' : 'OFF'}</button>
@@ -1611,7 +1612,7 @@ function openSettings() {
     <label class="vol"><span>배경음 음량</span><input type="range" id="mvol" min="0" max="100" step="1"
       value="${Math.round(BGM.vol / BGM_MAX * 100)}"><b id="mvolV">${Math.round(BGM.vol / BGM_MAX * 100)}%</b></label>
     <button data-act="gfx">그래픽: ${GFX_NAME[gfx]}</button>
-    <button data-act="restart">처음부터 다시</button>
+    ${onTitle ? '' : '<button data-act="restart">처음부터 다시</button>'}
     <button data-act="close">닫기</button>`, true);
 }
 function showCard(html, settings) {
@@ -1619,7 +1620,7 @@ function showCard(html, settings) {
   $('overlay').classList.remove('hidden');
   $('overlay').dataset.settings = settings ? '1' : '';
 }
-function hideCard() { $('overlay').classList.add('hidden'); }
+function hideCard() { $('overlay').classList.add('hidden'); $('overlay').classList.remove('over-title'); }
 function toast(text, color = '#3ee6c1') {
   const t = $('toast');
   t.textContent = text;
@@ -1845,7 +1846,7 @@ $('overlay').addEventListener('click', e => {
   if (act === 'ex-cont') { exContinue(); return; }
   if (act === 'ex-retry') { exRetry(); return; }
   if (act === 'title') { showTitle(); return; }
-  if (act === 'close') { if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
+  if (act === 'close') { if (state.mode === 'title') { showTitle(); return; } if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
   if ($('overlay').dataset.settings) return;
   primaryAction();
 });
@@ -4956,7 +4957,6 @@ function showTitle() {
   state.mission = 'expansion';
   hideCard();
   $('titleScr').classList.remove('hidden');
-  $('tSnd').classList.toggle('off', !state.sound && !BGM.on);
 }
 function showHelp() {
   $('titleScr').classList.add('hidden');
@@ -4989,13 +4989,7 @@ function showHelp() {
   const t = $('titleScr');
   t.addEventListener('click', e => {
     initAudio();
-    if (e.target.closest('#tSnd')) {
-      if (t.classList.contains('mute-hint') || (!BGM.auto && BGM.tracks.title.el.paused && BGM.on)) { soundHint(false); return; }
-      const on = !(state.sound || BGM.on);
-      state.sound = on; setMusic(on);
-      $('tSnd').classList.toggle('off', !on);
-      return;
-    }
+    if (e.target.closest('#tSet')) { openSettings(); return; }
     if (e.target.closest('#tHelp')) { showHelp(); return; }
     primaryAction();
   });
