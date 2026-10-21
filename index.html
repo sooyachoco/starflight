@@ -445,6 +445,62 @@
   #bThrUp, #bThrDn { left: calc(max(18px, env(safe-area-inset-left)) + var(--stk) + 16px); width: 46px; height: 46px; font-size: 22px; }
   #bThrUp { top: calc(var(--win-h) - 126px); } #bThrDn { top: calc(var(--win-h) - 72px); }
 
+  /* 이미지 계기판 (PC: dash-pc, 모바일 가로: dash-mob) — 화면 위치는 이미지 좌표에서 생성 */
+  body[data-dash] #frame, body[data-dash] #dash .lip, body[data-dash] #dash::before { display: none; }
+  body[data-dash] #dash { background: #05070b; box-shadow: none; }
+  body[data-dash] .dgrid { display: block; top: auto; right: auto; bottom: 0 !important; left: 50%; width: var(--art-w);
+    transform: translateX(-50%); isolation: isolate; pointer-events: none; }
+  body[data-dash] .dgrid::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+    background: center / 100% 100% no-repeat; }
+  body[data-dash] .gauges { display: contents; }
+  body[data-dash] .scr { position: absolute; z-index: 1; box-sizing: border-box; border: 0; border-radius: 4px;
+    background: radial-gradient(120% 95% at 50% 0%, #0c1a31, #050a15 72%);
+    box-shadow: inset 0 0 22px rgba(0, 0, 0, .9), inset 0 0 0 1px rgba(110, 170, 255, .16); }
+  body[data-dash] .sl { top: 9%; left: 7%; } body[data-dash] .sr { top: 9%; right: 7%; }
+  body[data-dash] .g svg { width: auto; height: 46%; }
+  body[data-dash] .g b { font-size: clamp(14px, 1.2vw, 22px); }
+  body[data-dash] .eng { display: grid; grid-template-columns: minmax(30px, 56px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);
+    padding: 30px 10px 10px 12px; gap: 10px; }
+  body[data-dash] .lever { max-width: 56px; }
+  body[data-dash] .modes { font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
+  body[data-dash] .lever { height: 100%; }
+  body[data-dash] .lever, body[data-dash] .modes { min-height: 0; }
+  body[data-dash=pc] .keys { display: flex; bottom: calc(var(--art-h) * 25 / 666); left: 50%;
+    width: calc(var(--art-w) * 1067 / 1585); height: calc(var(--art-h) * 31 / 666); justify-content: center; z-index: 4;
+    transform: translateX(-50%); font-size: 12px; }
+  body[data-dash=pc] .keys kbd { height: min(22px, calc(var(--art-h) * 26 / 666)); min-width: 20px; font-size: 12px; }
+  @media (max-width: 1100px) { body[data-dash=pc] .keys { display: none; } }
+  /* 모바일 가로: 원형 하우징에 스틱 · FIRE, 작은 화면은 핵심 수치만 */
+  body[data-dash=mob] .sl, body[data-dash=mob] .sr, body[data-dash=mob] .g .gl, body[data-dash=mob] .modes { display: none; }
+  body[data-dash=mob] .g { gap: 2px; }
+  body[data-dash=mob] .g svg { height: 52%; }
+  body[data-dash=mob] .g b { font-size: 12px; }
+  body[data-dash=mob] .eng { grid-template-columns: 1fr; padding: 5px 8px; }
+  body[data-dash=mob] .lever { max-width: none; }
+  body[data-dash=mob] #handle { height: 14px; }
+  body[data-dash=mob] #stick { left: var(--stk-x); top: var(--stk-y); width: var(--stk); height: var(--stk);
+    background: radial-gradient(circle, rgba(74, 168, 255, .1), rgba(4, 8, 16, .75) 70%); border-color: rgba(160, 200, 255, .22); }
+  body[data-dash=mob] #bFire { left: var(--fire-x); top: var(--fire-y); right: auto; width: var(--fire-d); height: var(--fire-d);
+    font-size: 18px; background: radial-gradient(circle, rgba(120, 14, 30, .75), rgba(40, 4, 10, .85) 70%); }
+  body[data-dash=mob] #touch { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+  body[data-dash=mob] #bThrUp, body[data-dash=mob] #bThrDn { left: calc(max(18px, env(safe-area-inset-left)) + 8px); translate: 0 -12px; }
+  body[data-dash=pc] .dgrid { aspect-ratio: 1585 / 666; }
+  body[data-dash=pc] .dgrid::after { background-image: url(assets/dash-pc.webp?v=1); }
+  body[data-dash=pc] .dgrid > :nth-child(1) { left: 6.751%; width: 14.890%; top: 66.517%; height: 21.471%; }
+  body[data-dash=pc] .dgrid > :nth-child(2) { left: 23.596%; width: 25.994%; top: 66.517%; height: 21.471%; }
+  body[data-dash=pc] .gauges > :nth-child(1) { left: 51.356%; width: 7.823%; top: 66.517%; height: 21.471%; }
+  body[data-dash=pc] .gauges > :nth-child(2) { left: 60.757%; width: 7.760%; top: 66.517%; height: 21.471%; }
+  body[data-dash=pc] .gauges > :nth-child(3) { left: 70.158%; width: 7.886%; top: 66.517%; height: 21.471%; }
+  body[data-dash=pc] .dgrid > .eng { left: 80.000%; width: 13.186%; top: 66.517%; height: 21.471%; }
+  body[data-dash=mob] .dgrid { aspect-ratio: 1939 / 391; }
+  body[data-dash=mob] .dgrid::after { background-image: url(assets/dash-mob.webp?v=1); }
+  body[data-dash=mob] .dgrid > :nth-child(1) { left: 19.185%; width: 11.552%; top: 46.803%; height: 32.481%; }
+  body[data-dash=mob] .dgrid > :nth-child(2) { left: 32.749%; width: 15.627%; top: 46.803%; height: 32.481%; }
+  body[data-dash=mob] .gauges > :nth-child(1) { left: 50.284%; width: 5.673%; top: 46.803%; height: 32.481%; }
+  body[data-dash=mob] .gauges > :nth-child(2) { left: 57.762%; width: 5.518%; top: 46.803%; height: 32.481%; }
+  body[data-dash=mob] .gauges > :nth-child(3) { left: 65.137%; width: 4.384%; top: 46.803%; height: 32.481%; }
+  body[data-dash=mob] .dgrid > .eng { left: 71.429%; width: 9.386%; top: 46.803%; height: 32.481%; }
+
   /* 세로 화면(폰): 대시보드 2×2 */
   @media (max-width: 640px) and (orientation: portrait) {
     :root { --dash-h: 42vh; --stk: 112px; }
@@ -981,7 +1037,38 @@ function fitCanvas(c) {
   c.height = Math.max(1, r.height * dpr);
   c._w = r.width; c._h = r.height;
 }
+// 계기판 아트: dash = 아트 중 창 아래(계기판) 비율, cap = 화면 높이 대비 최대 계기판 높이
+const DASH_ART = {
+  pc: { W: 1585, H: 666, top: 372, cap: .4 },
+  mob: { W: 1939, H: 391, top: 135, cap: .36, stick: [173, 220.5], fire: [1766.5, 220.5], ring: 268 },
+};
+function layoutDash() {
+  const rs = document.documentElement.style;
+  const mode = innerWidth <= 640 && innerHeight > innerWidth ? '' : isTouch ? 'mob' : 'pc';
+  if (!mode) {
+    delete document.body.dataset.dash;
+    ['--dash-h', '--art-w', '--art-h'].forEach(k => rs.removeProperty(k));
+    return;
+  }
+  const A = DASH_ART[mode], R = (A.H - A.top) / A.W;
+  const artW = Math.min(innerWidth, innerHeight * A.cap / R), artH = artW * A.H / A.W, k = artW / A.W;
+  document.body.dataset.dash = mode;
+  rs.setProperty('--dash-h', artW * R + 'px');
+  rs.setProperty('--art-w', artW + 'px');
+  rs.setProperty('--art-h', artH + 'px');
+  if (mode === 'mob') {
+    const x0 = (innerWidth - artW) / 2, y0 = innerHeight - artH, d = A.ring * k;
+    const stk = d * .9, fd = d * .78;
+    rs.setProperty('--stk', stk + 'px');
+    rs.setProperty('--stk-x', x0 + A.stick[0] * k - stk / 2 + 'px');
+    rs.setProperty('--stk-y', y0 + A.stick[1] * k - stk / 2 + 'px');
+    rs.setProperty('--fire-d', fd + 'px');
+    rs.setProperty('--fire-x', x0 + A.fire[0] * k - fd / 2 + 'px');
+    rs.setProperty('--fire-y', y0 + A.fire[1] * k - fd / 2 + 'px');
+  } else rs.removeProperty('--stk');
+}
 function resize() {
+  layoutDash();
   renderer.setSize(innerWidth, innerHeight);
   if (composer) composer.setSize(innerWidth, innerHeight);
   dashH = $('dash').offsetHeight;
