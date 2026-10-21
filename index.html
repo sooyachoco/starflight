@@ -1094,7 +1094,9 @@ function updateShocks(dt) {
 }
 // 고해상도 우주 배경 + 금속 반사
 function loadSkybox() {
-  new THREE.TextureLoader().load('assets/skybox.webp?v=2', tex => {
+  // 고화질 + 큰 텍스처를 지원하면 6K(별이 더 작고 선명), 아니면 4K
+  const big = gfx === 'high' && renderer.capabilities.maxTextureSize >= 8192;
+  new THREE.TextureLoader().load(big ? 'assets/skybox-6k.webp?v=1' : 'assets/skybox.webp?v=3', tex => {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = tex;
     try {
