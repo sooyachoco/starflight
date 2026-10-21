@@ -792,7 +792,7 @@
     <div class="t-hint"><kbd class="key-only">ENTER</kbd><kbd class="touch-only-i">TAP</kbd><span>조종사 · 기체 선택</span></div>
     <div class="t-links"><button id="tHelp">조작법 · 세계관</button></div>
   </div>
-  <button class="t-snd" id="tSnd" aria-label="효과음 켜기/끄기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+  <button class="t-snd" id="tSnd" aria-label="소리 켜기/끄기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
     stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path class="w" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="x" d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>
   <div class="t-note">모든 수치는 가상 데이터입니다 · 넥슨 서비스 지표와 무관</div>
 </div>
@@ -1594,6 +1594,7 @@ function openSettings() {
   showCard(`<h1>SETTINGS</h1><h2>설정</h2>
     <button data-act="invert">상하 반전: ${state.invert ? 'ON' : 'OFF'}</button>
     <button data-act="sound">효과음: ${state.sound ? 'ON' : 'OFF'}</button>
+    <button data-act="music">음악: ${BGM.on ? 'ON' : 'OFF'}</button>
     <button data-act="gfx">그래픽: ${GFX_NAME[gfx]}</button>
     <button data-act="restart">처음부터 다시</button>
     <button data-act="close">닫기</button>`, true);
@@ -1822,6 +1823,7 @@ $('overlay').addEventListener('click', e => {
   if (act === 'invert') { state.invert = !state.invert; actEl.textContent = `상하 반전: ${state.invert ? 'ON' : 'OFF'}`; return; }
   if (act === 'gfx') { gfx = { high: 'med', med: 'low', low: 'high' }[gfx]; applyGfx(); actEl.textContent = `그래픽: ${GFX_NAME[gfx]}`; return; }
   if (act === 'sound') { state.sound = !state.sound; actEl.textContent = `효과음: ${state.sound ? 'ON' : 'OFF'}`; return; }
+  if (act === 'music') { setMusic(!BGM.on); actEl.textContent = `음악: ${BGM.on ? 'ON' : 'OFF'}`; return; }
   if (act === 'restart') { startGame(); return; }
   if (act === 'ex-go') { exBegin(); return; }
   if (act === 'ex-mission') { exStartMission(); return; }
@@ -2202,6 +2204,43 @@ function initAudio() {
     if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
   } catch (e) { actx = null; }
+  if (actx) musicInit();
+}
+
+// ---------- 배경음악: 타이틀 · 순항 · 전투, 상황에 따라 교차 페이드 ----------
+const BGM = { tracks: {}, cur: null, vol: .55, on: true };
+try { BGM.on = localStorage.getItem('nxlog-music') !== 'off'; } catch (e) {}
+function musicInit() {
+  if (BGM.ready) return;
+  BGM.ready = true;
+  for (const k of ['title', 'cruise', 'combat']) {
+    const el = new Audio(`assets/bgm/${k}.mp3`);
+    el.loop = true; el.preload = 'none';
+    const g = actx.createGain(); g.gain.value = 0;
+    actx.createMediaElementSource(el).connect(g); g.connect(actx.destination);
+    BGM.tracks[k] = { el, g, idle: 0 };
+  }
+}
+function musicWant() {
+  if (['title', 'select'].includes(state.mode)) return 'title';
+  if (!exWorld.visible) return 'cruise';
+  const q = DQ.active;
+  return ex.mission || enemies.length || (q && ['gate', 'disguise'].includes(q.type)) ? 'combat' : 'cruise';
+}
+function musicUpdate(dt) {
+  if (!BGM.ready) return;
+  const want = BGM.on ? musicWant() : null, t = actx.currentTime;
+  const duck = state.mode === 'paused' || state.mode === 'over' ? .35 : 1;
+  for (const [k, tr] of Object.entries(BGM.tracks)) {
+    const on = k === want;
+    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * (k === 'combat' ? .8 : 1) : 0, t, on ? 1.2 : .9);
+    if (on) { tr.idle = 0; if (tr.el.paused) tr.el.play().catch(() => {}); }
+    else if (!tr.el.paused && (tr.idle += dt) > 5) tr.el.pause();
+  }
+}
+function setMusic(on) {
+  BGM.on = on;
+  try { localStorage.setItem('nxlog-music', on ? 'on' : 'off'); } catch (e) {}
 }
 function noise(len) {
   if (!noiseBufs[len]) {
@@ -4728,6 +4767,7 @@ function loop() {
   dockLight.color.setHSL(0.1, 1, 0.42 + 0.14 * Math.sin(now * 4));
   updateDust();
   updateHud();
+  musicUpdate(dt);
   renderFrame(dt);
 }
 
@@ -4746,7 +4786,7 @@ function showTitle() {
   state.mission = 'expansion';
   hideCard();
   $('titleScr').classList.remove('hidden');
-  $('tSnd').classList.toggle('off', !state.sound);
+  $('tSnd').classList.toggle('off', !state.sound && !BGM.on);
 }
 function showHelp() {
   $('titleScr').classList.add('hidden');
@@ -4779,7 +4819,12 @@ function showHelp() {
   const t = $('titleScr');
   t.addEventListener('click', e => {
     initAudio();
-    if (e.target.closest('#tSnd')) { state.sound = !state.sound; $('tSnd').classList.toggle('off', !state.sound); return; }
+    if (e.target.closest('#tSnd')) {
+      const on = !(state.sound || BGM.on);
+      state.sound = on; setMusic(on);
+      $('tSnd').classList.toggle('off', !on);
+      return;
+    }
     if (e.target.closest('#tHelp')) { showHelp(); return; }
     primaryAction();
   });
