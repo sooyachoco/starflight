@@ -1599,7 +1599,7 @@ function openSettings() {
     <button data-act="invert">상하 반전: ${state.invert ? 'ON' : 'OFF'}</button>
     <button data-act="sound">효과음: ${state.sound ? 'ON' : 'OFF'}</button>
     <button data-act="music">음악: ${BGM.on ? 'ON' : 'OFF'}</button>
-    <label class="vol"><span>배경음악 음량</span><input type="range" id="mvol" min="0" max="100" step="1"
+    <label class="vol"><span>배경음 음량</span><input type="range" id="mvol" min="0" max="100" step="1"
       value="${Math.round(BGM.vol / BGM_MAX * 100)}"><b id="mvolV">${Math.round(BGM.vol / BGM_MAX * 100)}%</b></label>
     <button data-act="gfx">그래픽: ${GFX_NAME[gfx]}</button>
     <button data-act="restart">처음부터 다시</button>
@@ -2220,7 +2220,19 @@ function initAudio() {
       const comp = actx.createDynamicsCompressor();
       comp.threshold.value = -14; comp.ratio.value = 6; comp.attack.value = .003; comp.release.value = .2;
       comp.connect(actx.destination);
-      sfxBus = actx.createGain(); sfxBus.gain.value = 3.2; sfxBus.connect(comp);
+      sfxBus = actx.createGain(); sfxBus.gain.value = 2.1; sfxBus.connect(comp);
+      // 울림: 2.4초 감쇠 노이즈 임펄스(스테레오)로 넓은 격납고 같은 잔향을 살짝 섞음
+      const ir = actx.createBuffer(2, actx.sampleRate * 2.4, actx.sampleRate);
+      for (let c = 0; c < 2; c++) {
+        const d = ir.getChannelData(c);
+        for (let i = 0; i < d.length; i++) {
+          const t = i / actx.sampleRate;
+          d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t / 2.4, 3) * (t < .012 ? t / .012 : 1);
+        }
+      }
+      const verb = actx.createConvolver(), wet = actx.createGain(), pre = actx.createDelay(.1);
+      verb.buffer = ir; pre.delayTime.value = .025; wet.gain.value = .32;
+      sfxBus.connect(pre); pre.connect(verb); verb.connect(wet); wet.connect(comp);
       setTimeout(() => ['blaster', 'eblaster', 'boom', 'hit'].forEach(swBuf), 0);   // 첫 발사 때 멈칫하지 않게 미리 합성
     }
     if (actx.state === 'suspended') actx.resume();
@@ -2243,7 +2255,7 @@ function setMusicVol(pct) {
 function musicInit() {
   if (BGM.ready) return;
   BGM.ready = true;
-  for (const k of ['title', 'cruise', 'combat']) {
+  for (const k of ['title', 'space']) {
     const el = new Audio(`assets/bgm/${k}.mp3`);
     el.loop = true; el.preload = 'none';
     const g = actx.createGain(); g.gain.value = 0;
@@ -2252,10 +2264,7 @@ function musicInit() {
   }
 }
 function musicWant() {
-  if (['title', 'select'].includes(state.mode)) return 'title';
-  if (!exWorld.visible) return 'cruise';
-  const q = DQ.active;
-  return ex.mission || enemies.length || (q && ['gate', 'disguise'].includes(q.type)) ? 'combat' : 'cruise';
+  return ['title', 'select'].includes(state.mode) ? 'title' : 'space';
 }
 function musicUpdate(dt) {
   if (!BGM.ready) return;
@@ -2263,7 +2272,7 @@ function musicUpdate(dt) {
   const duck = state.mode === 'paused' || state.mode === 'over' ? .35 : 1;
   for (const [k, tr] of Object.entries(BGM.tracks)) {
     const on = k === want;
-    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * (k === 'combat' ? .8 : 1) : 0, t, on ? 1.2 : .9);
+    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * (k === 'space' ? .55 : 1) : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
     if (on) { tr.idle = 0; if (tr.el.paused) tr.el.play().catch(() => {}); }
     else if (!tr.el.paused && (tr.idle += dt) > 5) tr.el.pause();
   }
