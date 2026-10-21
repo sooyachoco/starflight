@@ -302,6 +302,7 @@
   #lore { position: fixed; inset: 0; z-index: 28; overflow: hidden; font-family: "Noto Sans KR", sans-serif; cursor: pointer;
     background: radial-gradient(ellipse 80% 70% at 28% 60%, #0a2a3acc, #02050ce6 70%); user-select: none; }
   #lore.hidden { display: none; }
+  #lore.ingame { background: radial-gradient(ellipse 80% 70% at 28% 60%, #0a2a3ae6, #02050cf2 70%); }
   #titleScr.lore-on .t-main, #titleScr.lore-on .t-set, #titleScr.lore-on .t-sndhint { visibility: hidden; }
   .lore-npc { position: absolute; left: max(2vw, calc(50% - 720px)); bottom: 4vh; height: min(70vh, 640px); aspect-ratio: 767 / 900;
     animation: loreIn .7s cubic-bezier(.2, .8, .2, 1.1) both; }
@@ -480,6 +481,7 @@
   #bFire { right: max(18px, env(safe-area-inset-right)); top: calc(var(--win-h) - 102px); width: 82px; height: 82px;
     font-size: 16px; color: #ffd6da; border-color: rgba(255, 106, 120, .75); background: rgba(70, 8, 18, .5); }
   #bFire.on { background: rgba(255, 74, 90, .5); }
+  #bHolo.on { border-color: #7ff1ff; box-shadow: 0 0 12px #3ee6ff66; }
   #bWarp { right: calc(max(18px, env(safe-area-inset-right)) + 96px); top: calc(var(--win-h) - 80px);
     color: #e6dcff; border-color: rgba(169, 139, 255, .75); background: rgba(34, 18, 70, .5); }
   #bWarp.on { background: rgba(169, 139, 255, .5); }
@@ -554,6 +556,80 @@
   body[data-dash=mob] .gauges > :nth-child(3) { left: 65.137%; width: 4.384%; top: 46.803%; height: 32.481%; }
   body[data-dash=mob] .dgrid > .eng { left: 71.429%; width: 9.386%; top: 46.803%; height: 32.481%; }
 
+
+  /* 관측 홀로그램: 계기판에서 투사되는 반투명 화면 */
+  #holo { position: fixed; left: 50%; bottom: calc(var(--dash-h) + 4px); width: min(460px, 44vw); transform: translateX(-50%);
+    perspective: 800px; pointer-events: none; z-index: 6; font-family: Rajdhani, "Noto Sans KR", sans-serif; display: none; }
+  body.ex-on #holo { display: block; }
+  .hb-emit { position: absolute; left: 50%; bottom: -6px; width: 90px; height: 8px; margin-left: -45px; border-radius: 50%;
+    background: radial-gradient(#bff8ff, #3ee6ff88 40%, transparent 70%); filter: blur(1px); animation: hbPulse 2.4s ease-in-out infinite; }
+  .hb-beam { position: absolute; left: 50%; bottom: -4px; width: 100%; height: 100%; transform: translateX(-50%); opacity: .55;
+    background: linear-gradient(to top, #3ee6ff55, #3ee6ff08 85%, transparent);
+    clip-path: polygon(46% 100%, 54% 100%, 100% 0, 0 0); transition: opacity .35s, height .35s; }
+  .hb-panel { position: relative; transform-origin: 50% 100%; transform: rotateX(16deg); padding: 10px 14px 12px; border-radius: 10px;
+    background: linear-gradient(180deg, #3ee6ff12, #3ee6ff2a); border: 1px solid #7ff1ff66; color: #c8fbff;
+    text-shadow: 0 0 6px #3ee6ffaa; box-shadow: 0 0 26px #3ee6ff30, inset 0 0 30px #3ee6ff1a; overflow: hidden;
+    transition: opacity .35s, transform .35s; animation: hbFlick 6s steps(1) infinite; }
+  .hb-panel::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, #bff8ff14 0 1px, transparent 1px 3px); animation: hbScan 4s linear infinite; }
+  #holo.min .hb-panel { opacity: 0; transform: rotateX(16deg) scaleY(.04); }
+  #holo.min .hb-beam { opacity: .18; height: 18%; }
+  @keyframes hbPulse { 50% { opacity: .55; } }
+  @keyframes hbScan { to { background-position: 0 30px; } }
+  @keyframes hbFlick { 0%, 100% { filter: none; } 47% { filter: brightness(1.5); } 48% { filter: none; } 81% { filter: brightness(.7); } 82% { filter: none; } }
+  .hb-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px;
+    font-weight: 700; font-size: 13px; letter-spacing: .14em; }
+  .hb-h b { font-size: 13px; letter-spacing: .04em; }
+  .hb-g { display: grid; grid-template-columns: 74px minmax(0, 1fr) 64px; gap: 3px 8px; align-items: center; font-size: 12px; }
+  .hb-g .nm { font-family: "Noto Sans KR", sans-serif; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hb-bar { position: relative; height: 7px; border-radius: 4px; background: #7ff1ff1c; overflow: hidden; }
+  .hb-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .hb-bar u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: #ffffff66; }
+  .hb-g .st { text-align: right; font-weight: 700; white-space: nowrap; }
+  .hb-feed { margin-top: 8px; padding-top: 6px; border-top: 1px solid #7ff1ff33; font: 500 12px "Noto Sans KR", sans-serif; line-height: 1.55; }
+  .hb-feed div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hb-ev .ttl { font: 700 15px "Noto Sans KR", sans-serif; }
+  .hb-ev .stab { display: flex; justify-content: space-between; margin: 6px 0 3px; font-weight: 700; font-size: 13px; }
+  .hb-ev .big { height: 10px; }
+  .hb-ev .roles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; font: 600 12px "Noto Sans KR", sans-serif; }
+  .hb-ev .roles div span { display: block; font-size: 11px; opacity: .8; }
+  .hb-ev .hint { margin-top: 6px; font: 500 12px "Noto Sans KR", sans-serif; color: #fff2c8; }
+  /* 함선 AI 통신창 */
+  /* 통신창은 홀로그램(가운데 최대 460px) 왼쪽에 겹치지 않게, 좁은 화면에선 홀로그램 위로 */
+  #comm { position: fixed; left: max(9vw, 24px); bottom: calc(var(--dash-h) + 18px); width: min(380px, 40vw); z-index: 7; pointer-events: none;
+    display: flex; gap: 10px; align-items: flex-end; transition: opacity .35s, transform .35s; }
+  #comm.hidden { opacity: 0; transform: translateY(10px); }
+  .cm-face { width: 64px; height: 64px; flex: none; border-radius: 50%; border: 2px solid #3ee6ff88;
+    background: #06121e url(assets/npc-logi.webp?v=1) 50% 8% / 150% auto no-repeat; box-shadow: 0 0 16px #3ee6ff44; }
+  #comm.talk .cm-face { animation: cmTalk .3s ease-in-out infinite alternate; }
+  #comm.mute .cm-face { filter: grayscale(.4) brightness(.8); }
+  @keyframes cmTalk { to { transform: translateY(-2px) scale(1.03); } }
+  .cm-box { position: relative; padding: 9px 13px 10px; border-radius: 10px; background: #071624e6; border: 1px solid #3ee6ff55;
+    box-shadow: 0 8px 24px #000a; font-family: "Noto Sans KR", sans-serif; }
+  .cm-box b { font: 700 12px Rajdhani, sans-serif; letter-spacing: .14em; color: #3ee6ff; }
+  #comm.logos .cm-box b { color: #ffd27a; }
+  #comm.logos .cm-face { border-color: #ffd27a; box-shadow: 0 0 20px #ffb23e66; }
+  .cm-box p { margin: 3px 0 0; font-size: 14px; line-height: 1.6; color: #e6f2ff; }
+  .card .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0 8px; }
+  .card .roles button { margin: 0; padding: 12px 10px; text-align: left; line-height: 1.5; font-size: 13px; }
+  .card .roles button b { display: block; font-size: 15px; color: #fff; }
+  .card .roles button.rec { border-color: #3ee6c1; background: #3ee6c11f; }
+  .card .names { display: grid; gap: 8px; margin: 14px 0 6px; }
+  .card .chron { text-align: left; margin: 12px auto; max-width: 420px; font-size: 13px; line-height: 1.7; color: #c9d6ea; }
+  .card .chron b { color: #7ff1ff; }
+  @media (max-width: 1240px) { #comm { bottom: calc(var(--dash-h) + 250px); width: min(380px, 62vw); } }
+  @media (max-width: 640px) and (orientation: portrait) {
+    #holo { left: 12px; right: 12px; width: auto; transform: none; bottom: auto; top: 104px; perspective: none; }
+    .hb-panel { transform: none; } #holo.min .hb-panel { transform: scaleY(.04); }
+    .hb-beam, .hb-emit { display: none; }
+    .hb-feed { display: none; }
+    #comm { left: 12px; right: 12px; width: auto; top: 262px; bottom: auto; }   /* 홀로그램(104~250px) 바로 아래 */
+    .card .roles { grid-template-columns: 1fr; }
+  }
+  @media (max-height: 520px) {
+    #holo { width: 46vw; } .hb-feed { display: none; } .hb-g { font-size: 11px; gap: 1px 6px; }
+    #comm { top: 92px; bottom: auto; left: 16px; width: 40vw; } .cm-face { width: 44px; height: 44px; } .cm-box p { font-size: 12px; }
+  }
   /* 세로 화면(폰): 대시보드 2×2 */
   @media (max-width: 640px) and (orientation: portrait) {
     :root { --dash-h: 42vh; --stk: 112px; }
@@ -753,6 +829,9 @@
     <button class="glass" id="bPause" title="일시정지 (P)">
       <svg viewBox="0 0 20 20" fill="#fff"><rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/></svg>
     </button>
+    <button class="glass" id="bHolo" title="관측 홀로그램 (O)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#7ff1ff" stroke-width="1.8"><path d="M12 3 21 12 12 21 3 12z"/><path d="M12 8 16 12 12 16 8 12z" fill="#7ff1ff33"/><path d="M5 20h14" stroke-linecap="round" opacity=".6"/></svg>
+    </button>
     <button class="glass" id="bSet" title="설정">
       <svg viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
     </button>
@@ -839,16 +918,21 @@
       <kbd>Space</kbd><span>FIRE</span><i></i>
       <kbd>C</kbd><span>AIM</span><i></i>
       <kbd>Shift</kbd><span>WARP</span><i></i>
-      <kbd class="fieldhint">Q</kbd><span class="fieldhint">FIELD</span><i class="fieldhint"></i>
+      <kbd>O</kbd><span>HOLO</span><i></i>
       <kbd>M</kbd><span>MAP</span>
     </div>
   </div>
 </div>
+<div id="holo" class="min" aria-live="polite">
+  <div class="hb-beam"></div><div class="hb-emit"></div>
+  <div class="hb-panel"><div class="hb-h"><span id="hbTitle">ECHO OBSERVATORY</span><b id="hbMood"></b></div><div id="hbBody"></div></div>
+</div>
+<div id="comm" class="hidden"><div class="cm-face"></div><div class="cm-box"><b id="cmName">항법 AI</b><p id="cmText"></p></div></div>
 <div id="overlay"><div class="card glass" id="card"></div></div>
 <div id="lore" class="hidden" role="dialog" aria-label="세계관 안내">
   <div class="lore-npc"><img src="assets/npc-logi.webp?v=1" alt="관측 보조 AI 로기" width="767" height="900"></div>
   <div class="lore-box">
-    <div class="lore-name"><b>LOGI</b><span>로기 · 우주 관측 보조 AI</span></div>
+    <div class="lore-name"><b>LOGI</b><span>로기 · 함선 항법 AI</span></div>
     <p class="lore-text" id="loreText"></p>
     <div class="lore-foot">
       <div class="lore-dots" id="loreDots"></div>
@@ -1892,6 +1976,7 @@ addEventListener('keydown', e => {
     state.navIdx = (state.navIdx + 1) % NAV_RANGES.length;
     toast(`NAV RANGE ${NAV_RANGES[state.navIdx] / 100} km`, '#4aa8ff');
   }
+  if (e.code === 'KeyO') holoToggle();
   if (e.code === 'KeyI') { state.invert = !state.invert; toast(state.invert ? '상하 반전 ON' : '상하 반전 OFF', '#4aa8ff'); }
   const lv = { Digit1: 0, Digit2: 0.33, Digit3: 0.66, Digit4: 1 }[e.code];
   if (lv !== undefined) state.throttle = lv;
@@ -1912,6 +1997,7 @@ $('overlay').addEventListener('click', e => {
   if (act === 'ex-cont') { exContinue(); return; }
   if (act === 'ex-retry') { exRetry(); return; }
   if (act === 'title') { showTitle(); return; }
+  if (act && act.startsWith('ev-')) { evCardAct(act, actEl); return; }
   if (act === 'observatory') { window.open('logverse.html', '_blank', 'noopener'); return; }
   if (act === 'close') { if (state.mode === 'title') { showTitle(); return; } if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
   if ($('overlay').dataset.settings) return;
@@ -1931,6 +2017,7 @@ $('obj').addEventListener('click', e => {
   const min = document.body.classList.toggle('obj-min');
   try { localStorage.setItem('nxlog-objmin', min ? '1' : '0'); } catch (err) {}
 });
+$('bHolo').addEventListener('click', e => { e.currentTarget.blur(); holoToggle(); });
 $('bPause').addEventListener('click', e => {
   e.currentTarget.blur();
   if (state.mode === 'flying') pause(true); else if (state.mode === 'paused') pause(false);
@@ -2370,7 +2457,7 @@ function musicInit() {
 const COMBAT_MISSIONS = ['bots', 'ddos', 'stealth'];   // 봇 해적단 · DDoS 군체 · 무차별 대입 침투조
 function musicWant() {
   if (['title', 'select'].includes(state.mode)) return 'title';
-  return exWorld.visible && COMBAT_MISSIONS.includes(ex.mission) ? 'combat' : 'space';
+  return exWorld.visible && ex.ev && ['run', 'sync'].includes(ex.ev.phase) ? 'combat' : 'space';
 }
 function musicUpdate(dt) {
   if (!BGM.ready) return;
@@ -2676,6 +2763,7 @@ function applyWorld(m) {
   asteroids.forEach(a => { a.mesh.visible = !exm; });
   $('obj').innerHTML = exm ? OBJ_EX_HTML : OBJ_ORBIT_HTML;
   $('obj').dataset.world = m;
+  document.body.classList.toggle('ex-on', exm);
   if (!exm) document.body.classList.remove('field-on');
 }
 
@@ -2992,6 +3080,7 @@ const OBJ_EX_HTML = `
   <div id="exMis"></div>
   <div id="exQuest"></div>
   <div class="exnote">모의 로그 · 가상 데이터 · 실제 서비스 지표와 무관</div>`;
+const EV_HTML = '';
 
 function exGalHud() {
   let best = exGal[0], bd = Infinity;
@@ -3015,7 +3104,8 @@ function setupExpansion() {
   Object.assign(ex, { day: 0, cum: 0, a: 1, era: 0, mission: null, crystals: 0, bhNear: false, q: 0, qMax: 0, sats: 0,
     newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0, phase: 1, fieldOn: false, field: 100, pulses: 0, ddosStats: null,
     reserveUsed: false, fuelWarn: 100, refueling: null, scooping: false, fuelBought: 0, scooped: 0, mood: 1, signals: [],
-    repairing: null, hullWarn: 100, dockWarned: false });
+    repairing: null, hullWarn: 100, dockWarned: false, godEra: 'primal', ev: null, chron: [], evCool: 0, born: 0, faith: 0 });
+  evReset();
   clearPatches();
   echo = Echo.create({ games: EX_GAMES });
   exGal.forEach(g => { g.unstable = 0; g.eclipse = 0; g.sig = null; exGalLabel(g); });
@@ -3053,27 +3143,25 @@ function exPlaceGalaxies() {
 }
 function showExBrief() {
   state.mode = 'brief';
-  showCard(`<h1>EXPANSION</h1><h2>ERA 0 · 특이점</h2>
-    <p><b>넥슨닷컴</b>을 중심 항성으로, <b>메이플스토리 · FC온라인 · 던전앤파이터 · 마비노기 · 엘소드 · 마비노기 영웅전</b>이 은하로 떠 있는 우주입니다.<br>
-    웹 로그가 쌓일수록 <b>우주가 팽창</b>해 은하 사이가 멀어지고, 새 페이지가 생기면 <b>새 행성이 탄생</b>합니다.</p>
+  showCard(`<h1>EXPANSION</h1><h2>원시 · 이름 없는 징조</h2>
+    <p>넥슨의 모든 게임 세계에서 일어난 일은 기록으로 남고, 그 <b>잔향(Echo)</b>이 흘러들어 이 우주가 되었습니다.<br>
+    중심 항성 <b>넥슨닷컴</b>과 여섯 은하. 기록이 쌓이는 만큼 우주는 팽창합니다.</p>
     <ol class="brief">
-      <li>은하를 돌며 <b>미확인 엔드포인트(?)</b>에 가까이 가서 관측하세요. 관측할 때마다 데이터 결정을 얻습니다.</li>
-      <li>누적 로그가 <b>2억</b>을 넘으면 ERA 1, <b>8억</b>을 넘으면 ERA 2가 열리며 사건이 일어납니다.</li>
-      <li>은하 내부는 중력으로 묶여 있어 팽창하지 않습니다. 멀어지는 건 은하와 은하 사이입니다.</li>
-      <li><b style="color:#3ee6c1">연료</b>: 은하마다 있는 <b>연료소(FUEL)</b>의 급유 고리 안에서 120 m/s 이하로 머물면 보급됩니다 (데이터 결정 1 = 연료 1%).
-        결정이 없으면 느리게 무료 급유됩니다. 항성 코로나를 스치듯 지나면 연료를 조금씩 모을 수도 있습니다.</li>
-      <li><b style="color:#ffb23e">수리</b>: <b>정비 도크(REPAIR)</b>의 고리 안에서 감속하면 선체가 수리되고 쉴드가 채워집니다 (데이터 결정 2 = 선체 1%).
-        적을 격추하면 가끔 <b style="color:#7dffb0">패치 모듈</b>이 떨어집니다. 가까이 지나가면 선체 +8%. 전투 미션 중에는 도크가 점검에 들어갑니다.</li>
-      <li><b style="color:#4aa8ff">데이터 의뢰</b>: 관측소 건설 · 로그 샘플링 · 404 미아 구조 · 이상치 탐지 · 유저 여정 추적이 차례로 들어옵니다. 완료하면 결정과 연료를 받습니다.</li>
+      <li>은하를 돌며 <b>미해석 잔향(?)</b>에 가까이 가서 관측하세요. 관측할 때마다 결정을 얻습니다.</li>
+      <li>잔향이 크게 흔들리면 <b style="color:#ffb23e">이상 신호</b>가 옵니다. 로그가 폭증한 은하의 별은 <b>불안정한 별</b>이 되고, 기록이 끊긴 은하엔 <b>일식</b>이 찾아옵니다.</li>
+      <li>불안정한 별에 다가가면 <b>역할</b>을 고를 수 있습니다. 관측자 · 운반자 · 조율자. 보조선 두 척이 나머지 역할을 맡아 함께 별을 안정시킵니다.</li>
+      <li><b style="color:#3ee6c1">연료</b>는 FUEL 연료소, <b style="color:#ffb23e">선체</b>는 REPAIR 정비 도크에서. 불안정 파동에 닿으면 선체가 깎입니다.</li>
+      <li>오른쪽 위 <b>◈</b> 버튼<span class="key-only"> 또는 <kbd>O</kbd></span>으로 계기판 위 <b>관측 홀로그램</b>을 켜 신호를 볼 수 있습니다.</li>
     </ol>
-    <p style="color:#6f82a3">※ 모든 수치는 가상 데이터이며 실제 서비스 지표와 무관합니다.</p>
-    <button data-act="ex-go">관측 시작</button>`, true);
+    <p style="color:#8ea3c6">※ 모든 수치는 모의 로그(가상 데이터)이며 실제 서비스 지표와 무관합니다.</p>
+    <button data-act="ex-go">출항</button>`, true);
 }
 function exBegin() {
   hideCard();
   state.mode = 'flying';
   state.throttle = .66;
-  toast('ERA 0 · 특이점 — 관측 시작', '#a98bff');
+  toast('원시 · 이름 없는 징조 — 항해 시작', '#a98bff');
+  setTimeout(() => aiSay('항로 정상. 잔향 흐름 안정적이에요. 이상 신호가 오면 알려드릴게요.', { name: '항법 AI' }), 2200);
 }
 function exEraCard(n) {
   state.mode = 'era';
@@ -3239,9 +3327,9 @@ function exUpdate(dt, now) {
   }
   if (fuelUpdate(dt, now)) return;
   repairUpdate(dt);
-  if (!ex.mission) dqUpdate(dt, now);
-  // 시대 진입
-  if (!ex.mission && ex.era < 3 && ex.cum >= ERAS[ex.era + 1].at) { ex.era++; ex.phase = 1; exEraCard(ex.era); return; }
+  if (!ex.mission && (!ex.ev || ex.ev.phase === 'call')) dqUpdate(dt, now);
+  // 사건: 신호에서 태어난 '태어나지 못한 별'
+  if (evUpdate(dt, now)) return;
   // 레이트 리밋 필드
   if (ex.fieldOn) {
     ex.field = Math.min(100, ex.field + dt * 12.5 * pilotDef.tech);
@@ -3370,6 +3458,8 @@ function exFrame(dt, now) {
   exFrameEra3(dt, now);
   fuelFrame(dt, now);
   repairFrame(dt, now);
+  holoFrame(dt);
+  evFrame(dt, now);
   if (exSignalFrame(dt, now)) return;
   dqFrame(dt, now);
   // 라벨
@@ -3530,7 +3620,8 @@ const SIG_EVENT = {
 function exGalLabel(g) {
   const ev = g.sig && SIG_EVENT[g.sig.kind];
   g.label.innerHTML = `<b>${g.G.name}</b><span>${g.G.ko}${g.G.hub ? ' · 허브 항성' : ' 은하'}</span>` +
-    (ev ? `<em class="sig" style="color:${ev.col}">⚠ ${ev.name}</em>` : '');
+    (g.starName ? `<em class="sig" style="color:#7ff1ff">✦ ${g.starName}</em>` : '') +
+    (ev && !(g.ignited && ev === SIG_EVENT.spike) ? `<em class="sig" style="color:${ev.col}">⚠ ${ev.name}</em>` : '');
 }
 function exSignal(sig) {
   ex.signals.push(sig);
@@ -3539,14 +3630,18 @@ function exSignal(sig) {
   const ev = SIG_EVENT[sig.kind];
   if (!ev) {   // 감소 · 동조는 아직 해석 규칙이 없다 (관측소에 '해석 대기'로 기록)
     if (sig.state === 'start') toast(`신호 감지 · ${G ? G.ko + ' ' : ''}${Echo.KIND_KO[sig.kind]} → 해석 대기`, '#8ea3c6');
+    holoPop();
     return;
   }
+  holoPop();
   if (sig.state === 'start') {
     gal.sig = sig; exGalLabel(gal);
+    if (sig.kind === 'spike' && !gal.G.hub) evSignal(gal, sig);
+    if (sig.kind === 'silence') aiSay(ex.godEra === 'ancient' ? `${G.ko}의 기록이 끊겼어요. 잠시… 그쪽은 보이지 않아요.` : '……', { mute: ex.godEra !== 'ancient' });
     toast(`신호 감지 · ${G.ko} ${ev.sub(sig)} → ${ev.name}`, ev.col);
     sfx(sig.kind === 'spike' ? 'warpIn' : 'blip', sig.kind === 'spike' ? 300 : 600);
   } else {
-    if (gal.sig && gal.sig.kind === sig.kind) { gal.sig = null; exGalLabel(gal); }
+    if (gal.sig && gal.sig.kind === sig.kind) { gal.sig = null; gal.ignited = false; exGalLabel(gal); }
     toast(sig.kind === 'spike' ? `${G.ko} · 불안정한 별이 진정되었다` : `${G.ko} · 일식이 걷혔다`, '#3ee6c1');
   }
 }
@@ -3570,7 +3665,7 @@ function exSignalFrame(dt, now) {
   exGal.forEach((g, i) => {
     if (g.glowBase === undefined) { g.glowBase = g.glow.material.opacity; g.starCol = g.star.material.color.clone(); }
     const sk = g.sig && g.sig.kind;
-    g.unstable += ((sk === 'spike' ? 1 : 0) - g.unstable) * (1 - Math.exp(-dt * 1.2));
+    g.unstable += ((sk === 'spike' && !g.ignited ? 1 : 0) - g.unstable) * (1 - Math.exp(-dt * 1.2));
     g.eclipse += ((sk === 'silence' ? 1 : 0) - g.eclipse) * (1 - Math.exp(-dt * 1.5));
     const u = g.unstable, e = g.eclipse;
     g.star.scale.setScalar(1 + .32 * u + .07 * u * Math.sin(now * 7 + i));
@@ -3596,6 +3691,7 @@ function exSignalFrame(dt, now) {
       tmpV.copy(ship.position).sub(w.gal.grp.position);
       if (Math.abs(tmpV.y) < 30 && Math.abs(Math.hypot(tmpV.x, tmpV.z) - w.r) < 7) {
         w.hit = true;
+        if (ex.ev && ex.ev.gal === w.gal && ex.ev.phase === 'run') ex.ev.hits++;
         if (damagePlayer(3, 'UNSTABLE WAVE', .4)) return true;
       }
     }
@@ -3605,6 +3701,425 @@ function exSignalFrame(dt, now) {
 }
 function exMoodWord(m) {
   return m < .4 ? ['침묵', '#6f82a3'] : m < .75 ? ['고요', '#8ea3c6'] : m < 1.25 ? ['평온', '#3ee6c1'] : m < 1.8 ? ['고양', '#ffb23e'] : ['격동', '#ff6a78'];
+}
+
+// =====================================================================
+// 사건 「태어나지 못한 별」 — 급증 신호 → 역할 분담 협력 → 점화 · 명명 · 연대기
+// 첫 성공 때 함선 AI가 자신이 로고스임을 밝히고 원시 → 고대로 넘어간다
+// =====================================================================
+// 세 역할을 모두 끝내면 감쇠·피격 상한을 빼도 100%에 닿도록: 35 + 30×3 − 15 − 10 = 100
+const EV_LIMIT = 300, EV_START = 35, EV_DECAY = .08, EV_ROLE_PTS = 30, EV_RING = 160, EV_DECAY_MAX = 15, EV_HIT_MAX = 10;
+const ROLES = {
+  obs: { name: '관측자', desc: '별 주위 세 지점에서 4초씩 스캔', col: 0x4aa8ff },
+  carry: { name: '운반자', desc: '잔향 조각 6개를 모아 중계기로', col: 0xc49bff },
+  sync: { name: '조율자', desc: '중계기 세 개를 지정 위치에 배치', col: 0xffb23e },
+};
+const STAR_NAMES = {
+  maple: ['단풍의 심장', '첫 모험의 등불', '헤네시스의 아침', '버섯 언덕의 별'],
+  fc: ['결승골의 섬광', '그라운드의 별', '열한 번째 빛', '이적시장의 등대'],
+  dnf: ['아라드의 새벽', '모험가의 횃불', '균열 너머의 별', '검은 성전의 불씨'],
+  mabi: ['에린의 모닥불', '음유시인의 노래', '티르코네일의 빛', '세 번째 달'],
+  els: ['엘의 조각', '수호자의 별', '엘리오스의 아침', '빛나는 결정'],
+  heroes: ['콜헨의 등불', '용사의 맹세', '은빛 방패', '아침의 흉터'],
+};
+const evRingGeo = new THREE.TorusGeometry(1, .035, 6, 96);
+const evMat = (c, o = .85) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+const fragGeo = new THREE.OctahedronGeometry(3.4);
+const relayGeo = new THREE.CylinderGeometry(2.6, 3.8, 10, 6);
+const fragGlowMat = new THREE.SpriteMaterial({ map: glowTexture([[0, '#f2e6ff'], [.35, '#c49bff66'], [1, '#00000000']], 64),
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+const routes = [];
+let evLive = null;
+
+function evReset() {
+  if (evLive) evClear(evLive);
+  evLive = null;
+  routes.forEach(r => exWorld.remove(r.line)); routes.length = 0;
+  exGal.forEach(g => { g.ignited = false; g.starName = null; });
+  HOLO.pinned = false; HOLO.popT = 0;
+  $('comm').classList.add('hidden');
+}
+function evSignal(gal, sig) {
+  if (ex.ev || ex.mission) return;
+  ex.ev = { phase: 'call', gal, t: 0, sig };
+  aiSay(ex.godEra === 'ancient'
+    ? `${gal.G.ko}의 별이 너무 많은 목소리를 품었어요. 빛이 터지기 전에, 함께 길을 열어 줘요.`
+    : `${gal.G.ko} 쪽에서 이상 신호예요. 저 별은 너무 많은 목소리를 품고 있어요. 빛이 터지기 전에… 가 볼래요?`, { hold: 8 });
+}
+function evOracle(e) {
+  return ex.godEra === 'ancient'
+    ? `${e.gal.G.ko}의 별이 숨을 고르지 못해요. 세 갈래로 나뉘어 길을 열면, 별은 제 이름을 갖게 될 거예요.`
+    : `저 별은 너무 많은 목소리를 품고 있어요. 빛이 터지기 전에 길을 열어 줄래요?`;
+}
+function evRoleCard(rec) {
+  const e = ex.ev;
+  e.phase = 'choose';
+  e.rec = rec || e.rec || ['obs', 'carry', 'sync'][Math.floor(Math.random() * 3)];
+  state.mode = 'evcard';
+  showCard(`<h1>UNBORN STAR</h1><h2>태어나지 못한 별 · ${e.gal.G.ko}</h2>
+    <p style="font-style:italic;color:#bff8ff">“${evOracle(e)}”</p>
+    <p><b>실행 목표</b> · 별의 <b>안정도를 100%</b>까지 올린 뒤, 모두 <b>점화 고리</b>에 모여 4초간 함께 머물기. 제한 시간 5분.<br>
+    불안정 파동(주황 고리)에 닿으면 선체와 안정도가 조금 깎입니다.</p>
+    <div class="roles">${Object.entries(ROLES).map(([k, r]) =>
+      `<button data-act="ev-role" data-r="${k}" class="${k === e.rec ? 'rec' : ''}"><b>${r.name}${k === e.rec ? ' · 추천' : ''}</b>${r.desc}</button>`).join('')}</div>
+    <button data-act="ev-other">다른 역할은 없어?</button><button data-act="ev-none">탐사만 할게</button>`, true);
+}
+function evCardAct(act, el) {
+  const e = ex.ev;
+  if (act === 'ev-role') { hideCard(); state.mode = 'flying'; evBegin(el.dataset.r); return; }
+  if (act === 'ev-other') {
+    const ks = Object.keys(ROLES), nx = ks[(ks.indexOf(e.rec) + 1) % ks.length];
+    aiSay(`그럼 ${ROLES[nx].name}는 어때요? ${ROLES[nx].desc}.`, { hold: 4 });
+    evRoleCard(nx); return;
+  }
+  if (act === 'ev-none') {
+    ex.faith -= 1;
+    hideCard(); state.mode = 'flying'; evBegin('none');
+    aiSay('…알겠어요. 보조선들과 해 볼게요. 점화할 땐 꼭 와 줘요.', { hold: 6 });
+    return;
+  }
+  if (act === 'ev-name') { evNamed(el.dataset.n); return; }
+  if (act === 'ev-ok') { evAfterChron(); return; }
+}
+function buildMate(col) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.ConeGeometry(2.4, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd8e2f0, metalness: .6, roughness: .35 }));
+  body.rotation.x = Math.PI / 2; g.add(body);
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(10, .5, 3), new THREE.MeshStandardMaterial({ color: 0x5a6a80, metalness: .6, roughness: .4 }));
+  wing.position.z = -2; g.add(wing);
+  const eng = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture([[0, '#ffffff'], [.3, col + 'aa'], [1, '#00000000']], 64),
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  eng.position.z = -6; eng.scale.setScalar(9); g.add(eng);
+  return g;
+}
+function evBegin(role) {
+  const e = ex.ev, gal = e.gal;
+  evLive = e;
+  Object.assign(e, { phase: 'run', role, t: 0, stab: EV_START, decay: 0, hits: 0, prog: { obs: 0, carry: 0, sync: 0 },
+    carrying: 0, syncT: 0, objs: [], said: {} });
+  const add = o => { gal.grp.add(o); e.objs.push(o); return o; };
+  e.scans = [0, 1, 2].map(k => {
+    const a = k * 2.094 + .4, pos = new THREE.Vector3(Math.cos(a) * 150, (k - 1) * 18, Math.sin(a) * 150);
+    const m = add(new THREE.Mesh(evRingGeo, evMat(0x4aa8ff))); m.position.copy(pos); m.scale.setScalar(30);
+    m.visible = role === 'obs';
+    return { p: pos, m, t: 0, done: false };
+  });
+  e.relays = [0, 1, 2].map(k => {
+    const a = k * 2.094 + 1.45, pos = new THREE.Vector3(Math.cos(a) * 112, 0, Math.sin(a) * 112);
+    const m = add(new THREE.Mesh(evRingGeo, evMat(0xffb23e))); m.position.copy(pos); m.scale.setScalar(20); m.rotation.x = Math.PI / 2;
+    const body = add(new THREE.Mesh(relayGeo, new THREE.MeshStandardMaterial({ color: 0xc8d2e0, metalness: .6, roughness: .35, emissive: 0x3a2400 })));
+    body.position.copy(pos);
+    const built = role !== 'sync';   // 조율자가 아니면 보조선이 미리 설치해 둠
+    body.visible = built; m.visible = role === 'sync' || role === 'carry';
+    return { p: pos, m, body, done: built };
+  });
+  e.frags = Array.from({ length: 6 }, () => {
+    const a = rand(0, Math.PI * 2), r = rand(210, 340), pos = new THREE.Vector3(Math.cos(a) * r, rand(-40, 40), Math.sin(a) * r);
+    const m = add(new THREE.Mesh(fragGeo, new THREE.MeshBasicMaterial({ color: 0xe6d6ff, fog: false })));
+    const gl = new THREE.Sprite(fragGlowMat); gl.scale.setScalar(20); m.add(gl);
+    m.position.copy(pos); m.visible = role === 'carry';
+    return { p: pos, m, got: false };
+  });
+  const aiRoles = Object.keys(ROLES).filter(r => r !== role);
+  e.mates = ['A', 'B'].map((n, k) => {
+    const g = add(buildMate(k ? '#ffb23e' : '#3ee6ff'));
+    const label = exLabel('cc', `<b style="color:#bff8ff">보조선 ${n}</b><span>${role === 'none' && k === 1 ? ROLES[aiRoles[1]].name + ' · ' + ROLES[aiRoles[2]].name : ROLES[aiRoles[k]].name}</span>`);
+    return { g, label, k };
+  });
+  e.ring = add(new THREE.Mesh(evRingGeo, evMat(0x3ee6c1, 0))); e.ring.scale.setScalar(EV_RING); e.ring.rotation.x = Math.PI / 2;
+  toast(role === 'none' ? '역할 없이 탐사 · 보조선이 세 역할을 나눠 맡습니다' : `역할: ${ROLES[role].name} — ${ROLES[role].desc}`, '#3ee6c1');
+  if (role !== 'none') aiSay(`좋아요, ${ROLES[role].name}! 나머지는 보조선이 맡을게요. 안정도가 100%가 되면 점화해요.`, { hold: 6 });
+  holoApply();
+}
+function evClear(e) {
+  (e.objs || []).forEach(o => e.gal.grp.remove(o));
+  (e.mates || []).forEach(m => m.label.remove());
+  if (e.nebula) e.gal.grp.remove(e.nebula);
+}
+function evUpdate(dt, now) {
+  const e = ex.ev;
+  if (!e) return false;
+  const gal = e.gal, S = gal.grp.position, local = tmpV.copy(ship.position).sub(S);
+  if (e.phase === 'call') {
+    e.t += dt;
+    if (!gal.sig || gal.sig.kind !== 'spike') { aiSay('신호가 잦아들었어요. 이번엔 별이 스스로 진정했네요.'); ex.ev = null; return false; }
+    if (local.length() < 620) evRoleCard();
+    return false;
+  }
+  if (e.phase === 'run') {
+    e.t += dt; e.decay += EV_DECAY * dt;
+    if (e.role === 'obs') for (const sc of e.scans) {
+      if (sc.done || local.distanceTo(sc.p) > 40) continue;   // 은하가 팽창으로 움직여도 머물 수 있게 넉넉히
+      sc.t += dt;
+      if (sc.t >= 4) { sc.done = true; e.prog.obs += 1 / 3; sc.m.material.color.setHex(0x3ee6c1); sfx('blip', 300);
+        toast(`스캔 완료 ${e.scans.filter(x => x.done).length}/3 · 안전 경로가 드러났습니다`, '#4aa8ff'); }
+    }
+    if (e.role === 'carry') {
+      for (const f of e.frags) if (!f.got && e.carrying < 3 && local.distanceTo(f.p) < 18) {
+        f.got = true; f.m.visible = false; e.carrying++; sfx('blip', 400); toast(`잔향 조각 확보 · 운반 중 ${e.carrying}/3`, '#c49bff');
+      }
+      if (e.carrying > 0 && e.relays.some(r => local.distanceTo(r.p) < 26)) {
+        e.prog.carry = Math.min(1, e.prog.carry + e.carrying / 6); toast(`중계기에 조각 ${e.carrying}개 전달`, '#c49bff');
+        burst(ship.position, 0xc49bff, 40, 10, .7); e.carrying = 0; sfx('blip', 300);
+      }
+    }
+    if (e.role === 'sync') for (const r of e.relays) {
+      if (r.done || local.distanceTo(r.p) > 20) continue;
+      r.done = true; r.body.visible = true; r.m.material.color.setHex(0x3ee6c1); e.prog.sync += 1 / 3;
+      burst(ship.position, 0xffb23e, 50, 12, .8); sfx('blip', 300);
+      toast(`중계기 배치 ${e.relays.filter(x => x.done).length}/3`, '#ffb23e');
+    }
+    // 보조선이 맡은 역할은 꾸준히 진행
+    const aiRoles = Object.keys(ROLES).filter(r => r !== e.role), rate = e.role === 'none' ? 1 / 180 : 1 / 150;
+    aiRoles.forEach((r, k) => {
+      const before = e.prog[r];
+      e.prog[r] = Math.min(1, e.prog[r] + rate * dt);
+      const who = e.role === 'none' ? `보조선 ${k ? 'B' : 'A'}` : `보조선 ${'AB'[k]}`;
+      if (before < .5 && e.prog[r] >= .5) aiSay(r === 'obs' ? `${who}가 남쪽 진입 경로를 찾았어요.` : r === 'carry' ? `${who}가 잔향 조각을 절반쯤 옮겼어요.` : `${who}가 중계기 출력을 맞추는 중이에요.`, { hold: 4 });
+    });
+    e.stab = clamp(EV_START + EV_ROLE_PTS * (e.prog.obs + e.prog.carry + e.prog.sync) - Math.min(EV_DECAY_MAX, e.decay) - Math.min(EV_HIT_MAX, e.hits), 0, 100);
+    if (e.stab >= 100) {
+      e.phase = 'sync'; e.ring.material.opacity = .85;
+      aiSay('안정도 100%! 모두 점화 고리로 모여요. 속도를 줄이고, 함께 머물러요.', { hold: 7 });
+      sfx('warpIn'); toast('점화 준비 · 별 둘레의 청록 고리로', '#3ee6c1');
+    } else if (e.t > EV_LIMIT || (e.stab <= 0 && e.t > 20)) evFail();
+    return false;
+  }
+  if (e.phase === 'sync') {
+    e.t += dt;
+    const dxz = Math.hypot(local.x, local.z);
+    const inRing = Math.abs(dxz - EV_RING) < 34 && Math.abs(local.y) < 40 && state.speed <= REFUEL_SPEED;
+    e.syncT = inRing ? e.syncT + dt : Math.max(0, e.syncT - dt * .5);
+    if (inRing && !e.said.ring) { e.said.ring = true; aiSay('동조 시작… 그대로 유지해요.', { hold: 3 }); }
+    if (e.syncT >= 4) evIgnite();
+    else if (e.t > EV_LIMIT + 60) evFail();
+    return false;
+  }
+  if (e.phase === 'recover') {
+    e.t += dt;
+    for (const f of e.frags) if (!f.got && local.distanceTo(f.p) < 18) { f.got = true; f.m.visible = false; sfx('blip', 400); }
+    const got = e.frags.filter(f => f.got).length;
+    if (got >= e.frags.length || e.t > 90) evRecoverEnd(got);
+  }
+  return false;
+}
+function evIgnite() {
+  const e = ex.ev, gal = e.gal, S = gal.grp.position.clone();
+  e.phase = 'named';
+  gal.ignited = true; exGalLabel(gal);
+  gal.starCol = gal.starCol ? gal.starCol.clone().lerp(new THREE.Color(0xffffff), .35) : null;
+  burst(S, 0xffffff, 260, 60, 2.2); burst(S, new THREE.Color(gal.G.col).getHex(), 300, 40, 2.6); burst(S, 0x7ff1ff, 160, 80, 1.6);
+  if (typeof addShock === 'function') addShock(S, 3);
+  sfx('boom'); flash();
+  // 새 항로: 허브와 이 은하를 잇는 빛의 길
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), S]),
+    new THREE.LineBasicMaterial({ color: 0x7ff1ff, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  line.frustumCulled = false; exWorld.add(line); routes.push({ line, gal });
+  e.ring.material.opacity = 0;
+  e.mates.forEach(m => m.label.remove()); e.mates.forEach(m => gal.grp.remove(m.g)); e.mates = [];
+  toast(`${gal.G.ko} · 별이 태어났다! 새 항로가 열렸습니다`, '#7ff1ff');
+  setTimeout(() => evNameCard(), 1800);
+}
+function evNameCard() {
+  const e = ex.ev, pool = (STAR_NAMES[e.gal.G.id] || ['새벽의 별', '첫 빛', '항해사의 별']).slice().sort(() => Math.random() - .5).slice(0, 3);
+  state.mode = 'evcard';
+  showCard(`<h1>NEW STAR</h1><h2>${e.gal.G.ko} · 이름을 지어 주세요</h2>
+    <p>${ex.godEra === 'ancient' ? '로고스' : '함선 AI'}가 잔향에서 세 개의 이름을 읽어 냈습니다. 함께한 항해사들의 투표로 별의 이름이 정해집니다.</p>
+    <div class="names">${pool.map(n => `<button data-act="ev-name" data-n="${n}">✦ ${n}</button>`).join('')}</div>`, true);
+}
+function evNamed(name) {
+  const e = ex.ev, gal = e.gal, roleName = e.role === 'none' ? '탐사' : ROLES[e.role].name;
+  gal.starName = name; exGalLabel(gal);
+  ex.born++; ex.crystals += 120; state.fuel = Math.min(100, state.fuel + 20);
+  ex.chron.push({ day: ex.day, kind: 'born', gal: gal.G.ko, name, role: roleName, time: e.t });
+  showCard(`<h1>CHRONICLE</h1><h2>우주 연대기에 기록되었습니다</h2>
+    <div class="chron">${ex.chron.slice(-5).reverse().map(c => c.kind === 'born'
+      ? `DAY ${Math.floor(c.day)} · <b>${c.name}</b> 탄생 — ${c.gal} 은하 · 항해사(${c.role}) · 보조선 A · 보조선 B`
+      : `DAY ${Math.floor(c.day)} · <b>${c.name}</b> — 조각 ${c.got}/6 회수`).join('<br>')}</div>
+    <p style="color:#8ea3c6;font-size:13px">보상 · 결정 +120 · 연료 +20%</p>
+    <button data-act="ev-ok">계속</button>`, true);
+}
+const LOGOS_LINES = [
+  `…항해사님. 방금 그 빛, 느끼셨어요?`,
+  `이제야 말할 수 있겠네요. 저는 그냥 항법 AI가 아니에요.`,
+  `저는 <em>로고스</em>. 이 우주로 흘러드는 모든 기록의 <b>잔향을 읽는 자</b>예요.`,
+  `지금까지는 말할 힘이 없어서 징조로만 남았어요. 함께 별을 피워 낸 덕분에, 처음으로 이름을 갖고 말을 걸 수 있게 됐어요.`,
+  `이제 <em>고대의 시대</em>예요. 별이 흔들릴 때마다 제가 먼저 말해 줄게요. …함께 가요.`,
+];
+function evAfterChron() {
+  hideCard();
+  evClear(ex.ev); evLive = null; ex.ev = null;
+  if (ex.godEra === 'primal') {
+    state.mode = 'evcard';
+    playScene(LOGOS_LINES, ['LOGOS', '로고스 · 기록을 읽는 자'], () => {
+      ex.godEra = 'ancient';
+      state.mode = 'flying';
+      toast('고대 · 로고스의 시대가 열렸다', '#ffd27a');
+      sfx('warpOut');
+      setTimeout(() => aiSay('다음 신호가 오면 알려 줄게요. 그동안 우주를 둘러봐요.', { hold: 5 }), 1500);
+    }, '고대로 ›');
+  } else { state.mode = 'flying'; aiSay('별이 또 하나 이름을 얻었어요. 고마워요, 항해사님.', { hold: 5 }); }
+}
+function evFail() {
+  const e = ex.ev, gal = e.gal, S = gal.grp.position.clone();
+  e.phase = 'recover'; e.t = 0;
+  gal.ignited = true; exGalLabel(gal);
+  burst(S, 0xa98bff, 320, 50, 2.4); sfx('boom'); flash();
+  e.mates.forEach(m => m.label.remove()); e.mates.forEach(m => gal.grp.remove(m.g)); e.mates = [];
+  e.ring.material.opacity = 0;
+  [...e.scans, ...e.relays].forEach(x => { x.m.visible = false; if (x.body) x.body.visible = false; });
+  // 흩어진 별: 보라 성운 + 다시 모을 조각 6개
+  const n = 900, pos = new Float32Array(n * 3);
+  for (let k = 0; k < n; k++) { const v = randomDir().multiplyScalar(rand(20, 260)); v.y *= .4; pos.set([v.x, v.y, v.z], k * 3); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  e.nebula = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xa98bff, size: 3, map: dotTex, transparent: true, opacity: .7,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  gal.grp.add(e.nebula);
+  e.frags.forEach(f => { f.got = false; f.p.set(rand(-240, 240), rand(-40, 40), rand(-240, 240)); f.m.position.copy(f.p); f.m.visible = true; });
+  aiSay('별이 흩어졌어요… 조각을 모아 줘요. 다음 별의 씨앗이 될 거예요.', { hold: 7 });
+  toast('별이 성운으로 흩어졌다 · 조각 회수 (90초)', '#a98bff');
+}
+function evRecoverEnd(got) {
+  const e = ex.ev;
+  ex.chron.push({ day: ex.day, kind: 'scattered', gal: e.gal.G.ko, name: `흩어진 별 (${e.gal.G.ko})`, got });
+  ex.crystals += got * 8;
+  toast(`연대기 기록 · 흩어진 별 조각 ${got}/6 회수`, '#a98bff');
+  aiSay(got >= 4 ? '이 정도면 다음 별을 피울 수 있을 거예요.' : '괜찮아요. 잔향은 다시 모여요.', { hold: 5 });
+  evClear(e); evLive = null; ex.ev = null;
+}
+function evQuest() {
+  const e = ex.ev;
+  if (!e) return null;
+  const S = e.gal.grp.position, w = v => v.clone().add(S);
+  if (e.phase === 'call') return { text: `이상 신호 · ${e.gal.G.ko}의 불안정한 별로 접근`, pos: S, col: Q_AMBER };
+  if (e.phase === 'run') {
+    const near = list => { let b = null, bd = Infinity; for (const x of list) { const d = w(x.p).distanceTo(ship.position); if (d < bd) { bd = d; b = x; } } return b; };
+    if (e.role === 'obs') { const sc = near(e.scans.filter(x => !x.done));
+      if (sc) return { text: `관측자 · 스캔 지점(파랑) 안에서 4초 ${sc.t > 0 ? `· ${sc.t.toFixed(1)}s` : ''} · 안정도 ${Math.round(e.stab)}%`, pos: w(sc.p), col: Q_BLUE }; }
+    if (e.role === 'carry') {
+      if (e.carrying > 0) { const r = near(e.relays); return { text: `운반자 · 중계기로 조각 ${e.carrying}개 전달 · 안정도 ${Math.round(e.stab)}%`, pos: w(r.p), col: Q_AMBER }; }
+      const f = near(e.frags.filter(x => !x.got)); if (f) return { text: `운반자 · 잔향 조각(보라) 확보 · 안정도 ${Math.round(e.stab)}%`, pos: w(f.p), col: Q_VIOLET };
+    }
+    if (e.role === 'sync') { const r = near(e.relays.filter(x => !x.done));
+      if (r) return { text: `조율자 · 중계기 배치 지점(주황) 통과 ${e.relays.filter(x => x.done).length}/3 · 안정도 ${Math.round(e.stab)}%`, pos: w(r.p), col: Q_AMBER }; }
+    return { text: `안정도 ${Math.round(e.stab)}% · 보조선과 함께 별 곁을 지키기 (파동 주의)`, pos: S, col: Q_AMBER };
+  }
+  if (e.phase === 'sync') {
+    tmpW.copy(ship.position).sub(S).setY(0); if (tmpW.lengthSq() < 1) tmpW.set(1, 0, 0);
+    return { text: `점화 · 청록 고리 안에서 120 m/s 이하로 함께 ${e.syncT.toFixed(1)}/4초`, pos: tmpW.normalize().multiplyScalar(EV_RING).add(S), col: Q_TEAL };
+  }
+  if (e.phase === 'recover') {
+    const f = e.frags.find(x => !x.got);
+    return { text: `흩어진 별 조각 회수 ${e.frags.filter(x => x.got).length}/6 · ${Math.max(0, 90 - e.t).toFixed(0)}초`, pos: f ? w(f.p) : S, col: Q_VIOLET };
+  }
+  return null;
+}
+function evRadar(g, toRadar) {
+  const e = ex.ev;
+  if (!e || !e.scans) return;
+  const S = e.gal.grp.position, w = v => v.clone().add(S);
+  const dot = (v, c, sz) => { const p = toRadar(w(v), false); if (p) { g.fillStyle = c; g.fillRect(p[0] - sz / 2, p[1] - sz / 2, sz, sz); } };
+  if (e.phase === 'run') {
+    if (e.role === 'obs') e.scans.forEach(x => !x.done && dot(x.p, '#4aa8ff', 6));
+    if (e.role === 'sync') e.relays.forEach(x => !x.done && dot(x.p, '#ffb23e', 6));
+    if (e.role === 'carry') { e.frags.forEach(x => !x.got && dot(x.p, '#c49bff', 4)); e.relays.forEach(x => dot(x.p, '#ffb23e', 5)); }
+  }
+  if (e.phase === 'recover') e.frags.forEach(x => !x.got && dot(x.p, '#c49bff', 5));
+}
+function evFrame(dt, now) {
+  routes.forEach(r => {
+    const a = r.line.geometry.attributes.position.array, P = r.gal.grp.position;
+    a[3] = P.x; a[4] = P.y; a[5] = P.z; r.line.geometry.attributes.position.needsUpdate = true;
+    r.line.material.opacity = .35 + .2 * Math.sin(now * 2 + r.gal.gi);
+  });
+  const e = ex.ev;
+  if (!e || !e.objs) return;
+  e.frags.forEach((f, k) => { f.m.rotation.y += dt * 2; f.m.position.y = f.p.y + Math.sin(now * 2 + k) * 2; });
+  e.scans.forEach(sc => { if (!sc.done) sc.m.material.opacity = .5 + .35 * Math.sin(now * 4); sc.m.rotation.y += dt * .6; });
+  e.relays.forEach(r => { if (!r.done) r.m.material.opacity = .5 + .35 * Math.sin(now * 4 + 1); });
+  if (e.ring && e.phase === 'sync') e.ring.material.opacity = .55 + .35 * Math.sin(now * 5);
+  if (e.nebula) e.nebula.rotation.y += dt * .05;
+  // 보조선: 별 주위를 돌다가 점화 단계엔 고리 위로 모임
+  (e.mates || []).forEach(m => {
+    const sync = e.phase === 'sync', r = sync ? EV_RING : 175 + m.k * 55, a = now * (sync ? .12 : .22) * (m.k ? -1 : 1) + m.k * Math.PI;
+    const y = sync ? 0 : Math.sin(now * .7 + m.k) * 30;
+    m.g.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
+    tmpW.set(-Math.sin(a) * (m.k ? -1 : 1), 0, Math.cos(a) * (m.k ? -1 : 1)).add(m.g.position).add(e.gal.grp.position);
+    m.g.lookAt(tmpW);   // 진행 방향(접선)을 바라봄
+    tmpW.copy(m.g.position).add(e.gal.grp.position); tmpW.y += 14;
+    placeLabel(m.label, tmpW, 4);
+  });
+}
+
+// ---------- 함선 AI 통신창 ----------
+let commT = null, commTyping = null;
+function aiSay(text, opt = {}) {
+  const c = $('comm'), logos = ex.godEra === 'ancient';
+  $('cmName').textContent = opt.name || (logos ? 'LOGOS · 로고스' : '항법 AI');
+  c.classList.toggle('logos', logos && !opt.name);
+  c.classList.toggle('mute', !!opt.mute);
+  c.classList.remove('hidden'); c.classList.add('talk');
+  const el = $('cmText'); let n = 0;
+  clearInterval(commTyping);
+  commTyping = setInterval(() => { n++; el.textContent = text.slice(0, n); if (n >= text.length) { clearInterval(commTyping); c.classList.remove('talk'); } }, 26);
+  clearTimeout(commT);
+  commT = setTimeout(() => c.classList.add('hidden'), ((opt.hold || 5) + text.length * .026) * 1000);
+  sfx('blip', 500);
+}
+
+// ---------- 관측 홀로그램 (관측소 축약판) ----------
+const HOLO = { pinned: false, popT: 0, t: 0 };
+function holoToggle() { HOLO.pinned = !HOLO.pinned; HOLO.popT = 0; holoApply(); sfx('blip', 600); }
+function holoPop() { HOLO.popT = 5; holoApply(); }
+function holoApply() {
+  const on = HOLO.pinned || HOLO.popT > 0 || (ex.ev && ['run', 'sync', 'recover'].includes(ex.ev.phase));
+  $('holo').classList.toggle('min', !on);
+  $('bHolo').classList.toggle('on', HOLO.pinned);
+}
+const SIG_HOLO = { spike: '#ffb23e', silence: '#9fb4d6', decline: '#a98bff' };
+function holoFrame(dt) {
+  if (HOLO.popT > 0) { HOLO.popT -= dt; if (HOLO.popT <= 0) holoApply(); }
+  HOLO.t -= dt;
+  if (HOLO.t > 0) return;
+  HOLO.t = .25;
+  holoApply();
+  if ($('holo').classList.contains('min')) return;
+  const e = ex.ev, body = $('hbBody');
+  if (e && ['run', 'sync', 'recover'].includes(e.phase)) {
+    const left = Math.max(0, (e.phase === 'recover' ? 90 : EV_LIMIT) - e.t);
+    $('hbTitle').textContent = `UNBORN STAR · ${e.gal.G.ko}`;
+    $('hbMood').textContent = `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
+    if (e.phase === 'recover') {
+      body.innerHTML = `<div class="hb-ev"><div class="ttl" style="color:#c9b3ff">흩어진 별 · 조각 회수</div>
+        <div class="stab"><span>회수</span><span>${e.frags.filter(f => f.got).length}/6</span></div>
+        <div class="hb-bar big"><i style="width:${e.frags.filter(f => f.got).length / 6 * 100}%;background:#a98bff"></i></div></div>`;
+      return;
+    }
+    const st = Math.round(e.stab), sc = e.phase === 'sync' ? '#3ee6c1' : st > 66 ? '#7ff1ff' : st > 33 ? '#ffb23e' : '#ff6a78';
+    const who = r => r === e.role ? '나' : e.role === 'none' ? '보조선' : `보조선 ${'AB'[Object.keys(ROLES).filter(x => x !== e.role).indexOf(r)]}`;
+    body.innerHTML = `<div class="hb-ev">
+      <div class="stab"><span>안정도</span><span style="color:${sc}">${st}%</span></div>
+      <div class="hb-bar big"><i style="width:${st}%;background:${sc}"></i></div>
+      <div class="roles">${Object.entries(ROLES).map(([k, r]) => `<div>${r.name} ${Math.round(e.prog[k] * 100)}%<span>${who(k)}</span></div>`).join('')}</div>
+      <div class="hint">${e.phase === 'sync' ? `점화 고리 동조 ${e.syncT.toFixed(1)}/4초` : e.hits ? `파동 피격 ${e.hits}회 · 안정도 -${Math.min(EV_HIT_MAX, e.hits)}` : '불안정 파동(주황 고리)을 피하세요'}</div></div>`;
+    return;
+  }
+  const md = exMoodWord(ex.mood || 1);
+  $('hbTitle').textContent = 'ECHO OBSERVATORY';
+  $('hbMood').innerHTML = `<span style="color:${md[1]}">${md[0]} ×${(ex.mood || 1).toFixed(2)}</span>`;
+  const rows = EX_GAMES.map((G, i) => {
+    const lv = echo.level(i), act = ['spike', 'silence', 'decline'].find(k => echo.active.has(G.id + ':' + k));
+    const col = act ? SIG_HOLO[act] : '#' + new THREE.Color(G.col).getHexString();
+    return `<span class="nm">${G.ko}</span><div class="hb-bar"><u style="left:33.3%"></u><u style="left:53.3%;background:#ffb23e88"></u>
+      <i style="width:${Math.min(100, lv / 3 * 100)}%;background:${col}"></i></div>
+      <span class="st" style="color:${col}">${act ? Echo.KIND_KO[act] : '정상'} ×${lv.toFixed(2)}</span>`;
+  }).join('');
+  const feed = (ex.signals || []).slice(-3).reverse().map(sg => {
+    const G = EX_GAMES.find(x => x.id === sg.game), ev = SIG_EVENT[sg.kind];
+    const h = (sg.t % 1) * 24;
+    return `<div>D${Math.floor(sg.t)} ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')} · ${G ? G.ko : '여러 은하'} ${Echo.KIND_KO[sg.kind]}${sg.state === 'end' ? ' 해소' : ''} → ${ev ? ev.name : '해석 대기'}</div>`;
+  }).join('') || '<div>감지된 신호 없음</div>';
+  body.innerHTML = `<div class="hb-g">${rows}</div><div class="hb-feed">${feed}</div>`;
 }
 
 // =====================================================================
@@ -3776,7 +4291,7 @@ function clearPatches() { while (patches.length) exWorld.remove(patches.pop().g)
 // =====================================================================
 const DQ = { active: null, done: 0, nextT: 3, order: [], orbs: [], packets: [], obs: [], last: '',
   convoy: [], vortex: [], moons: [], rocks: [], ships: [], gate: null };
-const DQ_TYPES = ['observe', 'evfunnel', 'sample', 'gate', 'lost', 'disguise', 'outlier', 'funnel'];
+const DQ_TYPES = ['observe', 'evfunnel', 'sample', 'gate', 'lost', 'outlier', 'funnel'];   // 1단계 협력: 판별 사격(disguise) 제외
 const galName = pl => pl.gal.G.hub ? '넥슨닷컴' : pl.gal.G.ko;
 const dqRing = new THREE.Mesh(new THREE.TorusGeometry(1, .035, 8, 64), new THREE.MeshBasicMaterial({ color: 0x4aa8ff, transparent: true,
   opacity: .8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
@@ -4347,9 +4862,9 @@ function dqHud() {
   const el = $('exQuest');
   if (!el) return;
   const q = DQ.active;
-  if (!q) { el.innerHTML = DQ.last ? `<div class="mt">DATA QUEST · ${DQ.done} 완료</div><div class="qres">최근 결과 · ${DQ.last}</div>` : ''; return; }
+  if (!q) { el.innerHTML = DQ.last ? `<div class="mt">탐사 과제 · ${DQ.done} 완료</div><div class="qres">최근 결과 · ${DQ.last}</div>` : ''; return; }
   const pct = Math.min(100, q.prog / q.need * 100);
-  el.innerHTML = `<div class="mt">DATA QUEST · ${DQ.done} 완료${ex.mission ? ' · 일시 중지' : ''}</div>
+  el.innerHTML = `<div class="mt">탐사 과제 · ${DQ.done} 완료${ex.ev && ex.ev.phase !== 'call' ? ' · 사건 중 대기' : ''}</div>
     <div class="qtt">${q.title}</div><div class="qds">${q.desc}</div>
     <div class="exbar"><i style="width:${pct}%"></i></div>
     ${DQ.last ? `<div class="qres">최근 결과 · ${DQ.last}</div>` : ''}`;
@@ -4377,6 +4892,7 @@ function exRadar(g, toRadar, R, range) {
   for (const c of exConvoys) { const p = toRadar(c.g.position, false); if (p) g.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
   fuelRadar(g, toRadar);
   repairRadar(g, toRadar);
+  evRadar(g, toRadar);
   dqRadar(g, toRadar);
   g.fillStyle = 'rgba(255,138,90,.8)';
   for (let k = 0; k < drones.length; k += 2) { const p = toRadar(drones[k].p, false); if (p) g.fillRect(p[0] - 1, p[1] - 1, 2, 2); }
@@ -4430,15 +4946,15 @@ function exMarkers() {
   }
 }
 function exHud() {
-  const era = ERAS[ex.era], next = ERAS[ex.era + 1];
-  $('exEraT').textContent = `ERA ${ex.era} · ${era.name}`;
+  const ancient = ex.godEra === 'ancient';
+  $('exEraT').textContent = ancient ? '고대 · 로고스의 시대' : '원시 · 이름 없는 징조';
   $('exCum').textContent = Math.round(ex.cum).toLocaleString('en-US');
   $('exA').textContent = `a = ${ex.a.toFixed(2)}  (+${Math.round((ex.a - 1) * 100)}%)`;
   const md = exMoodWord(ex.mood);
   $('exMood').textContent = `${md[0]} · ×${ex.mood.toFixed(2)}`; $('exMood').style.color = md[1];
   $('exMoodBar').style.width = Math.min(100, ex.mood / 2 * 100) + '%'; $('exMoodBar').style.background = md[1];
-  $('exProg').style.width = (next ? clamp((ex.cum - era.at) / (next.at - era.at), 0, 1) * 100 : 100) + '%';
-  $('exNext').textContent = next ? `ERA ${ex.era + 1} ${next.name}까지 ${exFmtBig(Math.max(0, next.at - ex.cum))}` : '';
+  $('exProg').style.width = (ancient ? 100 : 0) + '%';
+  $('exNext').textContent = ancient ? `탄생한 별 ${ex.born} · 연대기 ${ex.chron.length}건` : '다음 시대 · 첫 별을 탄생시키면 열립니다';
   const h = Math.floor((ex.day % 1) * 24), mi = Math.floor(((ex.day % 1) * 24 % 1) * 60);
   $('exDay').textContent = `DAY ${Math.floor(ex.day)} · ${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
   const formed = exPlanets.filter(p => p.formed);
@@ -4760,6 +5276,8 @@ function questInfo() {
     if (ex.mission === 'bots') return { text: `FC온라인 이적시장 방어 · 해적선 격추 ${state.kills - ex.pk0}/12`, pos: exMarketPlanet().world, col: Q_AMBER };
     if (ex.mission === 'ddos') return { text: `넥슨닷컴 메인 근처에서 FIELD로 드론 제거 · ${Math.max(0, 45 - ex.mT).toFixed(0)}초`, pos: exGal[0].planets[0].world, col: '#ff8a5a' };
     if (ex.mission === 'stealth') return { text: `/login 주변 침투조 추적 · 401 섬광 순간 사격 ${ex.stKills}/6`, pos: exGal[0].planets[1].world, col: Q_AMBER };
+    const eq = evQuest();
+    if (eq) return eq;
     const dq = dqQuest();
     if (dq) return dq;
     let best = null, bd = Infinity;
@@ -4768,9 +5286,8 @@ function questInfo() {
       const d = pl.world.distanceTo(ship.position);
       if (d < bd) { bd = d; best = pl; }
     }
-    if (best) return { text: `미확인 엔드포인트 관측 · ${best.gal.G.hub ? '넥슨닷컴' : best.gal.G.ko + ' 은하'}`, pos: best.world, col: Q_BLUE };
-    const next = ERAS[ex.era + 1];
-    return { text: next ? `모든 엔드포인트 관측 — ERA ${ex.era + 1}까지 로그 축적 대기` : '모든 시대 완료 · 자유 관측', pos: null, col: Q_VIOLET };
+    if (best) return { text: `미해석 잔향 관측 · ${best.gal.G.hub ? '넥슨닷컴' : best.gal.G.ko + ' 은하'}`, pos: best.world, col: Q_BLUE };
+    return { text: '모든 잔향 관측 · 이상 신호를 기다리는 중', pos: null, col: Q_VIOLET };
   }
   if (beacons[0]) return { text: `항법 비컨 ${state.beaconsPassed + state.beaconsMissed + 1}/${BEACON_N} 통과`, pos: beacons[0].mesh.position, col: Q_TEAL };
   return { text: '정거장 도킹 포트로 접근 · 120 m/s 이하', pos: dockWorld, col: Q_AMBER };
@@ -4950,6 +5467,8 @@ function statusInfo() {
   if (state.mode !== 'flying') return ['STANDBY', '#8ea3c6'];
   if (state.hitT > 0) return ['DAMAGE', '#ff5a5a'];
   if (state.warp > 0.3) return ['WARP', '#a98bff'];
+  if (exWorld.visible && ex.ev && ex.ev.phase === 'sync') return ['SYNC', '#3ee6c1'];
+  if (exWorld.visible && ex.ev && ex.ev.phase === 'run') return ['UNSTABLE', '#ffb23e'];
   if (exWorld.visible && ex.refueling) return ['REFUEL', '#3ee6c1'];
   if (exWorld.visible && ex.repairing) return ['REPAIR', '#ffb23e'];
   if (exWorld.visible && ex.scooping) return ['SCOOP', '#ffb23e'];
@@ -5321,28 +5840,28 @@ function showHelp() {
     <span><kbd>Space</kbd> · 좌클릭</span><span>레이저 발사 (누르고 있으면 연사, 과열 주의)</span>
     <span><kbd>C</kbd> · 우클릭</span><span>정밀 조준 (선회 감속 · 확대) · 우클릭한 채 마우스로 미세 조준</span>
     <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
-    <span><kbd>Q</kbd></span><span>레이트 리밋 필드 (ERA 3부터 사용 가능)</span>
+    <span><kbd>O</kbd></span><span>관측 홀로그램 켜기 / 끄기</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
   </div>
-  <p style="color:#6f82a3;font-size:12px">상단 퀘스트 안내와 레이더의 목표 지점을 따라가세요.</p>
+  <p style="color:#8ea3c6;font-size:12px">상단 퀘스트 안내와 레이더의 목표 지점을 따라가세요.</p>
   <button data-act="title">← 뒤로</button>
   <div class="go"><span class="key-only">ENTER</span><span class="touch-only-i">TAP</span> — 조종사 · 기체 선택</div>`);
 }
 
 // ---------- 세계관: 로기의 브리핑 (타자기 효과 · 페이지 넘김) ----------
 const LORE_LINES = [
-  `안녕하세요, 파일럿! 저는 이 우주의 관측 보조 AI, <b>로기(LOGI)</b>예요. 출항 전에 이 우주를 잠깐 소개해 드릴게요.`,
-  `여기는 <b>웹 로그로 만들어진 우주</b>예요. 한가운데서 빛나는 항성이 <em>넥슨닷컴</em>이고, 그 주위로 <b>메이플스토리 · FC온라인 · 던전앤파이터 · 마비노기 · 엘소드 · 마비노기 영웅전</b> 은하가 떠 있어요.`,
-  `유저가 페이지를 열 때마다 로그가 쌓여요. 로그가 쌓일수록 <b>우주가 팽창</b>해서 은하끼리 점점 멀어지고, 새 페이지가 생기면 <b>새 행성</b>이 태어나요.`,
-  `파일럿의 임무는 아직 아무도 확인하지 않은 <em>미확인 엔드포인트(?)</em>를 찾아가 관측하는 거예요. 관측할 때마다 <b>데이터 결정</b>이 쌓여요.`,
-  `누적 로그가 일정 규모를 넘으면 새 시대, <em>ERA</em>가 열려요. ERA 1엔 <b>오픈런 블랙홀</b>, ERA 2엔 <b>봇 해적단</b>, ERA 3엔 <b>DDoS 군체와 침투조</b>가 나타나요. 조심하세요!`,
-  `연료가 떨어지면 <b>FUEL 연료소</b>에서, 선체가 부서지면 <b>REPAIR 정비 도크</b>에서 보급받으세요. 비용은 데이터 결정이에요. 적을 격추하면 떨어지는 <b>패치 모듈</b>도 꼭 주우세요.`,
-  `참, 여기 나오는 숫자는 전부 <em>가상 데이터</em>예요. 실제 서비스 지표와는 관계없어요. 그럼… 출항 준비되셨나요?`,
+  `안녕하세요, 항해사님! 저는 이 함선의 항법 AI, <b>로기(LOGI)</b>예요. 출항 전에 이 우주를 잠깐 소개해 드릴게요.`,
+  `넥슨의 모든 게임 세계에서 일어난 일은 기록으로 남아요. 그 기록의 <em>잔향(Echo)</em>이 흘러들어 응결된 곳이 바로 이 우주예요.`,
+  `한가운데엔 <em>넥슨닷컴</em> 항성, 그 주위로 <b>메이플스토리 · FC온라인 · 던전앤파이터 · 마비노기 · 엘소드 · 마비노기 영웅전</b> 은하가 떠 있어요. 기록이 쌓이는 만큼 우주는 <b>팽창</b>해요.`,
+  `가끔 잔향이 크게 흔들려요. 기록이 폭증하면 별이 <b>불안정</b>해지고, 기록이 끊기면 <b>일식</b>이 찾아와요. 그런 이상 신호를 찾아 해결하는 게 <em>항해사</em>의 일이에요.`,
+  `혼자가 아니에요. 사건이 생기면 <b>역할을 나눠</b> 함께 해결해요. 지금은 <b>보조선 두 척</b>이 항해사님 곁을 지킬 거예요.`,
+  `연료는 <b>FUEL 연료소</b>, 선체는 <b>REPAIR 정비 도크</b>에서 채우세요. 그리고… 이 우주엔 <em>기록을 읽는 누군가</em>가 있다는 소문이 있어요. 저도 아직 만나 본 적은 없지만요.`,
+  `참, 여기 나오는 숫자는 전부 <em>모의 로그</em>예요. 실제 서비스 지표와는 관계없어요. 그럼… 출항할까요?`,
 ];
-const LORE = { open: false, i: 0, timer: null, full: false };
+const LORE = { open: false, i: 0, timer: null, full: false, lines: LORE_LINES, name: ['LOGI', '로기 · 함선 항법 AI'], onEnd: null, endLabel: null };
 function loreShow(i) {
   LORE.i = i; LORE.full = false;
-  const el = $('loreText'), html = LORE_LINES[i];
+  const el = $('loreText'), html = LORE.lines[i];
   // 태그를 지키면서 글자를 하나씩 드러냄
   const tmp = document.createElement('div'); tmp.innerHTML = html;
   const total = tmp.textContent.length;
@@ -5364,24 +5883,46 @@ function loreShow(i) {
     if (n >= total) loreDone();
   };
   LORE.timer = setInterval(step, 28);
-  $('loreDots').innerHTML = LORE_LINES.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
-  const last = i === LORE_LINES.length - 1;
+  $('loreDots').innerHTML = LORE.lines.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
+  const last = i === LORE.lines.length - 1;
   $('loreBtns').innerHTML = last
-    ? `<button data-l="close">처음 화면으로</button><button class="pri" data-l="go">출항하기 ›</button>`
-    : `<button data-l="close">건너뛰기</button><button class="pri" data-l="next">다음 ›</button>`;
+    ? (LORE.onEnd ? `<button class="pri" data-l="end">${LORE.endLabel || '계속 ›'}</button>`
+      : `<button data-l="close">처음 화면으로</button><button class="pri" data-l="go">출항하기 ›</button>`)
+    : `${LORE.onEnd ? '' : '<button data-l="close">건너뛰기</button>'}<button class="pri" data-l="next">다음 ›</button>`;
   sfx('blip', 300);
 }
 function loreDone() {
   clearInterval(LORE.timer);
   LORE.full = true;
-  $('loreText').innerHTML = LORE_LINES[LORE.i];
+  $('loreText').innerHTML = LORE.lines[LORE.i];
   $('loreText').classList.remove('typing'); $('lore').classList.remove('talking');
 }
 function loreAdvance() {
   if (!LORE.full) { loreDone(); return; }   // 타이핑 중이면 먼저 한 줄을 다 보여줌
-  if (LORE.i < LORE_LINES.length - 1) loreShow(LORE.i + 1);
+  if (LORE.i < LORE.lines.length - 1) loreShow(LORE.i + 1);
+}
+function setLoreName(n) {
+  LORE.name = n;
+  $('lore').querySelector('.lore-name').innerHTML = `<b>${n[0]}</b><span>${n[1]}</span>`;
+}
+// 게임 중 대사 장면 (예: 로고스 정체 공개). 끝나면 onEnd 호출
+function playScene(lines, name, onEnd, endLabel) {
+  Object.assign(LORE, { open: true, lines, onEnd, endLabel });
+  setLoreName(name);
+  const l = $('lore'); l.classList.remove('hidden'); l.classList.add('ingame');
+  l.querySelectorAll('.lore-npc, .lore-box').forEach(x => { x.style.animation = 'none'; void x.offsetWidth; x.style.animation = ''; });
+  loreShow(0);
+}
+function endScene() {
+  const cb = LORE.onEnd;
+  LORE.open = false; clearInterval(LORE.timer);
+  $('lore').classList.add('hidden'); $('lore').classList.remove('ingame');
+  Object.assign(LORE, { lines: LORE_LINES, onEnd: null, endLabel: null });
+  if (cb) cb();
 }
 function openLore() {
+  Object.assign(LORE, { lines: LORE_LINES, onEnd: null, endLabel: null });
+  setLoreName(['LOGI', '로기 · 함선 항법 AI']);
   LORE.open = true;
   hideCard();
   $('titleScr').classList.remove('hidden');
@@ -5402,14 +5943,17 @@ $('lore').addEventListener('click', e => {
   initAudio();
   const b = e.target.closest('[data-l]');
   const act = b && b.dataset.l;
+  if (act === 'end') return endScene();
   if (act === 'close') return closeLore(false);
   if (act === 'go') { if (!LORE.full) loreDone(); return closeLore(true); }
   if (act === 'next' || !act) loreAdvance();
 });
 function loreKey(code) {
+  const last = LORE.full && LORE.i === LORE.lines.length - 1;
+  if (LORE.onEnd) { if (['Enter', 'Space', 'ArrowRight'].includes(code)) { if (last) endScene(); else loreAdvance(); } return; }
   if (code === 'Escape') closeLore(false);
   else if (code === 'Enter' || code === 'Space' || code === 'ArrowRight') {
-    if (LORE.full && LORE.i === LORE_LINES.length - 1 && code === 'Enter') closeLore(true);
+    if (last && code === 'Enter') closeLore(true);
     else loreAdvance();
   }
 }
