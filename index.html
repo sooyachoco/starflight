@@ -530,6 +530,14 @@
     #speedBox { transform: scale(.78); transform-origin: 0 0; top: 50px; left: 14px; }
     #wpn { transform: scale(.78); transform-origin: 0 0; top: 158px; left: 14px; }
     #obj { transform: scale(.78); transform-origin: 100% 0; top: 64px; right: 12px; }
+    /* 정보 패널은 머리줄만 남기고 탭으로 펼침 */
+    #obj .oh { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    #obj .oh::after { content: ""; width: 9px; height: 9px; margin-left: auto; flex: none; border-right: 2.5px solid #c9d6ea;
+      border-bottom: 2.5px solid #c9d6ea; transform: translateY(2px) rotate(-135deg); transition: transform .2s; }
+    body.obj-min #obj .oh::after { transform: translateY(-3px) rotate(45deg); }
+    body.obj-min #obj > :not(.oh) { display: none !important; }
+    body.obj-min #obj .oh { padding-bottom: 0; border-bottom: 0; margin-bottom: 0; }
+    body.obj-min #obj { padding-top: 10px; padding-bottom: 10px; }
     #brand { font-size: 13px; top: 14px; left: 14px; gap: 8px; }
     #brand svg { width: 26px; height: 18px; }
     #btns { top: 10px; right: 12px; }
@@ -1856,6 +1864,13 @@ $('overlay').addEventListener('input', e => {
   setMusicVol(v);
   if (v > 0 && !BGM.on) { setMusic(true); const b = document.querySelector('[data-act=music]'); if (b) b.textContent = '음악: ON'; }
   $('mvolV').textContent = v + '%';
+});
+// 세로 폰: 정보 패널 접기/펼치기 (기본은 접힘, 브라우저에 기억)
+try { document.body.classList.toggle('obj-min', localStorage.getItem('nxlog-objmin') !== '0'); } catch (e) { document.body.classList.add('obj-min'); }
+$('obj').addEventListener('click', e => {
+  if (!e.target.closest('.oh') || !matchMedia('(max-width: 640px) and (orientation: portrait)').matches) return;
+  const min = document.body.classList.toggle('obj-min');
+  try { localStorage.setItem('nxlog-objmin', min ? '1' : '0'); } catch (err) {}
 });
 $('bPause').addEventListener('click', e => {
   e.currentTarget.blur();
