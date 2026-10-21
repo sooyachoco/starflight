@@ -228,6 +228,10 @@
   .card button { font-family: inherit; font-size: 14px; color: #fff; background: #ffffff10; border: 1px solid #ffffff33;
     border-radius: 8px; padding: 9px 18px; margin: 6px; cursor: pointer; }
   .card button:hover { background: #ffffff1c; }
+  .card .vol { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 10px auto 4px; font-size: 14px;
+    color: #c9d6ea; cursor: default; }
+  .card .vol input { width: 180px; accent-color: var(--teal); cursor: pointer; }
+  .card .vol b { width: 40px; text-align: right; font-variant-numeric: tabular-nums; color: #fff; }
   @keyframes blink { 50% { opacity: .35; } }
   /* 타이틀 화면 */
   #titleScr { position: fixed; inset: 0; z-index: 25; overflow: hidden; background: #02040a; cursor: pointer;
@@ -1595,6 +1599,8 @@ function openSettings() {
     <button data-act="invert">상하 반전: ${state.invert ? 'ON' : 'OFF'}</button>
     <button data-act="sound">효과음: ${state.sound ? 'ON' : 'OFF'}</button>
     <button data-act="music">음악: ${BGM.on ? 'ON' : 'OFF'}</button>
+    <label class="vol"><span>배경음악 음량</span><input type="range" id="mvol" min="0" max="100" step="1"
+      value="${Math.round(BGM.vol / BGM_MAX * 100)}"><b id="mvolV">${Math.round(BGM.vol / BGM_MAX * 100)}%</b></label>
     <button data-act="gfx">그래픽: ${GFX_NAME[gfx]}</button>
     <button data-act="restart">처음부터 다시</button>
     <button data-act="close">닫기</button>`, true);
@@ -1833,6 +1839,13 @@ $('overlay').addEventListener('click', e => {
   if (act === 'close') { if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
   if ($('overlay').dataset.settings) return;
   primaryAction();
+});
+$('overlay').addEventListener('input', e => {
+  if (e.target.id !== 'mvol') return;
+  const v = +e.target.value;
+  setMusicVol(v);
+  if (v > 0 && !BGM.on) { setMusic(true); const b = document.querySelector('[data-act=music]'); if (b) b.textContent = '음악: ON'; }
+  $('mvolV').textContent = v + '%';
 });
 $('bPause').addEventListener('click', e => {
   e.currentTarget.blur();
@@ -2215,8 +2228,17 @@ function initAudio() {
 }
 
 // ---------- 배경음악: 타이틀 · 순항 · 전투, 상황에 따라 교차 페이드 ----------
+const BGM_MAX = .5;   // 슬라이더 100% = 게인 0.5
 const BGM = { tracks: {}, cur: null, vol: .26, on: true };
-try { BGM.on = localStorage.getItem('nxlog-music') !== 'off'; } catch (e) {}
+try {
+  BGM.on = localStorage.getItem('nxlog-music') !== 'off';
+  const v = parseInt(localStorage.getItem('nxlog-mvol'), 10);
+  if (v >= 0 && v <= 100) BGM.vol = v / 100 * BGM_MAX;
+} catch (e) {}
+function setMusicVol(pct) {
+  BGM.vol = pct / 100 * BGM_MAX;
+  try { localStorage.setItem('nxlog-mvol', String(pct)); } catch (e) {}
+}
 function musicInit() {
   if (BGM.ready) return;
   BGM.ready = true;
@@ -2280,7 +2302,46 @@ function sfx(type, dist = 0) {
     o.connect(og); og.connect(sfxBus); o.start(t); o.stop(t + len);
     return;
   }
-  if (type === 'laser' || type === 'elaser' || type === 'alarm') {
+  if (type === 'laser' || type === 'elaser') {
+    const me = type === 'laser', k = (me ? 1 : .7) * fall, len = me ? .24 : .3, p = me ? 1 : .72;
+    // 저역 펀치: 사인 피치 다운
+    const sub = actx.createOscillator(), sg = actx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(150 * p, t);
+    sub.frequency.exponentialRampToValueAtTime(42 * p, t + len);
+    sg.gain.setValueAtTime(.0001, t);
+    sg.gain.exponentialRampToValueAtTime(.32 * k, t + .006);
+    sg.gain.exponentialRampToValueAtTime(.0001, t + len);
+    sub.connect(sg); sg.connect(g);
+    // 본체: 디튠한 톱니 두 개를 로우패스로 깎아 '쿵-즈' 하는 플라스마 음색
+    const lp = actx.createBiquadFilter(), bg = actx.createGain();
+    lp.type = 'lowpass'; lp.Q.value = 6;
+    lp.frequency.setValueAtTime(2600 * p, t);
+    lp.frequency.exponentialRampToValueAtTime(260 * p, t + len * .8);
+    bg.gain.setValueAtTime(.0001, t);
+    bg.gain.exponentialRampToValueAtTime(.12 * k, t + .004);
+    bg.gain.exponentialRampToValueAtTime(.0001, t + len * .9);
+    const saws = [0, 7].map(cents => {
+      const o = actx.createOscillator();
+      o.type = 'sawtooth'; o.detune.value = cents * 2;
+      o.frequency.setValueAtTime(420 * p, t);
+      o.frequency.exponentialRampToValueAtTime(95 * p, t + len * .8);
+      o.connect(lp); return o;
+    });
+    lp.connect(bg); bg.connect(g);
+    // 발사 순간의 크랙: 짧은 밴드패스 노이즈
+    const nz = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();
+    nz.buffer = noise(.12);
+    bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.value = 1800 * p;
+    ng.gain.value = .1 * k;
+    nz.connect(bp); bp.connect(ng); ng.connect(g);
+    g.gain.value = me ? .36 : .3;
+    sub.start(t); sub.stop(t + len + .02);
+    saws.forEach(o => { o.start(t); o.stop(t + len + .02); });
+    nz.start(t);
+    return;
+  }
+  if (type === 'alarm') {
     const o = actx.createOscillator();
     o.type = type === 'alarm' ? 'sawtooth' : 'square';
     const f0 = type === 'laser' ? 1500 : type === 'elaser' ? 650 : 520;
