@@ -2303,41 +2303,41 @@ function sfx(type, dist = 0) {
     return;
   }
   if (type === 'laser' || type === 'elaser') {
-    const me = type === 'laser', k = (me ? 1 : .7) * fall, len = me ? .24 : .3, p = me ? 1 : .72;
-    // 저역 펀치: 사인 피치 다운
-    const sub = actx.createOscillator(), sg = actx.createGain();
-    sub.type = 'sine';
-    sub.frequency.setValueAtTime(150 * p, t);
-    sub.frequency.exponentialRampToValueAtTime(42 * p, t + len);
-    sg.gain.setValueAtTime(.0001, t);
-    sg.gain.exponentialRampToValueAtTime(.32 * k, t + .006);
-    sg.gain.exponentialRampToValueAtTime(.0001, t + len);
-    sub.connect(sg); sg.connect(g);
-    // 본체: 디튠한 톱니 두 개를 로우패스로 깎아 '쿵-즈' 하는 플라스마 음색
+    const me = type === 'laser', k = (me ? 1 : .7) * fall, len = me ? .2 : .26, p = me ? 1 : .68;
+    // 빔 본체: 톱니파를 FM으로 떨게 해 '지잉' 하는 전기 빔, 피치는 위에서 아래로 쓸어내림
+    const car = actx.createOscillator(), mod = actx.createOscillator(), md = actx.createGain();
+    car.type = 'sawtooth';
+    car.frequency.setValueAtTime(1500 * p, t);
+    car.frequency.exponentialRampToValueAtTime(430 * p, t + len);
+    mod.type = 'sine'; mod.frequency.value = 85 * p;
+    md.gain.setValueAtTime(260 * p, t);
+    md.gain.exponentialRampToValueAtTime(40 * p, t + len);
+    mod.connect(md); md.connect(car.frequency);
     const lp = actx.createBiquadFilter(), bg = actx.createGain();
-    lp.type = 'lowpass'; lp.Q.value = 6;
-    lp.frequency.setValueAtTime(2600 * p, t);
-    lp.frequency.exponentialRampToValueAtTime(260 * p, t + len * .8);
+    lp.type = 'lowpass'; lp.Q.value = 9;
+    lp.frequency.setValueAtTime(6500 * p, t);
+    lp.frequency.exponentialRampToValueAtTime(1100 * p, t + len);
     bg.gain.setValueAtTime(.0001, t);
-    bg.gain.exponentialRampToValueAtTime(.12 * k, t + .004);
-    bg.gain.exponentialRampToValueAtTime(.0001, t + len * .9);
-    const saws = [0, 7].map(cents => {
-      const o = actx.createOscillator();
-      o.type = 'sawtooth'; o.detune.value = cents * 2;
-      o.frequency.setValueAtTime(420 * p, t);
-      o.frequency.exponentialRampToValueAtTime(95 * p, t + len * .8);
-      o.connect(lp); return o;
-    });
-    lp.connect(bg); bg.connect(g);
-    // 발사 순간의 크랙: 짧은 밴드패스 노이즈
-    const nz = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();
-    nz.buffer = noise(.12);
-    bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.value = 1800 * p;
-    ng.gain.value = .1 * k;
-    nz.connect(bp); bp.connect(ng); ng.connect(g);
-    g.gain.value = me ? .36 : .3;
-    sub.start(t); sub.stop(t + len + .02);
-    saws.forEach(o => { o.start(t); o.stop(t + len + .02); });
+    bg.gain.exponentialRampToValueAtTime(.16 * k, t + .003);
+    bg.gain.exponentialRampToValueAtTime(.0001, t + len);
+    car.connect(lp); lp.connect(bg); bg.connect(g);
+    // 지글거림: 고역 노이즈가 빔 앞머리를 감쌈
+    const nz = actx.createBufferSource(), hp = actx.createBiquadFilter(), ng = actx.createGain();
+    nz.buffer = noise(.2);
+    hp.type = 'highpass'; hp.frequency.value = 4200;
+    ng.gain.setValueAtTime(.07 * k, t);
+    ng.gain.exponentialRampToValueAtTime(.0001, t + len * .7);
+    nz.connect(hp); hp.connect(ng); ng.connect(g);
+    // 가벼운 몸통: 무게감만 살짝
+    const body = actx.createOscillator(), og = actx.createGain();
+    body.type = 'triangle';
+    body.frequency.setValueAtTime(320 * p, t);
+    body.frequency.exponentialRampToValueAtTime(150 * p, t + len * .6);
+    og.gain.setValueAtTime(.08 * k, t);
+    og.gain.exponentialRampToValueAtTime(.0001, t + len * .6);
+    body.connect(og); og.connect(g);
+    g.gain.value = me ? .4 : .32;
+    [car, mod, body].forEach(o => { o.start(t); o.stop(t + len + .02); });
     nz.start(t);
     return;
   }
