@@ -301,6 +301,51 @@
     .t-hint { font-size: 13px; letter-spacing: .14em; }
   }
   @media (prefers-reduced-motion: reduce) { .t-bg, .t-main, .t-go::after { animation: none; } }
+  .t-links button + button { margin-left: 0; }
+  /* 세계관: 관측 보조 AI 로기가 등장해 설명 */
+  #lore { position: fixed; inset: 0; z-index: 28; overflow: hidden; font-family: "Noto Sans KR", sans-serif; cursor: pointer;
+    background: radial-gradient(ellipse 80% 70% at 28% 60%, #0a2a3acc, #02050ce6 70%); user-select: none; }
+  #lore.hidden { display: none; }
+  #titleScr.lore-on .t-main, #titleScr.lore-on .t-set, #titleScr.lore-on .t-sndhint { visibility: hidden; }
+  .lore-npc { position: absolute; left: max(2vw, calc(50% - 720px)); bottom: 4vh; height: min(70vh, 640px); aspect-ratio: 767 / 900;
+    animation: loreIn .7s cubic-bezier(.2, .8, .2, 1.1) both; }
+  .lore-npc img { width: 100%; height: 100%; object-fit: contain; animation: loreBob 3.2s ease-in-out infinite;
+    filter: drop-shadow(0 0 28px #3ee6ff40) drop-shadow(0 18px 30px #000a); }
+  #lore.talking .lore-npc img { animation: loreBob 3.2s ease-in-out infinite, loreTalk .32s ease-in-out infinite alternate; }
+  @keyframes loreIn { from { opacity: 0; transform: translate(-60px, 40px) scale(.92); } }
+  @keyframes loreBob { 50% { translate: 0 -14px; } }
+  @keyframes loreTalk { to { scale: 1.015 .99; } }
+  .lore-box { position: absolute; left: max(calc(2vw + min(70vh, 640px) * .72), calc(50% - 720px + min(70vh, 640px) * .72));
+    right: max(4vw, calc(50% - 720px)); bottom: 10vh; min-height: 210px; padding: 26px 30px 20px; box-sizing: border-box;
+    background: linear-gradient(180deg, #0b1d2ef2, #060f1cf2); border: 1px solid #3ee6ff55; border-radius: 14px;
+    box-shadow: 0 0 0 1px #000, 0 0 40px #3ee6ff22, 0 20px 50px #000c; animation: loreBox .5s .25s ease-out both; }
+  .lore-box::before { content: ""; position: absolute; left: -12px; top: 46px; width: 22px; height: 22px; transform: rotate(45deg);
+    background: #0b1d2e; border-left: 1px solid #3ee6ff55; border-bottom: 1px solid #3ee6ff55; }
+  @keyframes loreBox { from { opacity: 0; transform: translateY(16px); } }
+  .lore-name { position: absolute; top: -15px; left: 24px; display: flex; align-items: baseline; gap: 10px; padding: 5px 14px;
+    border-radius: 6px; background: #3ee6ff; color: #04131c; }
+  .lore-name b { font: 700 16px Rajdhani, sans-serif; letter-spacing: .18em; }
+  .lore-name span { font-size: 12px; font-weight: 700; }
+  .lore-text { margin: 8px 0 0; min-height: 4.8em; font-size: clamp(16px, 1.35vw, 20px); line-height: 1.75; color: #e6f2ff; }
+  .lore-text b { color: #7ff1ff; font-weight: 700; }
+  .lore-text em { font-style: normal; color: #ffb23e; font-weight: 700; }
+  .lore-text.typing::after { content: "▍"; margin-left: 2px; color: #3ee6ff; animation: blink .8s steps(2) infinite; }
+  .lore-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; }
+  .lore-dots { display: flex; gap: 6px; }
+  .lore-dots i { width: 7px; height: 7px; border-radius: 50%; background: #ffffff2a; }
+  .lore-dots i.on { background: #3ee6ff; box-shadow: 0 0 8px #3ee6ff; }
+  .lore-btns { display: flex; gap: 8px; }
+  .lore-btns button { font: 600 14px "Noto Sans KR", sans-serif; color: #dbe7ff; background: #ffffff10; border: 1px solid #ffffff33;
+    border-radius: 7px; padding: 8px 16px; cursor: pointer; }
+  .lore-btns button.pri { color: #04131c; background: #3ee6ff; border-color: #3ee6ff; }
+  .lore-btns button:hover { filter: brightness(1.15); }
+  @media (max-width: 760px) {
+    .lore-npc { left: 50%; bottom: auto; top: 6vh; height: 40vh; translate: -50% 0; }
+    .lore-box { left: 16px; right: 16px; bottom: max(20px, env(safe-area-inset-bottom)); padding: 24px 20px 16px; }
+    .lore-box::before { left: 50%; top: -12px; margin-left: -11px; transform: rotate(135deg); }
+    .lore-name { left: 16px; }
+    .lore-foot { flex-wrap: wrap; }
+  }
   /* 전투 */
   #wpn { position: absolute; top: 206px; left: 24px; width: 150px; padding: 10px 16px 12px 20px; }
   #wpn .row { display: flex; justify-content: space-between; align-items: baseline; }
@@ -802,6 +847,17 @@
   </div>
 </div>
 <div id="overlay"><div class="card glass" id="card"></div></div>
+<div id="lore" class="hidden" role="dialog" aria-label="세계관 안내">
+  <div class="lore-npc"><img src="assets/npc-logi.webp?v=1" alt="관측 보조 AI 로기" width="767" height="900"></div>
+  <div class="lore-box">
+    <div class="lore-name"><b>LOGI</b><span>로기 · 우주 관측 보조 AI</span></div>
+    <p class="lore-text" id="loreText"></p>
+    <div class="lore-foot">
+      <div class="lore-dots" id="loreDots"></div>
+      <div class="lore-btns" id="loreBtns"></div>
+    </div>
+  </div>
+</div>
 <div id="titleScr" class="hidden">
   <div class="t-bg"></div>
   <div class="t-main">
@@ -810,7 +866,7 @@
     <p class="t-tag">로그가 별이 되는 우주, 지금 출항합니다.</p>
     <button class="t-go" id="tGo">비행 시작<svg viewBox="0 0 16 16" fill="none" stroke-width="2"><path d="M5 2l6 6-6 6"/></svg></button>
     <div class="t-hint"><kbd class="key-only">ENTER</kbd><kbd class="touch-only-i">TAP</kbd><span>조종사 · 기체 선택</span></div>
-    <div class="t-links"><button id="tHelp">조작법 · 세계관</button></div>
+    <div class="t-links"><button id="tHelp">조작법</button><button id="tLore">세계관</button></div>
   </div>
   <div class="t-sndhint">클릭하면 사운드가 켜져요</div>
   <button class="t-set" id="tSet" aria-label="설정"><svg viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>
@@ -1824,6 +1880,7 @@ addEventListener('keydown', e => {
   initAudio();
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter'].includes(e.code)) e.preventDefault();
   if (e.repeat) return;
+  if (LORE.open) { loreKey(e.code); return; }
   if (state.mode === 'select') { selectKey(e.code); return; }
   if (e.code === 'Enter') primaryAction();
   if (e.code === 'Escape' && state.mode === 'title') showTitle();
@@ -5154,17 +5211,9 @@ function showTitle() {
 }
 function showHelp() {
   $('titleScr').classList.add('hidden');
-  showCard(`<h1>NXLOG FLIGHT</h1><h2>EXPANSION · 로그로 팽창하는 넥슨 우주</h2>
-  <p><b>넥슨닷컴</b>을 중심 항성으로 <b>메이플스토리 · FC온라인 · 던전앤파이터 · 마비노기 · 엘소드 · 마비노기 영웅전</b> 은하가 떠 있는 우주입니다.<br>
-  웹 로그가 쌓일수록 <b>우주가 팽창</b>해 은하가 멀어지고, 새 페이지는 <b>새 행성</b>으로 태어납니다.<br>
-  미확인 엔드포인트를 관측하고, 시대(ERA)가 열릴 때마다 터지는 사건을 해결하세요.</p>
-  <div class="eras">
-    <div><b>ERA 1</b> 인플레이션 · 오픈런 블랙홀 — 대기열 위성 배치</div>
-    <div><b>ERA 2</b> 항성 형성 · 봇 해적단 — 정상 유저는 쏘지 않는 식별 사격</div>
-    <div><b>ERA 3</b> 은하 형성 · DDoS 군체와 무차별 대입 침투조</div>
-  </div>
+  showCard(`<h1>CONTROLS</h1><h2>조작법</h2>
   <p class="touch-only">왼쪽 <b>스틱</b>으로 조종 · <b>FIRE</b> 레이저 · <b>WARP</b> 워프 · <b>FIELD</b> 레이트 리밋 필드 · <b>↺ ↻</b> 롤 · <b>+ −</b> 추력<br>
-  엔진 레버를 위아래로 끌어도 추력이 바뀌고, NAV 화면을 탭하면 범위가 바뀝니다.</p>
+  엔진 레버를 위아래로 끌어도 추력이 바뀌고, NAV 화면을 탭하면 범위가 바뀝니다. <b>AIM</b>은 정밀 조준입니다.</p>
   <div class="kgrid key-only">
     <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span><span>기수 조종 (피치 / 요)</span>
     <span><kbd>W</kbd><kbd>S</kbd> · <kbd>1</kbd>–<kbd>4</kbd></span><span>추력 증가 / 감소 · 엔진 OFF · IDLE · CRUISE · FULL</span>
@@ -5175,9 +5224,94 @@ function showHelp() {
     <span><kbd>Q</kbd></span><span>레이트 리밋 필드 (ERA 3부터 사용 가능)</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
   </div>
-  <p style="color:#6f82a3;font-size:12px">상단 퀘스트 안내와 레이더의 목표 지점을 따라가세요. · 모든 수치는 가상 데이터입니다.</p>
+  <p style="color:#6f82a3;font-size:12px">상단 퀘스트 안내와 레이더의 목표 지점을 따라가세요.</p>
   <button data-act="title">← 뒤로</button>
   <div class="go"><span class="key-only">ENTER</span><span class="touch-only-i">TAP</span> — 조종사 · 기체 선택</div>`);
+}
+
+// ---------- 세계관: 로기의 브리핑 (타자기 효과 · 페이지 넘김) ----------
+const LORE_LINES = [
+  `안녕하세요, 파일럿! 저는 이 우주의 관측 보조 AI, <b>로기(LOGI)</b>예요. 출항 전에 이 우주를 잠깐 소개해 드릴게요.`,
+  `여기는 <b>웹 로그로 만들어진 우주</b>예요. 한가운데서 빛나는 항성이 <em>넥슨닷컴</em>이고, 그 주위로 <b>메이플스토리 · FC온라인 · 던전앤파이터 · 마비노기 · 엘소드 · 마비노기 영웅전</b> 은하가 떠 있어요.`,
+  `유저가 페이지를 열 때마다 로그가 쌓여요. 로그가 쌓일수록 <b>우주가 팽창</b>해서 은하끼리 점점 멀어지고, 새 페이지가 생기면 <b>새 행성</b>이 태어나요.`,
+  `파일럿의 임무는 아직 아무도 확인하지 않은 <em>미확인 엔드포인트(?)</em>를 찾아가 관측하는 거예요. 관측할 때마다 <b>데이터 결정</b>이 쌓여요.`,
+  `누적 로그가 일정 규모를 넘으면 새 시대, <em>ERA</em>가 열려요. ERA 1엔 <b>오픈런 블랙홀</b>, ERA 2엔 <b>봇 해적단</b>, ERA 3엔 <b>DDoS 군체와 침투조</b>가 나타나요. 조심하세요!`,
+  `연료가 떨어지면 <b>FUEL 연료소</b>에서, 선체가 부서지면 <b>REPAIR 정비 도크</b>에서 보급받으세요. 비용은 데이터 결정이에요. 적을 격추하면 떨어지는 <b>패치 모듈</b>도 꼭 주우세요.`,
+  `참, 여기 나오는 숫자는 전부 <em>가상 데이터</em>예요. 실제 서비스 지표와는 관계없어요. 그럼… 출항 준비되셨나요?`,
+];
+const LORE = { open: false, i: 0, timer: null, full: false };
+function loreShow(i) {
+  LORE.i = i; LORE.full = false;
+  const el = $('loreText'), html = LORE_LINES[i];
+  // 태그를 지키면서 글자를 하나씩 드러냄
+  const tmp = document.createElement('div'); tmp.innerHTML = html;
+  const total = tmp.textContent.length;
+  let n = 0;
+  clearInterval(LORE.timer);
+  el.classList.add('typing'); $('lore').classList.add('talking');
+  const step = () => {
+    n = Math.min(total, n + 1);
+    let left = n;
+    const walk = (src, dst) => {
+      for (const node of src.childNodes) {
+        if (left <= 0) break;
+        if (node.nodeType === 3) { const t = node.textContent.slice(0, left); left -= t.length; dst.appendChild(document.createTextNode(t)); }
+        else { const c = node.cloneNode(false); dst.appendChild(c); walk(node, c); }
+      }
+    };
+    const out = document.createElement('div'); walk(tmp, out);
+    el.innerHTML = out.innerHTML;
+    if (n >= total) loreDone();
+  };
+  LORE.timer = setInterval(step, 28);
+  $('loreDots').innerHTML = LORE_LINES.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
+  const last = i === LORE_LINES.length - 1;
+  $('loreBtns').innerHTML = last
+    ? `<button data-l="close">처음 화면으로</button><button class="pri" data-l="go">출항하기 ›</button>`
+    : `<button data-l="close">건너뛰기</button><button class="pri" data-l="next">다음 ›</button>`;
+  sfx('blip', 300);
+}
+function loreDone() {
+  clearInterval(LORE.timer);
+  LORE.full = true;
+  $('loreText').innerHTML = LORE_LINES[LORE.i];
+  $('loreText').classList.remove('typing'); $('lore').classList.remove('talking');
+}
+function loreAdvance() {
+  if (!LORE.full) { loreDone(); return; }   // 타이핑 중이면 먼저 한 줄을 다 보여줌
+  if (LORE.i < LORE_LINES.length - 1) loreShow(LORE.i + 1);
+}
+function openLore() {
+  LORE.open = true;
+  hideCard();
+  $('titleScr').classList.remove('hidden');
+  $('titleScr').classList.add('lore-on');   // 타이틀 배경은 남기고 가운데 메뉴만 숨김
+  const l = $('lore'); l.classList.remove('hidden');
+  // 등장 애니메이션 다시 재생
+  l.querySelectorAll('.lore-npc, .lore-box').forEach(x => { x.style.animation = 'none'; void x.offsetWidth; x.style.animation = ''; });
+  loreShow(0);
+}
+function closeLore(go) {
+  LORE.open = false;
+  clearInterval(LORE.timer);
+  $('lore').classList.add('hidden');
+  $('titleScr').classList.remove('lore-on');
+  if (go) openSelect(); else showTitle();
+}
+$('lore').addEventListener('click', e => {
+  initAudio();
+  const b = e.target.closest('[data-l]');
+  const act = b && b.dataset.l;
+  if (act === 'close') return closeLore(false);
+  if (act === 'go') { if (!LORE.full) loreDone(); return closeLore(true); }
+  if (act === 'next' || !act) loreAdvance();
+});
+function loreKey(code) {
+  if (code === 'Escape') closeLore(false);
+  else if (code === 'Enter' || code === 'Space' || code === 'ArrowRight') {
+    if (LORE.full && LORE.i === LORE_LINES.length - 1 && code === 'Enter') closeLore(true);
+    else loreAdvance();
+  }
 }
 (function setupTitle() {
   const t = $('titleScr');
@@ -5185,6 +5319,7 @@ function showHelp() {
     initAudio();
     if (e.target.closest('#tSet')) { openSettings(); return; }
     if (e.target.closest('#tHelp')) { showHelp(); return; }
+    if (e.target.closest('#tLore')) { openLore(); return; }
     primaryAction();
   });
 })();
