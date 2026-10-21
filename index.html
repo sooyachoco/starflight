@@ -480,6 +480,13 @@
   .exnext { font-size: 12px; font-weight: 600; color: var(--dim); text-align: right; letter-spacing: .04em; }
   #exMis { margin-top: 8px; }
   #exMis:empty { display: none; }
+  #exQuest:empty { display: none; }
+  #exQuest .mt { font-size: 13px; font-weight: 700; letter-spacing: .1em; color: var(--blue); padding-top: 8px; margin-top: 8px; border-top: 1px solid #ffffff14; }
+  #exQuest .qtt { font-family: "Noto Sans KR", sans-serif; font-size: 13px; font-weight: 700; color: #e9f1ff; margin-top: 4px; }
+  #exQuest .qds { font-family: "Noto Sans KR", sans-serif; font-size: 11.5px; color: var(--dim); line-height: 1.45; margin-top: 2px; }
+  #exQuest .qres { font-family: "Noto Sans KR", sans-serif; font-size: 11.5px; color: #9ff6d8; margin-top: 4px; }
+  #exQuest .exbar i { background: linear-gradient(90deg, #4aa8ff, #3ee6c1); }
+  @media (max-height: 520px) { #exQuest .qds, #exQuest .qres, #exQuest .mt { display: none; } }
   #exMis .mt { font-size: 13px; font-weight: 700; letter-spacing: .1em; color: var(--amber); padding-top: 8px; border-top: 1px solid #ffffff14; }
   #exMis .exbar i { background: linear-gradient(90deg, #ffb23e, #ff4a5a); }
   .exnote { margin-top: 8px; font-family: "Noto Sans KR", sans-serif; font-size: 11px; color: #6f82a3; }
@@ -1805,6 +1812,9 @@ function updateBolts(dt) {
       if (!hit && exWorld.visible) for (let j = exStealth.length - 1; j >= 0; j--) {
         if (segDist(_p0, p1, exStealth[j].g.position) < ENEMY_HIT_R) { hit = true; exHitStealth(j, 25); break; }
       }
+      if (!hit && exWorld.visible) for (let j = DQ.orbs.length - 1; j >= 0; j--) {
+        if (segDist(_p0, p1, DQ.orbs[j].sp.position) < 6) { hit = true; dqHitOrb(j); break; }
+      }
       if (!hit && exWorld.visible) for (let j = exConvoys.length - 1; j >= 0; j--) {
         if (segDist(_p0, p1, exConvoys[j].g.position) < 6) { hit = true; exHitConvoy(j); break; }
       }
@@ -2191,9 +2201,11 @@ function exGenerate(dt, now) {
   const n = lwPoisson(70 * dt * exDiurnal(hour) / EX_DMEAN);
   const gw = EX_GAMES.map(G => G.daily);
   for (let k = 0; k < n; k++) {
-    const gal = exGal[lwPick(gw)];
+    let gal = exGal[lwPick(gw)];
     const live = gal.planets.filter(p => p.formed);
-    const pl = live[lwPick(live.map(p => p.share))];
+    let pl = live[lwPick(live.map(p => p.share))];
+    // 샘플링 의뢰 중에는 목표 행성으로 가는 흐름을 굵게
+    if (DQ.active && DQ.active.type === 'sample' && !ex.mission && Math.random() < .4) { pl = DQ.active.pl; gal = pl.gal; }
     let end = exPlanets.indexOf(pl), col = LW_COL.ok;
     const q = Math.random();
     if (q < .015) col = LW_COL.redir; else if (q < .025) col = LW_COL.warn;
@@ -2307,6 +2319,7 @@ const OBJ_EX_HTML = `
   <div class="exrow"><span>데이터 결정</span><b id="exCry">0</b></div>
   <div class="exrow" id="exFuelRow"><span>연료</span><b id="exFuel">100%</b></div>
   <div id="exMis"></div>
+  <div id="exQuest"></div>
   <div class="exnote">가상 데이터 · 실제 서비스 지표와 무관</div>`;
 
 // ---------- 흐름 ----------
@@ -2316,6 +2329,7 @@ function setupExpansion() {
     newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0, phase: 1, fieldOn: false, field: 100, pulses: 0, ddosStats: null,
     reserveUsed: false, fuelWarn: 100, refueling: null, scooping: false, fuelBought: 0, scooped: 0 });
   ex.crystals = 40;
+  dqReset();
   exPulse.t = -1; exPulse.mesh.visible = exPulse.ring.visible = false;
   // 이후 탄생한 행성 제거, 발견 상태 초기화
   for (let i = exPlanets.length - 1; i >= 0; i--) {
@@ -2357,6 +2371,7 @@ function showExBrief() {
       <li>은하 내부는 중력으로 묶여 있어 팽창하지 않습니다. 멀어지는 건 은하와 은하 사이입니다.</li>
       <li><b style="color:#3ee6c1">연료</b>: 은하마다 있는 <b>연료소(FUEL)</b>의 급유 고리 안에서 120 m/s 이하로 머물면 보급됩니다 (데이터 결정 1 = 연료 1%).
         결정이 없으면 느리게 무료 급유됩니다. 항성 코로나를 스치듯 지나면 연료를 조금씩 모을 수도 있습니다.</li>
+      <li><b style="color:#4aa8ff">데이터 의뢰</b>: 관측소 건설 · 로그 샘플링 · 404 미아 구조 · 이상치 탐지 · 유저 여정 추적이 차례로 들어옵니다. 완료하면 결정과 연료를 받습니다.</li>
     </ol>
     <p style="color:#6f82a3">※ 모든 수치는 가상 데이터이며 실제 서비스 지표와 무관합니다.</p>
     <button data-act="ex-go">관측 시작</button>`, true);
@@ -2529,6 +2544,7 @@ function exUpdate(dt, now) {
     }
   }
   if (fuelUpdate(dt, now)) return;
+  if (!ex.mission) dqUpdate(dt, now);
   // 시대 진입
   if (!ex.mission && ex.era < 3 && ex.cum >= ERAS[ex.era + 1].at) { ex.era++; ex.phase = 1; exEraCard(ex.era); return; }
   // 레이트 리밋 필드
@@ -2658,6 +2674,7 @@ function exFrame(dt, now) {
   }
   exFrameEra3(dt, now);
   fuelFrame(dt, now);
+  dqFrame(dt, now);
   // 라벨
   exGal.forEach(g => { tmpW.copy(g.grp.position); tmpW.y += g.G.R + 30; placeLabel(g.label, tmpW, 4); });
   exPlanets.forEach(pl => {
@@ -2665,7 +2682,7 @@ function exFrame(dt, now) {
     tmpW.copy(pl.world); tmpW.y += pl.R + 3;
     if (!placeLabel(pl.label, tmpW, 4)) return;
     pl.label.querySelector('b').textContent = pl.discovered ? pl.path : '?';
-    pl.label.querySelector('span').textContent = pl.discovered ? '' : '미확인 엔드포인트';
+    pl.label.querySelector('span').textContent = pl.discovered ? (pl.observed ? dqMetrics(pl) : '') : '미확인 엔드포인트';
   });
 }
 
@@ -2806,6 +2823,254 @@ function fuelQuest() {
   return nd ? { text: `연료 ${Math.round(state.fuel)}% — 가까운 연료소로 · ${nd.d.gal.G.hub ? '넥슨닷컴' : nd.d.gal.G.ko}`, pos: nd.d.world, col: urgent ? Q_RED : Q_AMBER } : null;
 }
 
+
+// =====================================================================
+// 데이터 의뢰 (DATA QUEST) — 관측소 · 샘플링 · 404 구조 · 이상치 · 유저 여정
+// =====================================================================
+const DQ = { active: null, done: 0, nextT: 3, order: [], orbs: [], packets: [], obs: [], last: '' };
+const DQ_TYPES = ['observe', 'sample', 'lost', 'outlier', 'funnel'];
+const galName = pl => pl.gal.G.hub ? '넥슨닷컴' : pl.gal.G.ko;
+const dqRing = new THREE.Mesh(new THREE.TorusGeometry(1, .035, 8, 64), new THREE.MeshBasicMaterial({ color: 0x4aa8ff, transparent: true,
+  opacity: .8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+dqRing.visible = false;
+exWorld.add(dqRing);
+const orbMat = () => new THREE.SpriteMaterial({ map: glowTexture([[0, '#ffffff'], [.2, '#e0a0ff'], [.5, '#a040ff66'], [1, '#00000000']], 64),
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+const pktGeo = new THREE.BoxGeometry(3, 3, 3);
+const pktMat = new THREE.MeshBasicMaterial({ color: 0xffb23e, fog: false });
+const pktGlow = new THREE.SpriteMaterial({ map: glowTexture([[0, '#fff0d0'], [.3, '#ffb23e88'], [1, '#00000000']], 64),
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+function dqPickPlanet(filter) {
+  const list = exPlanets.filter(pl => pl.formed && (!filter || filter(pl)));
+  return list[Math.floor(Math.random() * list.length)];
+}
+function dqClearObjects() {
+  DQ.orbs.forEach(o => exWorld.remove(o.sp)); DQ.orbs = [];
+  DQ.packets.forEach(k => exWorld.remove(k.mesh)); DQ.packets = [];
+  dqRing.visible = false;
+}
+function dqReset() {
+  dqClearObjects();
+  DQ.obs.forEach(o => o.pl.gal.grp.remove(o.mesh)); DQ.obs = [];
+  exPlanets.forEach(pl => { pl.observed = false; });
+  Object.assign(DQ, { active: null, done: 0, nextT: 4, order: [], last: '' });
+}
+function dqStart() {
+  if (!DQ.order.length) DQ.order = DQ.done < 5 ? DQ_TYPES.slice(DQ.done) : DQ_TYPES.slice().sort(() => Math.random() - .5);
+  const type = DQ.order.shift();
+  let q;
+  if (type === 'observe') {
+    const pl = dqPickPlanet(p => !p.gal.G.hub && !p.observed) || dqPickPlanet();
+    q = { type, pl, need: 5, prog: 0, reward: 45, title: `관측소 건설 · ${galName(pl)} ${pl.path}`,
+      desc: '행성 근처(고리 안)에서 120 m/s 이하로 5초 머물면 관측소가 세워지고, 그 행성의 실시간 지표가 계속 표시됩니다.' };
+  } else if (type === 'sample') {
+    const pl = dqPickPlanet(p => !p.gal.G.hub);
+    q = { type, pl, need: 20, prog: 0, reward: 40, title: `로그 샘플링 · ${galName(pl)} ${pl.path}`,
+      desc: '행성으로 들어오는 요청 흐름 속을 지나가며 요청 입자 20개를 채집하세요. 표본으로 전체 응답 시간을 추정합니다.' };
+  } else if (type === 'lost') {
+    const pl = dqPickPlanet(p => !p.gal.G.hub);
+    q = { type, pl, need: 5, prog: 0, reward: 60, title: `404 미아 구조 · ${galName(pl)} ${pl.path}`,
+      desc: '주소를 잘못 찾아 떠도는 요청 패킷(주황) 5개를 주워 목적지 행성까지 데려가세요. 301 리다이렉트로 길을 잡아줍니다.' };
+    for (let k = 0; k < 5; k++) {
+      const mesh = new THREE.Mesh(pktGeo, pktMat);
+      const gl = new THREE.Sprite(pktGlow); gl.scale.setScalar(18); mesh.add(gl);
+      mesh.position.copy(pl.world).add(randomDir().setY(rand(-.3, .3)).normalize().multiplyScalar(rand(300, 560)));
+      exWorld.add(mesh);
+      DQ.packets.push({ mesh, carried: false, ph: rand(0, 6) });
+    }
+  } else if (type === 'outlier') {
+    const pl = dqPickPlanet(p => !p.gal.G.hub);
+    q = { type, pl, need: 6, prog: 0, reward: 50, title: `이상치 탐지 · ${galName(pl)} ${pl.path}`,
+      desc: '정상 요청(청록) 사이에 섞인 응답 지연 상위 1% 요청(보라) 6개를 찾아 레이저로 격추하세요.' };
+    for (let k = 0; k < 6; k++) {
+      const sp = new THREE.Sprite(orbMat()); sp.scale.setScalar(20);
+      exWorld.add(sp);
+      DQ.orbs.push({ sp, ang: k * 1.05 + rand(0, .5), rad: rand(90, 220), y: rand(-50, 50), spd: rand(.12, .25) * (k % 2 ? 1 : -1), ms: Math.round(rand(2800, 9500)) });
+    }
+  } else {
+    const game = exGal[1 + Math.floor(Math.random() * 3)];
+    const steps = [exGal[0].planets[0], exGal[0].planets[1], exGal[0].planets[2], game.planets[0]];
+    const conv = [100, Math.round(rand(58, 72)), Math.round(rand(38, 50)), Math.round(rand(26, 36))];
+    q = { type, pl: steps[0], steps, conv, need: 4, prog: 0, reward: 70, time: 0,
+      title: `유저 여정 추적 · 넥슨닷컴 → ${game.G.ko}`,
+      desc: '로그인한 유저의 경로를 따라 넥슨닷컴 / → /login → /launcher → 게임 / 순서로 각 행성 고리를 통과하세요.' };
+  }
+  DQ.active = q;
+  toast(`새 데이터 의뢰 · ${q.title}`, '#4aa8ff');
+  sfx('laser', 400);
+}
+function dqComplete() {
+  const q = DQ.active;
+  ex.crystals += q.reward;
+  state.fuel = Math.min(100, state.fuel + 10);
+  DQ.done++;
+  const res = {
+    observe: `${q.pl.path} 실시간 지표 상시 표시 시작`,
+    sample: `표본 ${q.need}개로 추정한 평균 응답 ${Math.round(rand(80, 160))}ms (±${Math.round(rand(6, 14))}ms)`,
+    lost: `404 → 301 리다이렉트 ${q.need}건 등록 · 이탈 방지`,
+    outlier: `p99 지연 원인: 외부 API 타임아웃 (가상) · 최대 ${Math.max(...q.ms || [0]) || 9400}ms`,
+    funnel: `전환율 ${q.conv ? q.conv.join('% → ') + '%' : ''} · 소요 ${q.time ? q.time.toFixed(0) : 0}초`,
+  }[q.type];
+  DQ.last = res;
+  toast(`의뢰 완료 · 결정 +${q.reward} · 연료 +10%`, '#3ee6c1');
+  setTimeout(() => toast(res, '#9ff6d8'), 1500);
+  sfx('warpOut');
+  dqClearObjects();
+  DQ.active = null; DQ.nextT = 5;
+}
+function dqUpdate(dt, now) {
+  const q = DQ.active;
+  if (!q) { DQ.nextT -= dt; if (DQ.nextT <= 0) dqStart(); return; }
+  const d = ship.position.distanceTo(q.pl.world);
+  q.hold = false;
+  if (q.type === 'observe') {
+    if (d < q.pl.R + 70 && state.speed <= REFUEL_SPEED) {
+      q.hold = true; q.prog = Math.min(q.need, q.prog + dt);
+      if (q.prog >= q.need) {
+        q.pl.observed = true;
+        const dish = new THREE.Group();
+        dish.add(new THREE.Mesh(new THREE.CylinderGeometry(.8, .8, 8, 8), depotDark));
+        const plate = new THREE.Mesh(new THREE.SphereGeometry(5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3), depotMetal);
+        plate.position.y = 5; plate.rotation.x = Math.PI; dish.add(plate);
+        const lamp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0x4aa8ff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
+        lamp.scale.setScalar(10); lamp.position.y = 9; dish.add(lamp);
+        q.pl.gal.grp.add(dish);
+        DQ.obs.push({ pl: q.pl, mesh: dish, ang: 0 });
+        dqComplete();
+      }
+    } else q.prog = Math.max(0, q.prog - dt * .5);
+  } else if (q.type === 'sample') {
+    if (d < 260) {
+      for (let k = xpAct.length - 1; k >= 0; k--) {
+        const i = xpAct[k];
+        const dx = xpPos[i * 3] - ship.position.x, dy = xpPos[i * 3 + 1] - ship.position.y, dz = xpPos[i * 3 + 2] - ship.position.z;
+        if (dx * dx + dy * dy + dz * dz < 484) {
+          xpCol.fill(0, i * 3, i * 3 + 3); xtCol.fill(0, i * 6, i * 6 + 6);
+          xpAct[k] = xpAct[xpAct.length - 1]; xpAct.pop(); xpFree.push(i);
+          q.prog++;
+          if (q.prog % 5 === 0) sfx('laser', 500);
+          if (q.prog >= q.need) { dqComplete(); return; }
+        }
+      }
+    }
+  } else if (q.type === 'lost') {
+    let k = 0;
+    for (const pk of DQ.packets) {
+      if (!pk.carried && pk.mesh.position.distanceTo(ship.position) < 16) { pk.carried = true; toast(`패킷 회수 ${DQ.packets.filter(x => x.carried).length}/${q.need}`, '#ffb23e'); sfx('laser', 300); }
+    }
+    if (d < q.pl.R + 70) {
+      const carried = DQ.packets.filter(x => x.carried);
+      if (carried.length) {
+        carried.forEach(pk => { burst(pk.mesh.position, 0xffb23e, 30, 14, .8); exWorld.remove(pk.mesh); });
+        DQ.packets = DQ.packets.filter(x => !x.carried);
+        q.prog += carried.length;
+        toast(`301 리다이렉트 · ${q.prog}/${q.need} 전달`, '#3ee6c1');
+        if (q.prog >= q.need) { dqComplete(); return; }
+      }
+    }
+  } else if (q.type === 'funnel') {
+    q.time += dt;
+    const cur = q.steps[q.prog];
+    if (ship.position.distanceTo(cur.world) < cur.R + 60) {
+      q.prog++;
+      toast(`여정 ${q.prog}/4 · ${galName(cur)} ${cur.path} · 잔존 ${q.conv[q.prog - 1]}%`, '#4aa8ff');
+      sfx('laser', 300);
+      if (q.prog >= q.need) { dqComplete(); return; }
+      q.pl = q.steps[q.prog];
+    }
+  }
+  // 이상치는 레이저 판정에서 처리
+}
+function dqHitOrb(j) {
+  const o = DQ.orbs[j], q = DQ.active;
+  burst(o.sp.position, 0xc080ff, 50, 18, 1);
+  exWorld.remove(o.sp); DQ.orbs.splice(j, 1);
+  hitMarker(); sfx('hit', 200);
+  if (!q || q.type !== 'outlier') return;
+  q.ms = q.ms || []; q.ms.push(o.ms);
+  q.prog++;
+  toast(`이상치 격추 ${q.prog}/${q.need} · ${(o.ms / 1000).toFixed(1)}s`, '#c080ff');
+  if (q.prog >= q.need) dqComplete();
+}
+function dqFrame(dt, now) {
+  const q = DQ.active;
+  // 목표 고리
+  if (q && !ex.mission && ['observe', 'funnel', 'sample', 'lost', 'outlier'].includes(q.type)) {
+    dqRing.visible = true;
+    const r = q.pl.R + (q.type === 'funnel' ? 60 : q.type === 'observe' ? 70 : 40);
+    dqRing.position.copy(q.pl.world); dqRing.scale.setScalar(r);
+    dqRing.lookAt(camera.position);
+    dqRing.material.color.setHex(q.type === 'observe' && q.hold ? 0x3ee6c1 : q.type === 'outlier' ? 0xc080ff : q.type === 'lost' ? 0xffb23e : 0x4aa8ff);
+    dqRing.material.opacity = .45 + .35 * Math.sin(now * 4);
+  } else dqRing.visible = false;
+  // 이상치 궤도
+  if (q && q.type === 'outlier') DQ.orbs.forEach(o => {
+    if (!ex.mission) o.ang += o.spd * dt;
+    o.sp.position.set(q.pl.world.x + Math.cos(o.ang) * o.rad, q.pl.world.y + o.y + Math.sin(now + o.ang) * 8, q.pl.world.z + Math.sin(o.ang) * o.rad);
+    o.sp.scale.setScalar(18 + 4 * Math.sin(now * 6 + o.ang));
+  });
+  // 패킷: 떠돌거나 내 뒤를 따라옴
+  let n = 0;
+  for (const pk of DQ.packets) {
+    pk.mesh.rotation.x += dt * 2; pk.mesh.rotation.y += dt * 1.4;
+    if (pk.carried) {
+      tmpV.set(0, -2, 10 + n * 7).applyQuaternion(ship.quaternion).add(ship.position);
+      pk.mesh.position.lerp(tmpV, 1 - Math.exp(-dt * 5)); n++;
+    } else pk.mesh.position.y += Math.sin(now * 1.5 + pk.ph) * dt * 4;
+  }
+  // 관측소 공전
+  DQ.obs.forEach(o => {
+    o.ang += dt * .4;
+    o.mesh.position.copy(o.pl.mesh.position).add(tmpW.set(Math.cos(o.ang) * (o.pl.R + 14), o.pl.R * .6, Math.sin(o.ang) * (o.pl.R + 14)));
+    o.mesh.lookAt(o.pl.mesh.getWorldPosition(tmpV));
+  });
+}
+function dqRadar(g, toRadar) {
+  g.fillStyle = '#c080ff';
+  for (const o of DQ.orbs) { const p = toRadar(o.sp.position, false); if (p) { g.beginPath(); g.arc(p[0], p[1], 3, 0, Math.PI * 2); g.fill(); } }
+  g.fillStyle = '#ffb23e';
+  for (const pk of DQ.packets) { if (pk.carried) continue; const p = toRadar(pk.mesh.position, false); if (p) g.fillRect(p[0] - 2, p[1] - 2, 4, 4); }
+}
+function dqMetrics(pl) {
+  const rpm = Math.round(pl.gal.G.daily / 1440 * pl.share * exDiurnal((ex.day % 1) * 24) / EX_DMEAN);
+  const e5 = (((pl.path.length * 7 + pl.gal.gi * 3) % 9) * .05 + .05).toFixed(2);
+  return `${rpm.toLocaleString('en-US')}/m · 5xx ${e5}%`;
+}
+function dqQuest() {
+  const q = DQ.active;
+  if (!q) return null;
+  const col = q.type === 'outlier' ? Q_VIOLET : q.type === 'lost' ? Q_AMBER : Q_BLUE;
+  if (q.type === 'observe') return { text: `관측소 건설 · ${galName(q.pl)} ${q.pl.path} · ${q.hold ? `건설 중 ${q.prog.toFixed(1)}/5초` : '고리 안에서 감속'}`, pos: q.pl.world, col, size: q.pl.R + 70 };
+  if (q.type === 'sample') return { text: `로그 샘플링 · ${galName(q.pl)} ${q.pl.path} 요청 흐름 속 비행 ${q.prog}/${q.need}`, pos: q.pl.world, col, size: q.pl.R + 40 };
+  if (q.type === 'lost') {
+    const free = DQ.packets.filter(x => !x.carried);
+    if (free.length) {
+      let best = free[0], bd = Infinity;
+      for (const pk of free) { const dd = pk.mesh.position.distanceTo(ship.position); if (dd < bd) { bd = dd; best = pk; } }
+      return { text: `404 미아 구조 · 패킷 회수 ${DQ.packets.filter(x => x.carried).length + q.prog}/${q.need}`, pos: best.mesh.position, col, size: 14 };
+    }
+    return { text: `404 미아 구조 · ${galName(q.pl)} ${q.pl.path}로 패킷 전달`, pos: q.pl.world, col, size: q.pl.R + 70 };
+  }
+  if (q.type === 'outlier') {
+    let best = null, bd = Infinity;
+    for (const o of DQ.orbs) { const dd = o.sp.position.distanceTo(ship.position); if (dd < bd) { bd = dd; best = o; } }
+    return { text: `이상치 탐지 · ${galName(q.pl)} ${q.pl.path} 보라색 지연 요청 격추 ${q.prog}/${q.need}`, pos: best ? best.sp.position : q.pl.world, col, size: 18 };
+  }
+  const cur = q.steps[q.prog];
+  return { text: `유저 여정 ${q.prog + 1}/4 · ${galName(cur)} ${cur.path} 통과`, pos: cur.world, col, size: cur.R + 60 };
+}
+function dqHud() {
+  const el = $('exQuest');
+  if (!el) return;
+  const q = DQ.active;
+  if (!q) { el.innerHTML = DQ.last ? `<div class="mt">DATA QUEST · ${DQ.done} 완료</div><div class="qres">최근 결과 · ${DQ.last}</div>` : ''; return; }
+  const pct = Math.min(100, q.prog / q.need * 100);
+  el.innerHTML = `<div class="mt">DATA QUEST · ${DQ.done} 완료${ex.mission ? ' · 일시 중지' : ''}</div>
+    <div class="qtt">${q.title}</div><div class="qds">${q.desc}</div>
+    <div class="exbar"><i style="width:${pct}%"></i></div>
+    ${DQ.last ? `<div class="qres">최근 결과 · ${DQ.last}</div>` : ''}`;
+}
+
 // ---------- 레이더 / 목표 / HUD ----------
 function exRadar(g, toRadar, R, range) {
   exGal.forEach(gl => {
@@ -2827,6 +3092,7 @@ function exRadar(g, toRadar, R, range) {
   g.fillStyle = '#3ee6c1';
   for (const c of exConvoys) { const p = toRadar(c.g.position, false); if (p) g.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
   fuelRadar(g, toRadar);
+  dqRadar(g, toRadar);
   g.fillStyle = 'rgba(255,138,90,.8)';
   for (let k = 0; k < drones.length; k += 2) { const p = toRadar(drones[k].p, false); if (p) g.fillRect(p[0] - 1, p[1] - 1, 2, 2); }
   g.fillStyle = '#ff4a5a';
@@ -2851,7 +3117,7 @@ function exTarget() {
 function exMarkers() {
   const winH = innerHeight - dashH, tgt = $('tgt'), edge = $('edge');
   $('stn').style.display = 'none';
-  const t = exTarget();
+  const t = questNow && questNow.pos ? { pos: questNow.pos, col: questNow.col, size: questNow.size || 30 } : exTarget();
   if (!t || state.mode !== 'flying') { tgt.style.display = edge.style.display = 'none'; return; }
   camera.updateMatrixWorld();
   const pt = project(t.pos);
@@ -2890,6 +3156,7 @@ function exHud() {
   const formed = exPlanets.filter(p => p.formed);
   $('exObs').textContent = `관측 ${formed.filter(p => p.discovered).length}/${formed.length}`;
   $('exCry').textContent = Math.round(ex.crystals);
+  dqHud();
   const mis = $('exMis');
   if (ex.mission === 'bh') {
     mis.innerHTML = `<div class="mt">오픈런 블랙홀 · 메이플스토리</div>
@@ -3200,6 +3467,8 @@ function questInfo() {
     if (ex.mission === 'bots') return { text: `FC온라인 이적시장 방어 · 해적선 격추 ${state.kills - ex.pk0}/12`, pos: exMarketPlanet().world, col: Q_AMBER };
     if (ex.mission === 'ddos') return { text: `넥슨닷컴 메인 근처에서 FIELD로 드론 제거 · ${Math.max(0, 45 - ex.mT).toFixed(0)}초`, pos: exGal[0].planets[0].world, col: '#ff8a5a' };
     if (ex.mission === 'stealth') return { text: `/login 주변 침투조 추적 · 401 섬광 순간 사격 ${ex.stKills}/6`, pos: exGal[0].planets[1].world, col: Q_AMBER };
+    const dq = dqQuest();
+    if (dq) return dq;
     let best = null, bd = Infinity;
     for (const pl of exPlanets) {
       if (!pl.formed || pl.discovered) continue;
@@ -3323,6 +3592,7 @@ function statusInfo() {
   if (exWorld.visible && ex.refueling) return ['REFUEL', '#3ee6c1'];
   if (exWorld.visible && ex.scooping) return ['SCOOP', '#ffb23e'];
   if (exWorld.visible && ex.bhNear) return ['GRAVITY', '#a98bff'];
+  if (exWorld.visible && !ex.mission && DQ.active && DQ.active.hold) return ['OBSERVING', '#4aa8ff'];
   if (exWorld.visible && ex.mission === 'bots') return ['DEFEND', '#ffb23e'];
   if (exWorld.visible && ex.mission === 'ddos') return ['DDOS', '#ff8a5a'];
   if (exWorld.visible && ex.mission === 'stealth') return ['STEALTH', '#ffb23e'];
