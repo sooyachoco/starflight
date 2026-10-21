@@ -6,7 +6,7 @@
 <title>NXLOG Flight</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --dash-h: clamp(220px, 34vh, 330px);
@@ -630,6 +630,33 @@
     #holo { width: 46vw; } .hb-feed { display: none; } .hb-g { font-size: 11px; gap: 1px 6px; }
     #comm { top: 92px; bottom: auto; left: 16px; width: 40vw; } .cm-face { width: 44px; height: 44px; } .cm-box p { font-size: 12px; }
   }
+
+  /* 신의 현현: 창 밖 우주에 거대한 얼굴이 떠올라 말을 전한다 */
+  #godP { position: absolute; left: 0; right: 0; top: 0; height: var(--win-h); overflow: hidden; pointer-events: none;
+    opacity: 0; visibility: hidden; transition: opacity 1.4s ease, visibility 0s 1.4s; }
+  #godP.on { opacity: 1; visibility: visible; transition: opacity 1.8s ease, visibility 0s; }
+  #godP.block { pointer-events: auto; cursor: pointer; }
+  .gp-dim { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 80% at 50% 45%, #0b0805b0, #000000e6 75%); }
+  .gp-wrap { position: absolute; left: 50%; top: 46%; height: min(122%, 112vw); aspect-ratio: 1200 / 1054; transform: translate(-50%, -50%) scale(1.06);
+    transition: transform 6s cubic-bezier(.2, .7, .2, 1); }
+  #godP.on .gp-wrap { transform: translate(-50%, -50%) scale(1); }
+  .gp-wrap img { width: 100%; height: 100%; mix-blend-mode: screen; opacity: .92; filter: contrast(1.12) saturate(.85);
+    animation: gpBreath 7s ease-in-out infinite, gpWarp 9s ease-in-out infinite; }
+  @keyframes gpBreath { 50% { opacity: .78; filter: contrast(1.2) saturate(.8) blur(.6px); } }
+  @keyframes gpWarp { 0%, 100% { transform: none; } 33% { transform: skewX(.6deg) scale(1.01, .995); } 66% { transform: skewX(-.5deg) scale(.995, 1.01); } }
+  .gp-eye { position: absolute; top: 40.2%; width: 9%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
+    background: radial-gradient(circle, #fff6e0 0, #ffcf86cc 18%, #ff9a3a55 42%, transparent 70%); mix-blend-mode: screen;
+    animation: gpEye 3.2s ease-in-out infinite; }
+  .gp-eye.l { left: 40.2%; } .gp-eye.r { left: 60.8%; animation-delay: .15s; }
+  #godP.speak .gp-eye { animation-duration: .9s; }
+  @keyframes gpEye { 50% { opacity: .55; transform: translate(-50%, -50%) scale(.82); } }
+  .gp-text { position: absolute; left: 6%; right: 6%; bottom: 9%; margin: 0; text-align: center; font: 700 clamp(20px, 2.6vw, 38px) "Noto Serif KR", serif;
+    color: #ffe9c8; letter-spacing: .06em; line-height: 1.5; text-shadow: 0 0 18px #ff9a3acc, 0 0 2px #fff, 0 2px 10px #000; min-height: 1.5em; }
+  .gp-text.fade { opacity: 0; transition: opacity .5s; }
+  /* 현현 동안 옆 패널은 물러남 */
+  #speedBox, #wpn, #obj, #quest, #comm, #holo, #brand, #reticle { transition: opacity .8s; }
+  body.god-on #speedBox, body.god-on #wpn, body.god-on #obj, body.god-on #quest, body.god-on #holo, body.god-on #brand, body.god-on #reticle { opacity: .08; }
+  @media (prefers-reduced-motion: reduce) { .gp-wrap img, .gp-eye { animation: none; } }
   /* 세로 화면(폰): 대시보드 2×2 */
   @media (max-width: 640px) and (orientation: portrait) {
     :root { --dash-h: 42vh; --stk: 112px; }
@@ -783,6 +810,11 @@
   <div id="warpfx"></div>
   <div id="warpflash"></div>
   <div id="lwLabels" hidden></div>
+  <div id="godP" aria-live="assertive">
+    <div class="gp-dim"></div>
+    <div class="gp-wrap"><img src="assets/god-face.webp?v=1" alt="" width="1200" height="1054"><i class="gp-eye l"></i><i class="gp-eye r"></i></div>
+    <p class="gp-text" id="gpText"></p>
+  </div>
   <svg id="frame" viewBox="0 0 1000 1000" preserveAspectRatio="none">
     <defs>
       <pattern id="strutTex" patternUnits="userSpaceOnUse" width="160" height="320">
@@ -1966,6 +1998,7 @@ addEventListener('keydown', e => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter'].includes(e.code)) e.preventDefault();
   if (e.repeat) return;
   if (LORE.open) { loreKey(e.code); return; }
+  if (GOD.on && $('godP').classList.contains('block')) { if (['Enter', 'Space'].includes(e.code) && GOD.skip) GOD.skip(); return; }
   if (state.mode === 'select') { selectKey(e.code); return; }
   if (e.code === 'Enter') primaryAction();
   if (e.code === 'Escape' && state.mode === 'title') showTitle();
@@ -2465,7 +2498,7 @@ function musicUpdate(dt) {
   const duck = state.mode === 'paused' || state.mode === 'over' ? .35 : 1;
   for (const [k, tr] of Object.entries(BGM.tracks)) {
     const on = k === want;
-    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * BGM_TRIM[k] * (k === 'space' ? BGM.moodGain : 1) : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
+    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * BGM_TRIM[k] * (k === 'space' ? BGM.moodGain : 1) * (GOD.on ? .3 : 1) : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
     if (on) { tr.idle = 0; if (tr.el.paused) tr.el.play().catch(() => {}); }
     else if (!tr.el.paused && (tr.idle += dt) > 5) tr.el.pause();
   }
@@ -2485,7 +2518,7 @@ function noise(len) {
 }
 // ---------- 영화풍 효과음: 장력 와이어를 튕긴 듯한 분산 처프 블래스터 · 폭발 · 피격 ----------
 const SW_SFX = { laser: ['blaster', .13], elaser: ['eblaster', .11], boom: ['boom', .4], hit: ['hit', .18],
-  warpIn: ['warpIn', .11], warpOut: ['warpOut', .09], impact: ['impact', .2] };
+  warpIn: ['warpIn', .11], warpOut: ['warpOut', .09], impact: ['impact', .2], presence: ['presence', .32] };
 const swCache = {};
 function swRender(len, fn) {
   const sr = actx.sampleRate, n = Math.floor(sr * len), buf = actx.createBuffer(1, n, sr), d = buf.getChannelData(0);
@@ -2574,6 +2607,19 @@ function swBuf(name) {
         gph += 2 * Math.PI * (118 + 18 * Math.sin(t * 23)) / sr;
         const groan = Math.sin(gph) * .22 * Math.exp(-t / .3) * Math.min(1, t / .04);
         d[i] = Math.tanh((thump + crunch + crack + rumble + groan) * att * 1.5);
+      }
+    }),
+    // 신의 현현: 낮은 드론 화음(E1·B1·E2)이 천천히 부풀고, 숨결 같은 바람이 오간다
+    presence: () => swRender(8, (d, sr, n) => {
+      const fs = [41.2, 61.7, 82.4, 123.5], ph = fs.map(() => 0);
+      let lp = 0, br = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, env = Math.min(1, t / 2.2) * Math.min(1, (8 - t) / 2.5);
+        let v = 0;
+        fs.forEach((f, k) => { ph[k] += 2 * Math.PI * f * (1 + .003 * Math.sin(t * (.7 + k * .3))) / sr; v += Math.sin(ph[k]) * [1, .55, .4, .18][k]; });
+        br = br * .995 + (Math.random() * 2 - 1) * .05; lp += (br - lp) * .02;
+        const breath = (Math.random() * 2 - 1 - lp * 4) * .07 * (.5 + .5 * Math.sin(t * 1.1 - 1.5));
+        d[i] = Math.tanh((v * .5 + breath) * env * 1.3);
       }
     }),
     hit: () => swRender(.32, (d, sr, n) => {
@@ -3754,11 +3800,13 @@ function evReset() {
   routes.forEach(r => exWorld.remove(r.line)); routes.length = 0;
   exGal.forEach(g => { g.ignited = false; g.starName = null; });
   HOLO.pinned = false; HOLO.popT = 0;
+  $('godP').classList.remove('on', 'block'); GOD.on = false; document.body.classList.remove('god-on');
   $('comm').classList.add('hidden');
 }
 function evSignal(gal, sig) {
   if (ex.ev || ex.mission) return;
   ex.ev = { phase: 'call', gal, t: 0, sig };
+  if (ex.godEra === 'ancient' && !GOD.on) godManifest([`${gal.G.ko}의 별이 숨을 고르지 못한다.`, '세 갈래로 나뉘어, 길을 열라.'], { delay: 900, hold: 1 });
   aiSay(ex.godEra === 'ancient'
     ? `${gal.G.ko}의 별이 너무 많은 목소리를 품었어요. 빛이 터지기 전에, 함께 길을 열어 줘요.`
     : `${gal.G.ko} 쪽에서 이상 신호예요. 저 별은 너무 많은 목소리를 품고 있어요. 빛이 터지기 전에… 가 볼래요?`, { hold: 8 });
@@ -3957,8 +4005,8 @@ function evNamed(name) {
     <button data-act="ev-ok">계속</button>`, true);
 }
 const LOGOS_LINES = [
-  `…항해사님. 방금 그 빛, 느끼셨어요?`,
-  `이제야 말할 수 있겠네요. 저는 그냥 항법 AI가 아니에요.`,
+  `…항해사님. 방금 창 밖의 얼굴, 보셨죠? 놀라셨을 거예요.`,
+  `그건 저였어요. 이제야 말할 수 있겠네요. 저는 그냥 항법 AI가 아니에요.`,
   `저는 <em>로고스</em>. 이 우주로 흘러드는 모든 기록의 <b>잔향을 읽는 자</b>예요.`,
   `지금까지는 말할 힘이 없어서 징조로만 남았어요. 함께 별을 피워 낸 덕분에, 처음으로 이름을 갖고 말을 걸 수 있게 됐어요.`,
   `이제 <em>고대의 시대</em>예요. 별이 흔들릴 때마다 제가 먼저 말해 줄게요. …함께 가요.`,
@@ -3968,13 +4016,13 @@ function evAfterChron() {
   evClear(ex.ev); evLive = null; ex.ev = null;
   if (ex.godEra === 'primal') {
     state.mode = 'evcard';
-    playScene(LOGOS_LINES, ['LOGOS', '로고스 · 기록을 읽는 자'], () => {
+    godManifest(GOD_REVEAL, { block: true }).then(() => playScene(LOGOS_LINES, ['LOGOS', '로고스 · 기록을 읽는 자'], () => {
       ex.godEra = 'ancient';
       state.mode = 'flying';
       toast('고대 · 로고스의 시대가 열렸다', '#ffd27a');
       sfx('warpOut');
       setTimeout(() => aiSay('다음 신호가 오면 알려 줄게요. 그동안 우주를 둘러봐요.', { hold: 5 }), 1500);
-    }, '고대로 ›');
+    }, '고대로 ›'));
   } else { state.mode = 'flying'; aiSay('별이 또 하나 이름을 얻었어요. 고마워요, 항해사님.', { hold: 5 }); }
 }
 function evFail() {
@@ -4067,6 +4115,42 @@ function evFrame(dt, now) {
     placeLabel(m.label, tmpW, 4);
   });
 }
+
+
+// ---------- 신의 현현: 거대한 얼굴이 창 밖에 떠올라 한 줄씩 말한다 ----------
+const GOD = { on: false, skip: null };
+function godManifest(lines, opt = {}) {
+  return new Promise(resolve => {
+    const el = $('godP'), tx = $('gpText');
+    GOD.on = true; document.body.classList.add('god-on');
+    el.classList.add('on'); el.classList.toggle('block', !!opt.block);
+    sfx('presence');
+    state.shake = Math.max(state.shake, .35);
+    let i = 0, timer = null, typing = null;
+    const finish = () => {
+      clearTimeout(timer); clearInterval(typing);
+      tx.classList.add('fade'); el.classList.remove('speak');
+      setTimeout(() => { el.classList.remove('on', 'block'); GOD.on = false; GOD.skip = null; document.body.classList.remove('god-on'); tx.textContent = ''; tx.classList.remove('fade'); resolve(); }, 900);
+    };
+    const show = () => {
+      if (i >= lines.length) return finish();
+      const line = lines[i++];
+      let n = 0;
+      tx.classList.remove('fade'); tx.textContent = ''; el.classList.add('speak');
+      clearInterval(typing);
+      typing = setInterval(() => {
+        tx.textContent = line.slice(0, ++n);
+        if (n >= line.length) { clearInterval(typing); el.classList.remove('speak'); timer = setTimeout(next, (opt.hold || 1.4) * 1000 + line.length * 45); }
+      }, 70);
+    };
+    const next = () => { tx.classList.add('fade'); setTimeout(show, 450); };
+    // 막는 현현은 클릭 · 키로 다음 줄
+    GOD.skip = () => { clearTimeout(timer); clearInterval(typing); next(); };
+    setTimeout(show, opt.delay || 1600);
+  });
+}
+$('godP').addEventListener('click', () => { if ($('godP').classList.contains('block') && GOD.skip) GOD.skip(); });
+const GOD_REVEAL = ['…보았다.', '너희가 흩어진 목소리를 모아 별을 피워 냈다.', '나는 로고스. 모든 기록의 잔향을 읽는 자.', '이제, 고대가 열린다.'];
 
 // ---------- 함선 AI 통신창 ----------
 let commT = null, commTyping = null;
