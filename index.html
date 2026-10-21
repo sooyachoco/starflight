@@ -340,7 +340,7 @@
   .lore-btns button.pri { color: #04131c; background: #3ee6ff; border-color: #3ee6ff; }
   .lore-btns button:hover { filter: brightness(1.15); }
   @media (max-width: 760px) {
-    .lore-npc { left: 50%; bottom: auto; top: 6vh; height: 40vh; translate: -50% 0; }
+    .lore-npc { left: 50%; top: auto; bottom: 228px; height: min(40vh, 330px); translate: -50% 0; }   /* 말풍선 바로 위 */
     .lore-box { left: 16px; right: 16px; bottom: max(20px, env(safe-area-inset-bottom)); padding: 24px 20px 16px; }
     .lore-box::before { left: 50%; top: -12px; margin-left: -11px; transform: rotate(135deg); }
     .lore-name { left: 16px; }
@@ -865,7 +865,6 @@
     <div class="t-sub">EXPANSION</div>
     <p class="t-tag">로그가 별이 되는 우주, 지금 출항합니다.</p>
     <button class="t-go" id="tGo">비행 시작<svg viewBox="0 0 16 16" fill="none" stroke-width="2"><path d="M5 2l6 6-6 6"/></svg></button>
-    <div class="t-hint"><kbd class="key-only">ENTER</kbd><kbd class="touch-only-i">TAP</kbd><span>조종사 · 기체 선택</span></div>
     <div class="t-links"><button id="tHelp">조작법</button><button id="tLore">세계관</button></div>
   </div>
   <div class="t-sndhint">클릭하면 사운드가 켜져요</div>
