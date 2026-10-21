@@ -1688,11 +1688,11 @@ const SHIPS = [
 let shipDef = SHIPS[1];
 // 조종사: PILOTING → 선회, NAVIGATION → 연료 효율·워프, ENGINEERING → 냉각·실드 회복·FIELD 충전
 const PILOTS = [
-  { no: '01', name: 'HANA', cls: 'TEST PILOT', stats: [5, 4, 2], img: 'assets/pilot-hana.webp',
+  { no: '01', name: '김영', cls: 'TEST PILOT', stats: [5, 4, 2], img: 'assets/pilot-kimyoung.webp', pos: '50% 10%',
     perk: '선회 +20% · 연료 효율 +9% · 냉각·회복 −6%' },
-  { no: '02', name: 'ALEX', cls: 'EXPLORER', stats: [4, 5, 3], img: 'assets/pilot-alex.webp',
+  { no: '02', name: '권용범', cls: 'EXPLORER', stats: [4, 5, 3], img: 'assets/pilot-kwonyb.webp', pos: '50% 10%',
     perk: '연료 효율 +15% · 워프 +10% · 선회 +12%' },
-  { no: '03', name: 'RHEA', cls: 'FLIGHT ENGINEER', stats: [3, 4, 5], img: 'assets/pilot-rhea.webp',
+  { no: '03', name: '이승수', cls: 'FLIGHT ENGINEER', stats: [3, 4, 5], img: 'assets/pilot-leess.webp', pos: '50% 10%',
     perk: '레이저 냉각 · 실드 회복 · FIELD 충전 +30%' },
 ].map(pl => Object.assign(pl, {
   turn: .8 + .08 * pl.stats[0], fuel: 1.15 - .06 * pl.stats[1], warp: .9 + .04 * pl.stats[1], tech: .7 + .12 * pl.stats[2] }));
@@ -1844,7 +1844,7 @@ function buildSelect(kind = selKind) {
   $('selCards').innerHTML = S.items.map((it, i) => `
     <div class="ship-card" data-i="${i}">
       <div class="tab">SELECTED</div>
-      <div class="art"><img src="${it.img}" alt="${it.name} ${it.cls}" draggable="false"></div>
+      <div class="art"><img src="${it.img}" alt="${it.name} ${it.cls}" draggable="false"${it.pos ? ` style="object-position:${it.pos}"` : ''}></div>
       <div class="info">
         <div class="ttl"><span class="no">${it.no} /</span>${it.name}${S.crew ? `<span class="crew">${crewIcon}CREW <b>${it.crew}</b></span>` : ''}</div>
         <div class="cls">${it.cls}</div>
