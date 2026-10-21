@@ -2076,6 +2076,7 @@ function killEnemy(i, credited) {
   e.el.remove();
   enemies.splice(i, 1);
   sfx('boom', e.g.position.distanceTo(ship.position));
+  if (credited) dropPatch(e.g.position, .45);
   if (credited) {
     state.kills++;
     state.score += 250;
@@ -2935,7 +2936,9 @@ function setupExpansion() {
   applyWorld('expansion');
   Object.assign(ex, { day: 0, cum: 0, a: 1, era: 0, mission: null, crystals: 0, bhNear: false, q: 0, qMax: 0, sats: 0,
     newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0, phase: 1, fieldOn: false, field: 100, pulses: 0, ddosStats: null,
-    reserveUsed: false, fuelWarn: 100, refueling: null, scooping: false, fuelBought: 0, scooped: 0 });
+    reserveUsed: false, fuelWarn: 100, refueling: null, scooping: false, fuelBought: 0, scooped: 0,
+    repairing: null, hullWarn: 100, dockWarned: false });
+  clearPatches();
   ex.crystals = 40;
   dqReset();
   exPulse.t = -1; exPulse.mesh.visible = exPulse.ring.visible = false;
@@ -2979,6 +2982,8 @@ function showExBrief() {
       <li>은하 내부는 중력으로 묶여 있어 팽창하지 않습니다. 멀어지는 건 은하와 은하 사이입니다.</li>
       <li><b style="color:#3ee6c1">연료</b>: 은하마다 있는 <b>연료소(FUEL)</b>의 급유 고리 안에서 120 m/s 이하로 머물면 보급됩니다 (데이터 결정 1 = 연료 1%).
         결정이 없으면 느리게 무료 급유됩니다. 항성 코로나를 스치듯 지나면 연료를 조금씩 모을 수도 있습니다.</li>
+      <li><b style="color:#ffb23e">수리</b>: <b>정비 도크(REPAIR)</b>의 고리 안에서 감속하면 선체가 수리되고 쉴드가 채워집니다 (데이터 결정 2 = 선체 1%).
+        적을 격추하면 가끔 <b style="color:#7dffb0">패치 모듈</b>이 떨어집니다. 가까이 지나가면 선체 +8%. 전투 미션 중에는 도크가 점검에 들어갑니다.</li>
       <li><b style="color:#4aa8ff">데이터 의뢰</b>: 관측소 건설 · 로그 샘플링 · 404 미아 구조 · 이상치 탐지 · 유저 여정 추적이 차례로 들어옵니다. 완료하면 결정과 연료를 받습니다.</li>
     </ol>
     <p style="color:#6f82a3">※ 모든 수치는 가상 데이터이며 실제 서비스 지표와 무관합니다.</p>
@@ -3152,6 +3157,7 @@ function exUpdate(dt, now) {
     }
   }
   if (fuelUpdate(dt, now)) return;
+  repairUpdate(dt);
   if (!ex.mission) dqUpdate(dt, now);
   // 시대 진입
   if (!ex.mission && ex.era < 3 && ex.cum >= ERAS[ex.era + 1].at) { ex.era++; ex.phase = 1; exEraCard(ex.era); return; }
@@ -3282,6 +3288,7 @@ function exFrame(dt, now) {
   }
   exFrameEra3(dt, now);
   fuelFrame(dt, now);
+  repairFrame(dt, now);
   dqFrame(dt, now);
   // 라벨
   exGal.forEach(g => { tmpW.copy(g.grp.position); tmpW.y += g.G.R + 30; placeLabel(g.label, tmpW, 4); });
@@ -3430,6 +3437,169 @@ function fuelQuest() {
   const nd = nearestDepot();
   return nd ? { text: `연료 ${Math.round(state.fuel)}% — 가까운 연료소로 · ${nd.d.gal.G.hub ? '넥슨닷컴' : nd.d.gal.G.ko}`, pos: nd.d.world, col: urgent ? Q_RED : Q_AMBER } : null;
 }
+
+// =====================================================================
+// 정비 도크 · 패치 모듈 — 선체 수리 (결정 소모) · 격추 보상으로 떨어지는 회복 아이템
+// =====================================================================
+const DOCK_R = 46, REPAIR_RATE = 9, FREE_REPAIR = 2, REPAIR_COST = 2;   // %/초 · 결정 2 = 선체 1%
+const dockLamp = new THREE.MeshBasicMaterial({ color: 0xffb23e, fog: false });
+function buildDock() {
+  const g = new THREE.Group();
+  const add = (geo, mat, p = [0, 0, 0], r = [0, 0, 0]) => { const m = new THREE.Mesh(geo, mat); m.position.set(...p); m.rotation.set(...r); g.add(m); return m; };
+  add(new THREE.CylinderGeometry(7, 7, 10, 6), depotDark);
+  add(new THREE.CylinderGeometry(4, 7, 6, 6), depotMetal, [0, 8, 0]);
+  add(new THREE.CylinderGeometry(7, 4, 6, 6), depotMetal, [0, -8, 0]);
+  for (let k = 0; k < 4; k++) {   // 정비 암 네 개
+    const a = k * Math.PI / 2;
+    add(new THREE.BoxGeometry(16, 1.6, 2.4), depotMetal, [Math.cos(a) * 13, 0, Math.sin(a) * 13], [0, -a, 0]);
+    add(new THREE.BoxGeometry(2.4, 7, 2.4), depotDark, [Math.cos(a) * 21, 2.5, Math.sin(a) * 21]);
+    add(new THREE.SphereGeometry(1.2, 8, 6), dockLamp, [Math.cos(a) * 21, 6.5, Math.sin(a) * 21]);
+  }
+  add(new THREE.TorusGeometry(10, .8, 8, 6), dockLamp, [0, 0, 0], [Math.PI / 2, 0, 0]);
+  const zone = add(new THREE.TorusGeometry(DOCK_R, .45, 6, 72), new THREE.MeshBasicMaterial({ color: 0xffb23e, transparent: true,
+    opacity: .3, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), [0, 0, 0], [Math.PI / 2, 0, 0]);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture([[0, '#ffe6b8'], [.3, '#ffb23e55'], [1, '#00000000']], 64),
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  glow.scale.setScalar(80);
+  g.add(glow);
+  return { g, zone, glow };
+}
+// 허브와 은하 하나 건너 하나에 배치 (연료소 반대편)
+const docks = exGal.filter((gal, i) => i % 2 === 0).map((gal, i) => {
+  const d = buildDock();
+  const a = gal.gi * 1.9 + .8 + Math.PI, r = gal.G.hub ? 240 : 185;
+  d.g.position.set(Math.cos(a) * r, -30, Math.sin(a) * r);
+  gal.grp.add(d.g);
+  d.gal = gal;
+  d.world = new THREE.Vector3();
+  d.label = exLabel('cc', `<b style="color:#ffb23e">REPAIR</b><span>${gal.G.hub ? '넥슨닷컴' : gal.G.ko} 정비 도크</span>`);
+  d.label.style.display = 'none';
+  return d;
+});
+const repairBeam = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+  new THREE.LineBasicMaterial({ color: 0xffc870, transparent: true, opacity: .8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+repairBeam.frustumCulled = false; repairBeam.visible = false;
+exWorld.add(repairBeam);
+const docksOffline = () => COMBAT_MISSIONS.includes(ex.mission);
+function nearestDock() {
+  let best = null, bd = Infinity;
+  for (const d of docks) { const dist = d.world.distanceTo(ship.position); if (dist < bd) { bd = dist; best = d; } }
+  return best && { d: best, dist: bd };
+}
+let repairSfxT = 0;
+function repairUpdate(dt) {
+  docks.forEach(d => d.g.getWorldPosition(d.world));
+  const nd = nearestDock();
+  ex.repairing = null;
+  if (nd && nd.dist < 14) {   // 도크 본체에 부딪힘
+    tmpV.copy(ship.position).sub(nd.d.world).normalize();
+    ship.position.copy(nd.d.world).addScaledVector(tmpV, 16);
+    state.speed *= .3;
+  }
+  if (nd && nd.dist < DOCK_R && (state.hull < 99.9 || state.shield < 99.9)) {
+    if (docksOffline()) {
+      if (!ex.dockWarned) { toast('전투 미션 중 — 정비 도크 점검 중 (패치 모듈을 주우세요)', '#ffb23e'); ex.dockWarned = true; }
+    } else if (state.speed > REFUEL_SPEED) {
+      if (!ex.dockWarned) { toast('정비 고리 안 — 120 m/s 이하로 감속하세요', '#ffb23e'); ex.dockWarned = true; }
+    } else {
+      ex.dockWarned = false;
+      const paid = ex.crystals >= REPAIR_COST * .1;
+      const add = Math.min(100 - state.hull, (paid ? REPAIR_RATE : FREE_REPAIR) * dt);
+      state.hull += add;
+      if (paid) ex.crystals = Math.max(0, ex.crystals - add * REPAIR_COST);
+      state.shield = Math.min(100, state.shield + 25 * dt);   // 쉴드는 무료 재충전
+      ex.repairing = { d: nd.d, paid };
+      repairSfxT -= dt;
+      if (repairSfxT <= 0) { sfx('blip', 500); repairSfxT = .6; }
+      if (state.hull >= 99.9 && state.shield >= 99.9) { toast(`수리 완료 · 결정 ${Math.round(ex.crystals)} 남음`, '#ffb23e'); ex.hullWarn = 100; }
+    }
+  } else ex.dockWarned = false;
+  if (state.hull < 40 && ex.hullWarn > 40) { ex.hullWarn = 40; toast('선체 40% — 정비 도크(REPAIR)에서 수리하세요', '#ffb23e'); sfx('alarm'); }
+  if (state.hull < 20 && ex.hullWarn > 20) { ex.hullWarn = 20; toast('선체 20% — 위험!', '#ff6a6a'); sfx('alarm'); }
+  if (state.hull > 60) ex.hullWarn = 100;
+  patchUpdate(dt);
+}
+function repairFrame(dt, now) {
+  docks.forEach((d, i) => {
+    d.g.rotation.y -= dt * .25;
+    const active = ex.repairing && ex.repairing.d === d, off = docksOffline();
+    d.zone.material.opacity = off ? .08 : active ? .7 + .3 * Math.sin(now * 10) : .22 + .1 * Math.sin(now * 2 + i);
+    d.glow.material.opacity = off ? .25 : active ? 1 : .7;
+    if (ship.position.distanceTo(d.world) < 1400) { tmpW.copy(d.world); tmpW.y += 30; placeLabel(d.label, tmpW, 4); }
+    else d.label.style.display = 'none';
+  });
+  const r = ex.repairing;
+  repairBeam.visible = !!r;
+  if (r) {
+    tmpV.copy(ship.position).addScaledVector(new THREE.Vector3(0, -1, 0).applyQuaternion(ship.quaternion), 2);
+    repairBeam.geometry.setFromPoints([r.d.world.clone(), tmpV.clone()]);
+    repairBeam.material.opacity = .5 + .4 * Math.sin(now * 16);
+  }
+  patchFrame(dt, now);
+}
+function repairRadar(g, toRadar) {
+  for (const d of docks) {
+    const p = toRadar(d.world, false);
+    if (!p) continue;
+    g.fillStyle = docksOffline() ? '#6b5a3a' : '#ffb23e'; g.fillRect(p[0] - 4, p[1] - 4, 8, 8);
+    g.fillStyle = '#1a0f02'; g.font = '700 8px Rajdhani, sans-serif'; g.textAlign = 'center'; g.fillText('R', p[0], p[1] + 3);
+  }
+  g.fillStyle = '#7dffb0';
+  for (const pm of patches) { const p = toRadar(pm.g.position, false); if (p) { g.beginPath(); g.arc(p[0], p[1], 2.5, 0, Math.PI * 2); g.fill(); } }
+}
+function repairQuest() {
+  if (ex.repairing) {
+    return { text: ex.repairing.paid ? `수리 중 · 선체 ${Math.round(state.hull)}% · 결정 ${Math.round(ex.crystals)}` : `무료 수리 중 · 선체 ${Math.round(state.hull)}% (결정 부족 · 느림)`,
+      pos: null, col: Q_AMBER };
+  }
+  if (docksOffline() || state.hull >= 40) return null;
+  const nd = nearestDock();
+  return nd ? { text: `선체 ${Math.round(state.hull)}% — 가까운 정비 도크로 · ${nd.d.gal.G.hub ? '넥슨닷컴' : nd.d.gal.G.ko}`,
+    pos: nd.d.world, col: state.hull < 20 ? Q_RED : Q_AMBER } : null;
+}
+
+// ---------- 패치 모듈: 격추하면 가끔 떨어지는 초록 큐브, 가까이 지나가면 선체 +8% ----------
+const patches = [];
+const patchMat = new THREE.MeshStandardMaterial({ color: 0x3ee68a, emissive: 0x1fbf6a, emissiveIntensity: .9, metalness: .4, roughness: .3 });
+const patchEdge = new THREE.LineBasicMaterial({ color: 0xc8ffe0, transparent: true, opacity: .9, fog: false });
+const patchGlowMat = new THREE.SpriteMaterial({ map: glowTexture([[0, '#d8ffe8'], [.35, '#3ee68a55'], [1, '#00000000']], 64),
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+function dropPatch(pos, chance) {
+  if (!exWorld.visible || Math.random() > (docksOffline() ? chance * 1.5 : chance)) return;
+  const g = new THREE.Group();
+  const geo = new THREE.BoxGeometry(4, 4, 4);
+  g.add(new THREE.Mesh(geo, patchMat));
+  g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), patchEdge));
+  const glow = new THREE.Sprite(patchGlowMat); glow.scale.setScalar(22); g.add(glow);
+  g.position.copy(pos);
+  exWorld.add(g);
+  patches.push({ g, vel: randomDir().multiplyScalar(4), life: 30 });
+}
+function patchUpdate(dt) {
+  for (let i = patches.length - 1; i >= 0; i--) {
+    const pm = patches[i];
+    pm.life -= dt;
+    const d = pm.g.position.distanceTo(ship.position);
+    if (d < 60) {   // 가까우면 기체 쪽으로 끌려옴
+      tmpV.copy(ship.position).sub(pm.g.position).normalize().multiplyScalar(dt * (90 - d));
+      pm.g.position.add(tmpV);
+    } else pm.g.position.addScaledVector(pm.vel, dt);
+    if (d < 14) {
+      if (state.hull < 99.9) { state.hull = Math.min(100, state.hull + 8); toast(`패치 모듈 회수 · 선체 +8% (${Math.round(state.hull)}%)`, '#7dffb0'); }
+      else { state.shield = Math.min(100, state.shield + 15); toast('패치 모듈 회수 · 쉴드 +15%', '#7dffb0'); }
+      burst(pm.g.position, 0x7dffb0, 40, 10, .7);
+      sfx('blip', 300);
+      exWorld.remove(pm.g); patches.splice(i, 1);
+    } else if (pm.life <= 0) { exWorld.remove(pm.g); patches.splice(i, 1); }
+  }
+}
+function patchFrame(dt, now) {
+  for (const pm of patches) {
+    pm.g.rotation.x += dt * 1.3; pm.g.rotation.y += dt * 1.7;
+    pm.g.visible = pm.life > 5 || Math.sin(now * 14) > -.2;   // 사라지기 직전 깜빡임
+  }
+}
+function clearPatches() { while (patches.length) exWorld.remove(patches.pop().g); }
 
 
 // =====================================================================
@@ -4037,6 +4207,7 @@ function exRadar(g, toRadar, R, range) {
   g.fillStyle = '#3ee6c1';
   for (const c of exConvoys) { const p = toRadar(c.g.position, false); if (p) g.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
   fuelRadar(g, toRadar);
+  repairRadar(g, toRadar);
   dqRadar(g, toRadar);
   g.fillStyle = 'rgba(255,138,90,.8)';
   for (let k = 0; k < drones.length; k += 2) { const p = toRadar(drones[k].p, false); if (p) g.fillRect(p[0] - 1, p[1] - 1, 2, 2); }
@@ -4232,6 +4403,7 @@ function exStartDdos() {
 function exKillDrone(j, byField) {
   const d = drones[j];
   if (!byField || Math.random() < .35) burst(d.p, 0xff9a5a, byField ? 8 : 16, 10, .6);
+  if (!byField) dropPatch(d.p, .05);
   drones[j] = drones[drones.length - 1]; drones.pop();
   ex.drKills++;
 }
@@ -4330,6 +4502,7 @@ function exHitStealth(j, dmg) {
     burst(st.g.position, 0xffb23e, 120, 20, 1.6);
     sfx('boom', st.g.position.distanceTo(ship.position));
     exWorld.remove(st.g); st.el.remove(); exStealth.splice(j, 1);
+    dropPatch(st.g.position, 1);
     ex.stKills++; state.score += 300;
     toast(`침투조 격추 ${ex.stKills}/6`, '#ffb23e');
   }
@@ -4406,6 +4579,8 @@ function questInfo() {
   if (exWorld.visible) {
     const fq = fuelQuest();
     if (fq) return fq;
+    const rq = repairQuest();
+    if (rq) return rq;
     if (ex.mission === 'bh') {
       if (beacons[0]) return { text: `블랙홀 주변 위성 배치 지점 ${ex.sats + 1}/3 통과`, pos: beacons[0].mesh.position, col: Q_TEAL };
       return { text: '위성 배치 완료 — 대기열이 줄어드는 중', pos: exBH.grp.getWorldPosition(new THREE.Vector3()), col: Q_VIOLET };
@@ -4604,6 +4779,7 @@ function statusInfo() {
   if (state.hitT > 0) return ['DAMAGE', '#ff5a5a'];
   if (state.warp > 0.3) return ['WARP', '#a98bff'];
   if (exWorld.visible && ex.refueling) return ['REFUEL', '#3ee6c1'];
+  if (exWorld.visible && ex.repairing) return ['REPAIR', '#ffb23e'];
   if (exWorld.visible && ex.scooping) return ['SCOOP', '#ffb23e'];
   if (exWorld.visible && ex.bhNear) return ['GRAVITY', '#a98bff'];
   if (exWorld.visible && !ex.mission && DQ.active && DQ.active.hold) return ['OBSERVING', '#4aa8ff'];
