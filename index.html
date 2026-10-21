@@ -671,6 +671,8 @@
   .exrow { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; font-weight: 600;
     color: var(--dim); padding: 2px 0; font-variant-numeric: tabular-nums; }
   .exrow b { color: #e9f1ff; font-weight: 600; }
+  .exbar.mood i { transition: width .4s, background .4s; }
+  .lwl .sig { display: block; margin-top: 2px; font-style: normal; font-size: 12px; font-weight: 700; letter-spacing: .06em; }
   .exbar { height: 6px; border-radius: 3px; background: #ffffff14; overflow: hidden; margin: 6px 0 2px; }
   .exbar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, #4aa8ff, #a98bff); }
   .exnext { font-size: 12px; font-weight: 600; color: var(--dim); text-align: right; letter-spacing: .04em; }
@@ -896,6 +898,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="assets/echo.js?v=1"></script>
 <script>
 // =====================================================================
 // 유틸
@@ -1673,6 +1676,7 @@ function openSettings() {
     <label class="vol"><span>배경음 음량</span><input type="range" id="mvol" min="0" max="100" step="1"
       value="${Math.round(BGM.vol / BGM_MAX * 100)}"><b id="mvolV">${Math.round(BGM.vol / BGM_MAX * 100)}%</b></label>
     <button data-act="gfx">그래픽: ${GFX_NAME[gfx]}</button>
+    <button data-act="observatory">관측소 열기 ↗</button>
     ${onTitle ? '' : '<button data-act="restart">처음부터 다시</button>'}
     <button data-act="close">닫기</button>`, true);
 }
@@ -1908,6 +1912,7 @@ $('overlay').addEventListener('click', e => {
   if (act === 'ex-cont') { exContinue(); return; }
   if (act === 'ex-retry') { exRetry(); return; }
   if (act === 'title') { showTitle(); return; }
+  if (act === 'observatory') { window.open('logverse.html', '_blank', 'noopener'); return; }
   if (act === 'close') { if (state.mode === 'title') { showTitle(); return; } if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
   if ($('overlay').dataset.settings) return;
   primaryAction();
@@ -2323,7 +2328,7 @@ function initAudio() {
 // ---------- 배경음악: 타이틀 · 순항 · 전투, 상황에 따라 교차 페이드 ----------
 const BGM_MAX = .5;   // 슬라이더 100% = 게인 0.5
 const BGM_TRIM = { title: 1.9, space: 1.35, combat: 1.2 };   // 곡마다 마스터링 음량이 달라 맞춤 (title -20, space -18.8, combat -15.2 dB RMS)
-const BGM = { tracks: {}, cur: null, vol: .26, on: true };
+const BGM = { tracks: {}, cur: null, vol: .26, on: true, moodGain: 1 };
 try {
   BGM.on = localStorage.getItem('nxlog-music') !== 'off';
   const v = parseInt(localStorage.getItem('nxlog-mvol'), 10);
@@ -2373,7 +2378,7 @@ function musicUpdate(dt) {
   const duck = state.mode === 'paused' || state.mode === 'over' ? .35 : 1;
   for (const [k, tr] of Object.entries(BGM.tracks)) {
     const on = k === want;
-    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * BGM_TRIM[k] : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
+    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * BGM_TRIM[k] * (k === 'space' ? BGM.moodGain : 1) : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
     if (on) { tr.idle = 0; if (tr.el.paused) tr.el.play().catch(() => {}); }
     else if (!tr.el.paused && (tr.idle += dt) > 5) tr.el.pause();
   }
@@ -2721,6 +2726,8 @@ const EX_NEW = [
 const exDiurnal = h => .3 + .7 * Math.min(1, .45 * lwGb(h, 12.5, 2.5) + lwGb(h, 21, 2.2));
 const EX_DMEAN = (() => { let t = 0; for (let h = 0; h < 24; h += .1) t += exDiurnal(h); return t / 240; })();
 const exTotalDaily = day => EX_GAMES.reduce((t, G) => t + G.daily, 0) * Math.pow(1.04, day);
+// 잔향 신호 엔진 (assets/echo.js): 은하별 모의 로그 유입량과 급증·정적 등 신호를 만든다
+let echo = Echo.create({ games: EX_GAMES });
 const exScale = cum => 1 + .55 * Math.log10(1 + cum / 2e7);
 const exFmtBig = n => n >= 1e8 ? (n / 1e8).toFixed(n >= 1e9 ? 1 : 2) + '억' : n >= 1e4 ? Math.round(n / 1e4).toLocaleString('en-US') + '만' : Math.round(n).toLocaleString('en-US');
 
@@ -2859,8 +2866,8 @@ function exClearParticles() {
 }
 function exGenerate(dt, now) {
   const hour = (ex.day % 1) * 24;
-  const n = lwPoisson(70 * dt * exDiurnal(hour) / EX_DMEAN);
-  const gw = EX_GAMES.map(G => G.daily);
+  const n = lwPoisson(70 * dt * Math.min(3, echo.power(ex.day)));
+  const gw = EX_GAMES.map((G, i) => echo.flow(i, ex.day));   // 급증한 은하로 흐름이 몰리고, 정적인 은하는 끊긴다
   for (let k = 0; k < n; k++) {
     let gal = exGal[lwPick(gw)];
     const live = gal.planets.filter(p => p.formed);
@@ -2975,6 +2982,8 @@ const OBJ_EX_HTML = `
   <div class="oh"><svg viewBox="0 0 24 24" fill="none" stroke="#a98bff" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" stroke-dasharray="2 3"/><circle cx="12" cy="12" r="10.5" opacity=".5"/></svg><span id="exEraT">ERA 0 · 특이점</span></div>
   <div class="exbig"><span>누적 로그</span><b id="exCum">0</b></div>
   <div class="exrow"><span>우주 규모</span><b id="exA">a = 1.00</b></div>
+  <div class="exrow"><span>잔향 유입</span><b id="exMood">평온</b></div>
+  <div class="exbar mood"><i id="exMoodBar"></i></div>
   <div class="exbar"><i id="exProg"></i></div><div class="exnext" id="exNext"></div>
   <div class="exrow"><span id="exDay">DAY 0</span><b id="exObs">관측 0/0</b></div>
   <div class="exrow"><span>데이터 결정</span><b id="exCry">0</b></div>
@@ -2982,7 +2991,7 @@ const OBJ_EX_HTML = `
   <div id="exGalInfo"></div>
   <div id="exMis"></div>
   <div id="exQuest"></div>
-  <div class="exnote">가상 데이터 · 실제 서비스 지표와 무관</div>`;
+  <div class="exnote">모의 로그 · 가상 데이터 · 실제 서비스 지표와 무관</div>`;
 
 function exGalHud() {
   let best = exGal[0], bd = Infinity;
@@ -3005,9 +3014,11 @@ function setupExpansion() {
   applyWorld('expansion');
   Object.assign(ex, { day: 0, cum: 0, a: 1, era: 0, mission: null, crystals: 0, bhNear: false, q: 0, qMax: 0, sats: 0,
     newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0, phase: 1, fieldOn: false, field: 100, pulses: 0, ddosStats: null,
-    reserveUsed: false, fuelWarn: 100, refueling: null, scooping: false, fuelBought: 0, scooped: 0,
+    reserveUsed: false, fuelWarn: 100, refueling: null, scooping: false, fuelBought: 0, scooped: 0, mood: 1, signals: [],
     repairing: null, hullWarn: 100, dockWarned: false });
   clearPatches();
+  echo = Echo.create({ games: EX_GAMES });
+  exGal.forEach(g => { g.unstable = 0; g.eclipse = 0; g.sig = null; exGalLabel(g); });
   ex.crystals = 40;
   dqReset();
   exPulse.t = -1; exPulse.mesh.visible = exPulse.ring.visible = false;
@@ -3197,7 +3208,8 @@ function exRetry() {
 function exUpdate(dt, now) {
   const slow = ex.mission ? .15 : 1, dDay = dt / EX_DAY_S * slow;
   ex.day += dDay;
-  ex.cum += exTotalDaily(ex.day) * exDiurnal((ex.day % 1) * 24) / EX_DMEAN * dDay;
+  ex.cum += echo.total(ex.day) * dDay;
+  for (const sig of echo.step(ex.day)) exSignal(sig);
   if (!ex.mission) { ex.a = exScale(ex.cum); ex.maxA = Math.max(ex.maxA, ex.a); }
   // 새 행성 탄생
   while (ex.newIdx < EX_NEW.length && ex.day >= EX_NEW[ex.newIdx].day) exBirth(EX_NEW[ex.newIdx++]);
@@ -3358,6 +3370,7 @@ function exFrame(dt, now) {
   exFrameEra3(dt, now);
   fuelFrame(dt, now);
   repairFrame(dt, now);
+  if (exSignalFrame(dt, now)) return;
   dqFrame(dt, now);
   // 라벨
   exGal.forEach(g => { tmpW.copy(g.grp.position); tmpW.y += g.G.R + 30; placeLabel(g.label, tmpW, 4); });
@@ -3505,6 +3518,93 @@ function fuelQuest() {
   if (!urgent && !low) return null;
   const nd = nearestDepot();
   return nd ? { text: `연료 ${Math.round(state.fuel)}% — 가까운 연료소로 · ${nd.d.gal.G.hub ? '넥슨닷컴' : nd.d.gal.G.ko}`, pos: nd.d.world, col: urgent ? Q_RED : Q_AMBER } : null;
+}
+
+// =====================================================================
+// 신호 해석 — 급증 → 불안정한 별 · 정적 → 일식(신의 침묵) · 신의 기분 = 전체 유입량
+// =====================================================================
+const SIG_EVENT = {
+  spike: { name: '불안정한 별', col: '#ffb23e', sub: s => `로그 급증 ×${s.strength.toFixed(1)}` },
+  silence: { name: '일식 · 신의 침묵', col: '#9fb4d6', sub: () => '로그 정적 (점검)' },
+};
+function exGalLabel(g) {
+  const ev = g.sig && SIG_EVENT[g.sig.kind];
+  g.label.innerHTML = `<b>${g.G.name}</b><span>${g.G.ko}${g.G.hub ? ' · 허브 항성' : ' 은하'}</span>` +
+    (ev ? `<em class="sig" style="color:${ev.col}">⚠ ${ev.name}</em>` : '');
+}
+function exSignal(sig) {
+  ex.signals.push(sig);
+  const G = sig.game === 'all' ? null : EX_GAMES.find(x => x.id === sig.game);
+  const gal = G && exGal[EX_GAMES.indexOf(G)];
+  const ev = SIG_EVENT[sig.kind];
+  if (!ev) {   // 감소 · 동조는 아직 해석 규칙이 없다 (관측소에 '해석 대기'로 기록)
+    if (sig.state === 'start') toast(`신호 감지 · ${G ? G.ko + ' ' : ''}${Echo.KIND_KO[sig.kind]} → 해석 대기`, '#8ea3c6');
+    return;
+  }
+  if (sig.state === 'start') {
+    gal.sig = sig; exGalLabel(gal);
+    toast(`신호 감지 · ${G.ko} ${ev.sub(sig)} → ${ev.name}`, ev.col);
+    sfx(sig.kind === 'spike' ? 'warpIn' : 'blip', sig.kind === 'spike' ? 300 : 600);
+  } else {
+    if (gal.sig && gal.sig.kind === sig.kind) { gal.sig = null; exGalLabel(gal); }
+    toast(sig.kind === 'spike' ? `${G.ko} · 불안정한 별이 진정되었다` : `${G.ko} · 일식이 걷혔다`, '#3ee6c1');
+  }
+}
+// 불안정 파동: 별에서 퍼지는 고리. 지나가는 고리에 닿으면 약한 피해
+const waveGeo = new THREE.RingGeometry(.96, 1, 96);
+const waves = [];
+function exSpawnWave(gal) {
+  const m = new THREE.Mesh(waveGeo, new THREE.MeshBasicMaterial({ color: 0xffc070, transparent: true, opacity: .8, side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  m.rotation.x = -Math.PI / 2;
+  gal.grp.add(m);
+  waves.push({ m, gal, r: gal.G.R, hit: false });
+}
+let coronaTex = null;
+function exSignalFrame(dt, now) {
+  // 신의 기분: 전체 유입량 (밤엔 고요, 축제엔 고양)
+  ex.mood += (echo.power(ex.day) - ex.mood) * (1 - Math.exp(-dt * 1.5));
+  const mk = Math.min(1.8, ex.mood) / 1.8;
+  BGM.moodGain = .55 + .7 * mk;   // 우주 앰비언스가 유입에 따라 숨 쉬듯 커지고 작아짐
+  if (bloomPass && gfx !== 'low') bloomPass.strength = (gfx === 'high' ? .55 : .45) * (.8 + .45 * mk);
+  exGal.forEach((g, i) => {
+    if (g.glowBase === undefined) { g.glowBase = g.glow.material.opacity; g.starCol = g.star.material.color.clone(); }
+    const sk = g.sig && g.sig.kind;
+    g.unstable += ((sk === 'spike' ? 1 : 0) - g.unstable) * (1 - Math.exp(-dt * 1.2));
+    g.eclipse += ((sk === 'silence' ? 1 : 0) - g.eclipse) * (1 - Math.exp(-dt * 1.5));
+    const u = g.unstable, e = g.eclipse;
+    g.star.scale.setScalar(1 + .32 * u + .07 * u * Math.sin(now * 7 + i));
+    g.star.material.color.copy(g.starCol).lerp(new THREE.Color(0xffffff), .5 * u).multiplyScalar(1 - .85 * e);
+    const hubMood = g.G.hub ? .8 + .35 * mk : 1;
+    g.glow.material.opacity = g.glowBase * (1 + .6 * u) * (1 - .85 * e) * hubMood;
+    // 일식: 어두워진 별 둘레에 가는 코로나 고리
+    if (e > .02 && !g.corona) {
+      if (!coronaTex) coronaTex = glowTexture([[0, '#00000000'], [.36, '#00000000'], [.42, '#e8f0ffcc'], [.5, '#9fb4d655'], [1, '#00000000']], 128);
+      g.corona = new THREE.Sprite(new THREE.SpriteMaterial({ map: coronaTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      g.corona.scale.setScalar(g.G.R * 5.2); g.grp.add(g.corona);   // 고리가 별 가장자리(약 1.1R)에 오도록
+    }
+    if (g.corona) { g.corona.material.opacity = e; g.corona.visible = e > .02; }
+    // 불안정 파동 발생
+    if (u > .6) { g.waveT = (g.waveT || 0) - dt; if (g.waveT <= 0) { g.waveT = 2.4; exSpawnWave(g); } }
+  });
+  for (let k = waves.length - 1; k >= 0; k--) {
+    const w = waves[k];
+    w.r += dt * 120;
+    w.m.scale.set(w.r, w.r, 1);
+    w.m.material.opacity = .8 * Math.max(0, 1 - w.r / 460);
+    if (!w.hit && state.mode === 'flying') {
+      tmpV.copy(ship.position).sub(w.gal.grp.position);
+      if (Math.abs(tmpV.y) < 30 && Math.abs(Math.hypot(tmpV.x, tmpV.z) - w.r) < 7) {
+        w.hit = true;
+        if (damagePlayer(3, 'UNSTABLE WAVE', .4)) return true;
+      }
+    }
+    if (w.r > 460) { w.gal.grp.remove(w.m); w.m.material.dispose(); waves.splice(k, 1); }
+  }
+  return false;
+}
+function exMoodWord(m) {
+  return m < .4 ? ['침묵', '#6f82a3'] : m < .75 ? ['고요', '#8ea3c6'] : m < 1.25 ? ['평온', '#3ee6c1'] : m < 1.8 ? ['고양', '#ffb23e'] : ['격동', '#ff6a78'];
 }
 
 // =====================================================================
@@ -4334,6 +4434,9 @@ function exHud() {
   $('exEraT').textContent = `ERA ${ex.era} · ${era.name}`;
   $('exCum').textContent = Math.round(ex.cum).toLocaleString('en-US');
   $('exA').textContent = `a = ${ex.a.toFixed(2)}  (+${Math.round((ex.a - 1) * 100)}%)`;
+  const md = exMoodWord(ex.mood);
+  $('exMood').textContent = `${md[0]} · ×${ex.mood.toFixed(2)}`; $('exMood').style.color = md[1];
+  $('exMoodBar').style.width = Math.min(100, ex.mood / 2 * 100) + '%'; $('exMoodBar').style.background = md[1];
   $('exProg').style.width = (next ? clamp((ex.cum - era.at) / (next.at - era.at), 0, 1) * 100 : 100) + '%';
   $('exNext').textContent = next ? `ERA ${ex.era + 1} ${next.name}까지 ${exFmtBig(Math.max(0, next.at - ex.cum))}` : '';
   const h = Math.floor((ex.day % 1) * 24), mi = Math.floor(((ex.day % 1) * 24 % 1) * 60);
