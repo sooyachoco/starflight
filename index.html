@@ -2197,18 +2197,25 @@ function updateBolts(dt) {
 }
 
 // 효과음 (WebAudio로 즉석 합성)
-let actx = null;
+let actx = null, sfxBus = null;
 const noiseBufs = {};
 function initAudio() {
   try {
-    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!actx) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      // 효과음 버스: 음악 위로 들리도록 키우고, 겹칠 때 찢어지지 않게 컴프레서로 묶음
+      const comp = actx.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.ratio.value = 6; comp.attack.value = .003; comp.release.value = .2;
+      comp.connect(actx.destination);
+      sfxBus = actx.createGain(); sfxBus.gain.value = 3.2; sfxBus.connect(comp);
+    }
     if (actx.state === 'suspended') actx.resume();
   } catch (e) { actx = null; }
   if (actx) musicInit();
 }
 
 // ---------- 배경음악: 타이틀 · 순항 · 전투, 상황에 따라 교차 페이드 ----------
-const BGM = { tracks: {}, cur: null, vol: .55, on: true };
+const BGM = { tracks: {}, cur: null, vol: .26, on: true };
 try { BGM.on = localStorage.getItem('nxlog-music') !== 'off'; } catch (e) {}
 function musicInit() {
   if (BGM.ready) return;
@@ -2253,7 +2260,7 @@ function noise(len) {
 function sfx(type, dist = 0) {
   if (!actx || !state.sound) return;
   const t = actx.currentTime, g = actx.createGain(), fall = clamp(1 - dist / 700, 0.08, 1);
-  g.connect(actx.destination);
+  g.connect(sfxBus);
   if (type === 'warpIn' || type === 'warpOut') {
     const up = type === 'warpIn', len = up ? 1.1 : 0.7;
     const src = actx.createBufferSource(), bp = actx.createBiquadFilter();
@@ -2270,7 +2277,7 @@ function sfx(type, dist = 0) {
     o.frequency.exponentialRampToValueAtTime(up ? 320 : 50, t + len);
     og.gain.setValueAtTime(0.12, t);
     og.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    o.connect(og); og.connect(actx.destination); o.start(t); o.stop(t + len);
+    o.connect(og); og.connect(sfxBus); o.start(t); o.stop(t + len);
     return;
   }
   if (type === 'laser' || type === 'elaser' || type === 'alarm') {
@@ -2379,7 +2386,7 @@ function ensureHum() {
   osc.type = 'sawtooth'; osc.frequency.value = 45;
   filter.type = 'lowpass'; filter.frequency.value = 200;
   gain.gain.value = 0;
-  osc.connect(filter); filter.connect(gain); gain.connect(actx.destination);
+  osc.connect(filter); filter.connect(gain); gain.connect(sfxBus);
   osc.start();
   warpHum = { osc, filter, gain };
 }
