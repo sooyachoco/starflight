@@ -565,7 +565,7 @@
     background: radial-gradient(#bff8ff, #3ee6ff88 40%, transparent 70%); filter: blur(1px); animation: hbPulse 2.4s ease-in-out infinite; }
   .hb-beam { position: absolute; left: 50%; bottom: -4px; width: 100%; height: 100%; transform: translateX(-50%); opacity: .55;
     background: linear-gradient(to top, #3ee6ff55, #3ee6ff08 85%, transparent);
-    clip-path: polygon(46% 100%, 54% 100%, 100% 0, 0 0); transition: opacity .35s, height .35s; }
+    clip-path: polygon(46% 100%, 54% 100%, 100% 0, 0 0); transform-origin: 50% 100%; transition: opacity .35s, transform .35s; }
   .hb-panel { position: relative; transform-origin: 50% 100%; transform: rotateX(16deg); padding: 10px 14px 12px; border-radius: 10px;
     background: linear-gradient(180deg, #3ee6ff12, #3ee6ff2a); border: 1px solid #7ff1ff66; color: #c8fbff;
     text-shadow: 0 0 6px #3ee6ffaa; box-shadow: 0 0 26px #3ee6ff30, inset 0 0 30px #3ee6ff1a; overflow: hidden;
@@ -573,7 +573,7 @@
   .hb-panel::before { content: ""; position: absolute; inset: 0; pointer-events: none;
     background: repeating-linear-gradient(0deg, #bff8ff14 0 1px, transparent 1px 3px); animation: hbScan 4s linear infinite; }
   #holo.min .hb-panel { opacity: 0; transform: rotateX(16deg) scaleY(.04); }
-  #holo.min .hb-beam { opacity: .18; height: 18%; }
+  #holo.min .hb-beam { opacity: .18; transform: translateX(-50%) scaleY(.18); }
   @keyframes hbPulse { 50% { opacity: .55; } }
   @keyframes hbScan { to { background-position: 0 30px; } }
   @keyframes hbFlick { 0%, 100% { filter: none; } 47% { filter: brightness(1.5); } 48% { filter: none; } 81% { filter: brightness(.7); } 82% { filter: none; } }
@@ -747,7 +747,7 @@
   .exrow { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; font-weight: 600;
     color: var(--dim); padding: 2px 0; font-variant-numeric: tabular-nums; }
   .exrow b { color: #e9f1ff; font-weight: 600; }
-  .exbar.mood i { transition: width .4s, background .4s; }
+  .exbar.mood i { transition: background .4s; }
   .lwl .sig { display: block; margin-top: 2px; font-style: normal; font-size: 12px; font-weight: 700; letter-spacing: .06em; }
   .exbar { height: 6px; border-radius: 3px; background: #ffffff14; overflow: hidden; margin: 6px 0 2px; }
   .exbar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, #4aa8ff, #a98bff); }
