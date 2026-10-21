@@ -1666,7 +1666,7 @@ function buildSelect(kind = selKind) {
   document.querySelectorAll('.ship-card').forEach(c => {
     c.addEventListener('click', () => {
       const i = +c.dataset.i;
-      if (i === selIdx) confirmSel(); else { selIdx = i; renderSelect(); sfx('laser', 500); }
+      if (i === selIdx) confirmSel(); else { selIdx = i; renderSelect(); sfx('blip', 500); }
     });
   });
   $('selCards').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'ease-out' });
@@ -1691,7 +1691,7 @@ function openShipSelect() {
   renderSelect();
 }
 function closeSelect() { $('select').classList.add('hidden'); }
-function stepSelect(d) { const n = SEL[selKind].items.length; selIdx = (selIdx + d + n) % n; renderSelect(); sfx('laser', 500); }
+function stepSelect(d) { const n = SEL[selKind].items.length; selIdx = (selIdx + d + n) % n; renderSelect(); sfx('blip', 500); }
 function confirmSel() {
   if (selKind === 'pilot') {
     pilotDef = PILOTS[selIdx];
@@ -2221,6 +2221,7 @@ function initAudio() {
       comp.threshold.value = -14; comp.ratio.value = 6; comp.attack.value = .003; comp.release.value = .2;
       comp.connect(actx.destination);
       sfxBus = actx.createGain(); sfxBus.gain.value = 3.2; sfxBus.connect(comp);
+      setTimeout(() => ['blaster', 'eblaster', 'boom', 'hit'].forEach(swBuf), 0);   // 첫 발사 때 멈칫하지 않게 미리 합성
     }
     if (actx.state === 'suspended') actx.resume();
   } catch (e) { actx = null; }
@@ -2279,6 +2280,64 @@ function noise(len) {
   }
   return noiseBufs[len];
 }
+// ---------- 영화풍 효과음: 장력 와이어를 튕긴 듯한 분산 처프 블래스터 · 폭발 · 피격 ----------
+const SW_SFX = { laser: ['blaster', .3], elaser: ['eblaster', .26], boom: ['boom', .6], hit: ['hit', .34] };
+const swCache = {};
+function swRender(len, fn) {
+  const sr = actx.sampleRate, n = Math.floor(sr * len), buf = actx.createBuffer(1, n, sr), d = buf.getChannelData(0);
+  fn(d, sr, n);
+  let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i]));
+  if (pk > 0) for (let i = 0; i < n; i++) d[i] *= .9 / pk;
+  return buf;
+}
+// 분산 처프: 고음이 먼저 오고 빠르게 떨어지는 부분음 여러 개 + 짧은 금속성 되울림
+function swChirp(d, sr, n, o) {
+  const ph = o.parts.map(() => 0);
+  for (let i = 0; i < n; i++) {
+    const t = i / sr, att = Math.min(1, t / .0015);
+    let v = 0;
+    o.parts.forEach(([ratio, amp, tk], k) => {
+      const f = ratio * (o.f1 + o.f0 * Math.exp(-t / (o.tau * tk)));
+      ph[k] += 2 * Math.PI * f / sr;
+      v += Math.sin(ph[k]) * amp * Math.exp(-t / (o.dec * tk));
+    });
+    d[i] = Math.tanh(v * att * o.drive);
+  }
+  for (const [ms, fb] of o.echo) {
+    const D = Math.floor(sr * ms / 1000);
+    for (let i = D; i < n; i++) d[i] += d[i - D] * fb;
+  }
+}
+function swBuf(name) {
+  if (swCache[name]) return swCache[name];
+  const B = {
+    blaster: () => swRender(.36, (d, sr, n) => swChirp(d, sr, n, { f0: 3100, f1: 360, tau: .05, dec: .11, drive: 1.5,
+      parts: [[1, 1, 1], [2.07, .5, .8], [3.31, .28, .6], [5.12, .14, .45]], echo: [[17, .36], [29, .2]] })),
+    eblaster: () => swRender(.44, (d, sr, n) => swChirp(d, sr, n, { f0: 1900, f1: 250, tau: .07, dec: .14, drive: 2.4,
+      parts: [[1, 1, 1], [1.5, .55, .85], [2.93, .3, .65]], echo: [[23, .34], [37, .18]] })),
+    boom: () => swRender(1.9, (d, sr, n) => {
+      let br = 0, lp = 0, ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, att = Math.min(1, t / .006);
+        br = br * .985 + (Math.random() * 2 - 1) * .15;                 // 갈색 잡음 = 굉음
+        const cut = .02 + .25 * Math.exp(-t / .25); lp += (br - lp) * cut;
+        ph += 2 * Math.PI * (28 + 50 * Math.exp(-t / .22)) / sr;          // 서브 쿵
+        const crack = t < .7 && Math.random() < .004 * Math.exp(-t / .2) ? (Math.random() * 2 - 1) * 1.6 : 0;
+        d[i] = Math.tanh((lp * 2.2 * Math.exp(-t / .5) + Math.sin(ph) * .9 * Math.exp(-t / .35) + crack) * att * 1.4);
+      }
+    }),
+    hit: () => swRender(.32, (d, sr, n) => {
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        d[i] = Math.tanh(((Math.random() * 2 - 1) * .7 * Math.exp(-t / .035)
+          + Math.sin(2 * Math.PI * 1240 * t) * .4 * Math.exp(-t / .09)
+          + Math.sin(2 * Math.PI * 1873 * t) * .28 * Math.exp(-t / .06)
+          + Math.sin(2 * Math.PI * 310 * t) * .35 * Math.exp(-t / .07)) * 1.6);
+      }
+    }),
+  };
+  return (swCache[name] = B[name]());
+}
 function sfx(type, dist = 0) {
   if (!actx || !state.sound) return;
   const t = actx.currentTime, g = actx.createGain(), fall = clamp(1 - dist / 700, 0.08, 1);
@@ -2302,43 +2361,23 @@ function sfx(type, dist = 0) {
     o.connect(og); og.connect(sfxBus); o.start(t); o.stop(t + len);
     return;
   }
-  if (type === 'laser' || type === 'elaser') {
-    const me = type === 'laser', k = (me ? 1 : .7) * fall, len = me ? .2 : .26, p = me ? 1 : .68;
-    // 빔 본체: 톱니파를 FM으로 떨게 해 '지잉' 하는 전기 빔, 피치는 위에서 아래로 쓸어내림
-    const car = actx.createOscillator(), mod = actx.createOscillator(), md = actx.createGain();
-    car.type = 'sawtooth';
-    car.frequency.setValueAtTime(1500 * p, t);
-    car.frequency.exponentialRampToValueAtTime(430 * p, t + len);
-    mod.type = 'sine'; mod.frequency.value = 85 * p;
-    md.gain.setValueAtTime(260 * p, t);
-    md.gain.exponentialRampToValueAtTime(40 * p, t + len);
-    mod.connect(md); md.connect(car.frequency);
-    const lp = actx.createBiquadFilter(), bg = actx.createGain();
-    lp.type = 'lowpass'; lp.Q.value = 9;
-    lp.frequency.setValueAtTime(6500 * p, t);
-    lp.frequency.exponentialRampToValueAtTime(1100 * p, t + len);
-    bg.gain.setValueAtTime(.0001, t);
-    bg.gain.exponentialRampToValueAtTime(.16 * k, t + .003);
-    bg.gain.exponentialRampToValueAtTime(.0001, t + len);
-    car.connect(lp); lp.connect(bg); bg.connect(g);
-    // 지글거림: 고역 노이즈가 빔 앞머리를 감쌈
-    const nz = actx.createBufferSource(), hp = actx.createBiquadFilter(), ng = actx.createGain();
-    nz.buffer = noise(.2);
-    hp.type = 'highpass'; hp.frequency.value = 4200;
-    ng.gain.setValueAtTime(.07 * k, t);
-    ng.gain.exponentialRampToValueAtTime(.0001, t + len * .7);
-    nz.connect(hp); hp.connect(ng); ng.connect(g);
-    // 가벼운 몸통: 무게감만 살짝
-    const body = actx.createOscillator(), og = actx.createGain();
-    body.type = 'triangle';
-    body.frequency.setValueAtTime(320 * p, t);
-    body.frequency.exponentialRampToValueAtTime(150 * p, t + len * .6);
-    og.gain.setValueAtTime(.08 * k, t);
-    og.gain.exponentialRampToValueAtTime(.0001, t + len * .6);
-    body.connect(og); og.connect(g);
-    g.gain.value = me ? .4 : .32;
-    [car, mod, body].forEach(o => { o.start(t); o.stop(t + len + .02); });
-    nz.start(t);
+  if (SW_SFX[type]) {
+    const [buf, lv] = SW_SFX[type], src = actx.createBufferSource();
+    src.buffer = swBuf(buf);
+    src.playbackRate.value = rand(.94, 1.06);
+    g.gain.value = lv * fall;
+    src.connect(g); src.start(t);
+    return;
+  }
+  if (type === 'blip') {
+    // 계기판 신호음: 짧은 두 음 핑
+    const o = actx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(1180, t); o.frequency.setValueAtTime(1580, t + .045);
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(.05, t + .005);
+    g.gain.exponentialRampToValueAtTime(.0001, t + .12);
+    o.connect(g); o.start(t); o.stop(t + .13);
     return;
   }
   if (type === 'alarm') {
@@ -3040,7 +3079,7 @@ function exUpdate(dt, now) {
     if (!pl.discovered && d < pl.R + 220) {
       pl.discovered = true; ex.crystals += 15;
       toast(`엔드포인트 관측 · ${pl.gal.G.id === 'nexon' ? 'nexon.com' : pl.gal.G.ko} ${pl.path}  +15`, '#4aa8ff');
-      sfx('laser', 300);
+      sfx('blip', 300);
     }
     if (d < pl.R + 4) {
       tmpV.copy(ship.position).sub(pl.world).normalize();
@@ -3270,7 +3309,7 @@ function fuelUpdate(dt, now) {
       if (paid) { ex.crystals = Math.max(0, ex.crystals - add); ex.fuelBought += add; }
       ex.refueling = { d: nd.d, paid };
       fuelSfxT -= dt;
-      if (fuelSfxT <= 0) { sfx('laser', 650); fuelSfxT = .45; }
+      if (fuelSfxT <= 0) { sfx('blip', 650); fuelSfxT = .45; }
       if (state.fuel >= 99.9) { toast(`급유 완료 · 결정 ${Math.round(ex.crystals)} 남음`, '#3ee6c1'); ex.fuelWarn = 100; }
     }
   } else ex.fastWarned = false;
@@ -3425,7 +3464,7 @@ function dqStart() {
   }
   DQ.active = q;
   toast(`새 데이터 의뢰 · ${q.title}`, '#4aa8ff');
-  sfx('laser', 400);
+  sfx('blip', 400);
 }
 function dqComplete() {
   const q = DQ.active;
@@ -3477,7 +3516,7 @@ function dqUpdate(dt, now) {
           xpCol.fill(0, i * 3, i * 3 + 3); xtCol.fill(0, i * 6, i * 6 + 6);
           xpAct[k] = xpAct[xpAct.length - 1]; xpAct.pop(); xpFree.push(i);
           q.prog++;
-          if (q.prog % 5 === 0) sfx('laser', 500);
+          if (q.prog % 5 === 0) sfx('blip', 500);
           if (q.prog >= q.need) { dqComplete(); return; }
         }
       }
@@ -3485,7 +3524,7 @@ function dqUpdate(dt, now) {
   } else if (q.type === 'lost') {
     let k = 0;
     for (const pk of DQ.packets) {
-      if (!pk.carried && pk.mesh.position.distanceTo(ship.position) < 16) { pk.carried = true; toast(`패킷 회수 ${DQ.packets.filter(x => x.carried).length}/${q.need}`, '#ffb23e'); sfx('laser', 300); }
+      if (!pk.carried && pk.mesh.position.distanceTo(ship.position) < 16) { pk.carried = true; toast(`패킷 회수 ${DQ.packets.filter(x => x.carried).length}/${q.need}`, '#ffb23e'); sfx('blip', 300); }
     }
     if (d < q.pl.R + 70) {
       const carried = DQ.packets.filter(x => x.carried);
@@ -3503,7 +3542,7 @@ function dqUpdate(dt, now) {
     if (ship.position.distanceTo(cur.world) < cur.R + 60) {
       q.prog++;
       toast(`여정 ${q.prog}/4 · ${galName(cur)} ${cur.path} · 잔존 ${q.conv[q.prog - 1]}%`, '#4aa8ff');
-      sfx('laser', 300);
+      sfx('blip', 300);
       if (q.prog >= q.need) { dqComplete(); return; }
       q.pl = q.steps[q.prog];
     }
@@ -3606,7 +3645,7 @@ function dqUpdateEventFunnel(q, dt) {
     q.prog++;
     q.reach.push(DQ.convoy.length);
     if (q.prog > 1) toast(`${cur.path} 도착 · 호송선 ${DQ.convoy.length}척 (${Math.round(DQ.convoy.length / q.start * 100)}%)`, '#3ee6c1');
-    sfx('laser', 300);
+    sfx('blip', 300);
     if (q.prog >= q.need) {
       const mine = Math.round(DQ.convoy.length / q.start * 100), base = Math.round(EVF_BASE[3] / EVF_BASE[0] * 100);
       q.reward = Math.round(40 + mine * .8);
@@ -4344,7 +4383,7 @@ function updateQuest() {
   el.style.setProperty('--qc', q.col);
   const key = q.text.replace(/[\d.]+/g, '#');
   if (key !== questLast) {
-    if (questLast) { el.classList.remove('new'); void el.offsetWidth; el.classList.add('new'); sfx('laser', 600); }
+    if (questLast) { el.classList.remove('new'); void el.offsetWidth; el.classList.add('new'); sfx('blip', 600); }
     questLast = key;
   }
   $('questT').textContent = q.text;
@@ -4485,7 +4524,7 @@ function updateAimUI() {
     ship.rotateY(-e.movementX * k);
     ship.rotateX(-e.movementY * k * (state.invert ? -1 : 1));
   });
-  $('bAim').addEventListener('pointerdown', e => { e.preventDefault(); touchPrec = !touchPrec; sfx('laser', 600); });
+  $('bAim').addEventListener('pointerdown', e => { e.preventDefault(); touchPrec = !touchPrec; sfx('blip', 600); });
 })();
 
 // =====================================================================
