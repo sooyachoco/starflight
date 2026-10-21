@@ -2252,6 +2252,7 @@ function initAudio() {
 
 // ---------- 배경음악: 타이틀 · 순항 · 전투, 상황에 따라 교차 페이드 ----------
 const BGM_MAX = .5;   // 슬라이더 100% = 게인 0.5
+const BGM_TRIM = { title: 1.9, space: 1.35 };   // 곡마다 마스터링 음량이 달라 맞춤 (title -20 dB, space -18.8 dB RMS)
 const BGM = { tracks: {}, cur: null, vol: .26, on: true };
 try {
   BGM.on = localStorage.getItem('nxlog-music') !== 'off';
@@ -2263,7 +2264,7 @@ function setMusicVol(pct) {
   try { localStorage.setItem('nxlog-mvol', String(pct)); } catch (e) {}
 }
 for (const k of ['title', 'space']) {
-  const el = new Audio(`assets/bgm/${k}.mp3`);
+  const el = new Audio(`assets/bgm/${k}.mp3?v=2`);
   el.loop = true; el.preload = k === 'title' ? 'auto' : 'none';
   BGM.tracks[k] = { el, g: null, idle: 0 };
 }
@@ -2272,7 +2273,7 @@ for (const k of ['title', 'space']) {
 function musicAutoplay() {
   const tr = BGM.tracks.title;
   if (!BGM.on || BGM.ready) return;
-  tr.el.volume = BGM.vol;
+  tr.el.volume = Math.min(1, BGM.vol * BGM_TRIM.title);
   tr.el.play().then(() => { BGM.auto = true; soundHint(false); }).catch(() => soundHint(true));
 }
 function soundHint(on) { $('titleScr').classList.toggle('mute-hint', on && !BGM.ready); }
@@ -2283,7 +2284,7 @@ function musicInit() {
   for (const [k, tr] of Object.entries(BGM.tracks)) {
     const g = actx.createGain();
     // 자동재생으로 이미 흐르던 곡은 끊김 없이 이어받음
-    g.gain.value = !tr.el.paused ? BGM.vol : 0;
+    g.gain.value = !tr.el.paused ? BGM.vol * BGM_TRIM[k] : 0;
     tr.el.volume = 1;
     actx.createMediaElementSource(tr.el).connect(g); g.connect(actx.destination);
     tr.g = g;
@@ -2300,7 +2301,7 @@ function musicUpdate(dt) {
   const duck = state.mode === 'paused' || state.mode === 'over' ? .35 : 1;
   for (const [k, tr] of Object.entries(BGM.tracks)) {
     const on = k === want;
-    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * (k === 'space' ? 1.35 : 1) : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
+    tr.g.gain.setTargetAtTime(on ? BGM.vol * duck * BGM_TRIM[k] : 0, t, on ? (k === 'space' ? 3 : 1.2) : .9);
     if (on) { tr.idle = 0; if (tr.el.paused) tr.el.play().catch(() => {}); }
     else if (!tr.el.paused && (tr.idle += dt) > 5) tr.el.pause();
   }
