@@ -4531,10 +4531,12 @@ const logosFace = (() => {
   const lipW = x => Math.exp(-Math.pow((x - CX) / 34, 2));
   const jawW = x => Math.exp(-Math.pow((x - CX) / 105, 2));
   // 연속적인 변형장: 입선 아래는 턱과 함께 내려가고 위는 살짝 올라감 → 틈은 입 모양으로만 생김
+  // 입술 경계는 칼로 자른 선이 아니라 점마다 조금씩 어긋난 띠(±8)로 섞어, 얼굴 외곽처럼 점으로 흩어지게
   function jawAt(x, y) {
-    const dy = y - MOUTH_Y;
-    if (dy >= 0) return (lipW(x) * (1 - sstep(0, 45, dy)) + jawW(x) * .75 * sstep(0, 45, dy)) * (1 - sstep(130, 190, dy));
-    return -.22 * lipW(x) * (1 - sstep(0, 22, -dy));
+    const dy = y - MOUTH_Y, lo = Math.max(0, dy), up = Math.min(0, dy);
+    const lower = (lipW(x) * (1 - sstep(0, 45, lo)) + jawW(x) * .75 * sstep(0, 45, lo)) * (1 - sstep(130, 190, lo));
+    const upper = -.22 * lipW(x) * (1 - sstep(0, 22, -up));
+    return upper + (lower - upper) * sstep(-8, 8, dy + gauss() * 3.5);
   }
   const pts = [];   // x, y, size, alpha, jaw, phase, kind, auxX, auxY, auxZ, r, g, b
   const push = (x, y, size, a, jaw, kind, aux = [0, 0, 0], col = [1, .92, .84]) =>
@@ -4565,7 +4567,7 @@ const logosFace = (() => {
     // 입 안: 벌어진 틈 안쪽에만 따뜻한 점
     for (let k = 0; k < 500; k++) {
       const x = CX + gauss() * 17;
-      push(x, MOUTH_Y, rand(.5, 1.1), rand(.15, .4), 0, 3, [lipW(x), R(), 0], [1, .6, .35]);
+      push(x, MOUTH_Y, rand(.5, 1), rand(.08, .26), 0, 3, [lipW(x), R(), 0], [1, .8, .64]);
     }
   }
 
@@ -4600,8 +4602,8 @@ const logosFace = (() => {
             a *= sin(age / aAux.z * 3.14159);
           } else {                                 // 입 안
             float h = uOpen * 10. * aAux.x;
-            p.y += -.22 * uOpen * 10. * aAux.x + aAux.y * h * 1.1;
-            a *= smoothstep(.1, .5, uOpen) * smoothstep(.15, .5, aAux.x);
+            p.y += -.22 * uOpen * 10. * aAux.x + aAux.y * h * 1.1 + (aPhase - .5) * 5. * uOpen;
+            a *= smoothstep(.1, .6, uOpen) * smoothstep(.1, .6, aAux.x) * (1. - pow(abs(aAux.y * 2. - 1.), 2.));
           }
           vec2 c = (p - vec2(300., 263.5)) * uScale;
           float s = sin(uTilt), co = cos(uTilt);
