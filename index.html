@@ -1039,7 +1039,7 @@
 
 <div id="select" class="hidden">
   <div class="sx-bg" id="selBg"></div>
-  <div class="sx-hero"><img id="selHero" src="assets/pilot-kwonyb-t.webp?v=2" alt="" draggable="false"></div>
+  <div class="sx-hero"><img id="selHero" src="assets/pilot-kwonyb-t.webp?v=3" alt="" draggable="false"></div>
   <header class="sx-head"><h1 id="selTitle">조종사 선택</h1><p class="sub" id="selSub">당신과 함께 할 조종사를 선택하십시오.</p></header>
   <ol class="sx-steps"><li data-s="pilot"><b>01</b>조종사</li><i></i><li data-s="ship"><b>02</b>기체</li><i></i><li><b>03</b>출항</li></ol>
   <button class="glass" id="selSound" title="설정" aria-label="설정">
@@ -1744,13 +1744,13 @@ const SHIPS = [
 let shipDef = SHIPS[2];
 // 조종사: PILOTING → 선회, NAVIGATION → 연료 효율·워프, ENGINEERING → 냉각·실드 회복·FIELD 충전
 const PILOTS = [
-  { no: '01', name: '김영', cls: 'TEST PILOT', stats: [5, 4, 2], img: 'assets/pilot-kimyoung.webp', pos: '50% 10%', cut: 'assets/pilot-kimyoung-t.webp?v=2',
+  { no: '01', name: '김영', cls: 'TEST PILOT', stats: [5, 4, 2], img: 'assets/pilot-kimyoung.webp', pos: '50% 10%', cut: 'assets/pilot-kimyoung-t.webp?v=3',
     tag: '누구보다 먼저, 가장 날카롭게 항로를 가릅니다.', spec: '선회 · 흐름 진입 특화',
     perk: '선회 +20% · 연료 효율 +9% · 냉각·회복 −6%' },
-  { no: '02', name: '권용범', cls: 'EXPLORER', stats: [4, 5, 3], img: 'assets/pilot-kwonyb.webp', pos: '50% 10%', cut: 'assets/pilot-kwonyb-t.webp?v=2',
+  { no: '02', name: '권용범', cls: 'EXPLORER', stats: [4, 5, 3], img: 'assets/pilot-kwonyb.webp', pos: '50% 10%', cut: 'assets/pilot-kwonyb-t.webp?v=3',
     tag: '멀리 보고, 끝내 길을 잃지 않습니다.', spec: '연료 효율 · 워프 특화',
     perk: '연료 효율 +15% · 워프 +10% · 선회 +12%' },
-  { no: '03', name: '이승수', cls: 'FLIGHT ENGINEER', stats: [3, 4, 5], img: 'assets/pilot-leess.webp', pos: '50% 10%', cut: 'assets/pilot-leess-t.webp?v=2',
+  { no: '03', name: '이승수', cls: 'FLIGHT ENGINEER', stats: [3, 4, 5], img: 'assets/pilot-leess.webp', pos: '50% 10%', cut: 'assets/pilot-leess-t.webp?v=3',
     tag: '함선의 한계를 넘어, 항해의 가능성을 넓힙니다.', spec: '실드 회복 · FIELD 충전 특화',
     perk: '레이저 냉각 · 실드 회복 · FIELD 충전 +30%' },
 ].map(pl => Object.assign(pl, {
