@@ -482,6 +482,21 @@
     font-size: 16px; color: #ffd6da; border-color: rgba(255, 106, 120, .75); background: rgba(70, 8, 18, .5); }
   #bFire.on { background: rgba(255, 74, 90, .5); }
   #bHolo.on { border-color: #7ff1ff; box-shadow: 0 0 12px #3ee6ff66; }
+  #cargoBar { background: linear-gradient(90deg, #7ff1ff, #ffb23e); transition: background .3s; }
+  #wpn.heavy #cargoS { color: #ffb23e; }
+  #bDrop { display: none; right: calc(max(18px, env(safe-area-inset-right)) + 162px); top: calc(var(--win-h) - 72px);
+    color: #fff1d6; border-color: rgba(255, 178, 62, .8); background: rgba(70, 40, 8, .55); font-size: 12px; }
+  body.touch.cargo-on #bDrop { display: grid; }
+  .cm-box .cm-next { display: block; margin-top: 4px; font-size: 12px; color: #ffd27a; }
+  .card .gear { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 6px; text-align: left; }
+  .card .gear button { margin: 0; padding: 10px 12px; line-height: 1.45; font-size: 12px; text-align: left; }
+  .card .gear button b { display: block; font-size: 14px; color: #fff; }
+  .card .gear button.on { border-color: #3ee6c1; background: #3ee6c126; }
+  .card .gear button:disabled { opacity: .45; cursor: not-allowed; }
+  .card .gear button em { font-style: normal; color: #ffb23e; }
+  .hb-ev .steps { margin-top: 8px; display: grid; gap: 2px; font: 500 12px "Noto Sans KR", sans-serif; }
+  .hb-ev .steps .on { color: #fff; font-weight: 700; } .hb-ev .steps .done { opacity: .5; text-decoration: line-through; }
+  @media (max-width: 640px) and (orientation: portrait) { #bDrop { top: calc(var(--win-h) - 60px); right: calc(max(18px, env(safe-area-inset-right)) + 140px); } }
   #bWarp { right: calc(max(18px, env(safe-area-inset-right)) + 96px); top: calc(var(--win-h) - 80px);
     color: #e6dcff; border-color: rgba(169, 139, 255, .75); background: rgba(34, 18, 70, .5); }
   #bWarp.on { background: rgba(169, 139, 255, .5); }
@@ -856,10 +871,15 @@
     <div class="hbar"><i id="heatBar"></i></div>
     <div class="row" id="fieldRow" style="margin-top:8px"><span class="lbl">FIELD</span><span id="fieldS">READY</span></div>
     <div class="hbar" id="fieldBarW"><i id="fieldBar"></i></div>
+    <div class="row" id="cargoRow" style="margin-top:8px"><span class="lbl">CARGO</span><span id="cargoS">0/6</span></div>
+    <div class="hbar"><i id="cargoBar"></i></div>
   </div>
   <div id="btns">
     <button class="glass" id="bPause" title="일시정지 (P)">
       <svg viewBox="0 0 20 20" fill="#fff"><rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/></svg>
+    </button>
+    <button class="glass" id="bHelp" title="AI에게 도움 요청 (H)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ffd27a" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6v.6"/><circle cx="12" cy="17" r=".6" fill="#ffd27a"/></svg>
     </button>
     <button class="glass" id="bHolo" title="관측 홀로그램 (O)">
       <svg viewBox="0 0 24 24" fill="none" stroke="#7ff1ff" stroke-width="1.8"><path d="M12 3 21 12 12 21 3 12z"/><path d="M12 8 16 12 12 16 8 12z" fill="#7ff1ff33"/><path d="M5 20h14" stroke-linecap="round" opacity=".6"/></svg>
@@ -911,6 +931,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 2.5v5h-5"/></svg></button>
     <button class="tc tb" id="bWarp" data-k="ShiftLeft">WARP</button>
     <button class="tc tb" id="bField" data-k="KeyQ">FIELD</button>
+    <button class="tc tb" id="bDrop" data-k="KeyX">DROP</button>
     <button class="tc tb" id="bAim">AIM</button>
     <button class="tc tb" id="bFire" data-k="Space">FIRE</button>
   </div>
@@ -950,7 +971,8 @@
       <kbd>Space</kbd><span>FIRE</span><i></i>
       <kbd>C</kbd><span>AIM</span><i></i>
       <kbd>Shift</kbd><span>WARP</span><i></i>
-      <kbd>O</kbd><span>HOLO</span><i></i>
+      <kbd>X</kbd><span>DROP</span><i></i>
+      <kbd>H</kbd><span>HELP</span><i></i>
       <kbd>M</kbd><span>MAP</span>
     </div>
   </div>
@@ -1674,17 +1696,17 @@ function updateBursts(dt) {
 // =====================================================================
 let MAX_SPEED = 32;        // 1 unit = 10 m → 320 m/s (기체별로 바뀜)
 const SHIPS = [
-  { no: '01', name: 'SWIFT', cls: 'SCOUT', crew: 1, stats: [5, 5, 1], img: 'assets/ship-swift.webp?v=2',
-    maxSpeed: 40, turn: 1.3, armor: 1.35, fuelUse: 1.35, fireCd: 0.09,
-    perk: '최고 속도 400 m/s · 빠른 선회와 연사 · 장갑과 연료 탱크가 약함' },
-  { no: '02', name: 'NOMAD', cls: 'EXPLORER', crew: 1, stats: [3, 4, 3], img: 'assets/ship-nomad.webp?v=2',
-    maxSpeed: 32, turn: 1.1, armor: 1, fuelUse: 1, fireCd: 0.11,
-    perk: '최고 속도 320 m/s · 모든 성능이 균형 잡힌 탐사선' },
-  { no: '03', name: 'ATLAS', cls: 'HAULER', crew: 1, stats: [2, 2, 5], img: 'assets/ship-atlas.webp?v=2',
-    maxSpeed: 26, turn: 0.8, armor: 0.65, fuelUse: 0.6, fireCd: 0.13,
-    perk: '최고 속도 260 m/s · 두꺼운 장갑 · 대형 연료 탱크' },
+  { no: '01', name: 'SWIFT', cls: 'SCOUT · 탐사선', crew: 1, stats: [5, 5, 2], img: 'assets/ship-swift2.webp?v=1',
+    maxSpeed: 40, turn: 1.3, armor: 1.3, fuelUse: 1.3, fireCd: 0.09, cargo: 4, heavy: 1.25, flow: 1.25,
+    perk: '최고 속도 400 m/s · 중력 흐름 가속 +25% · 화물칸 4칸, 실으면 크게 둔해짐' },
+  { no: '02', name: 'ATLAS', cls: 'HAULER · 운반선', crew: 1, stats: [2, 2, 5], img: 'assets/ship-atlas2.webp?v=1',
+    maxSpeed: 26, turn: 0.8, armor: 0.65, fuelUse: 0.6, fireCd: 0.13, cargo: 9, heavy: .55, flow: 1,
+    perk: '최고 속도 260 m/s · 화물칸 9칸 · 가득 실어도 덜 둔해짐 · 두꺼운 장갑' },
+  { no: '03', name: 'HALO', cls: 'EXPLORER · 링선', crew: 1, stats: [3, 4, 3], img: 'assets/ship-halo.webp?v=1',
+    maxSpeed: 32, turn: 1.1, armor: 1, fuelUse: 1, fireCd: 0.11, cargo: 6, heavy: 1, flow: 1.1,
+    perk: '최고 속도 320 m/s · 화물칸 6칸 · 모든 성능이 고른 균형형' },
 ];
-let shipDef = SHIPS[1];
+let shipDef = SHIPS[2];
 // 조종사: PILOTING → 선회, NAVIGATION → 연료 효율·워프, ENGINEERING → 냉각·실드 회복·FIELD 충전
 const PILOTS = [
   { no: '01', name: '김영', cls: 'TEST PILOT', stats: [5, 4, 2], img: 'assets/pilot-kimyoung.webp', pos: '50% 10%',
@@ -2009,6 +2031,7 @@ addEventListener('keydown', e => {
     toast(`NAV RANGE ${NAV_RANGES[state.navIdx] / 100} km`, '#4aa8ff');
   }
   if (e.code === 'KeyO') holoToggle();
+  if (e.code === 'KeyH' && exWorld.visible && state.mode === 'flying') aiHint();
   if (e.code === 'KeyI') { state.invert = !state.invert; toast(state.invert ? '상하 반전 ON' : '상하 반전 OFF', '#4aa8ff'); }
   const lv = { Digit1: 0, Digit2: 0.33, Digit3: 0.66, Digit4: 1 }[e.code];
   if (lv !== undefined) state.throttle = lv;
@@ -2029,6 +2052,12 @@ $('overlay').addEventListener('click', e => {
   if (act === 'ex-cont') { exContinue(); return; }
   if (act === 'ex-retry') { exRetry(); return; }
   if (act === 'title') { showTitle(); return; }
+  if (act === 'gear') {
+    const k = actEl.dataset.g;
+    if (gear.has(k)) gear.delete(k); else if (gear.size < 2) gear.add(k); else { gear.delete([...gear][0]); gear.add(k); }
+    try { localStorage.setItem('nxlog-gear', JSON.stringify([...gear])); } catch (err) {}
+    showExBrief(); return;
+  }
   if (act && act.startsWith('ev-')) { evCardAct(act, actEl); return; }
   if (act === 'observatory') { window.open('logverse.html', '_blank', 'noopener'); return; }
   if (act === 'close') { if (state.mode === 'title') { showTitle(); return; } if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
@@ -2050,6 +2079,7 @@ $('obj').addEventListener('click', e => {
   try { localStorage.setItem('nxlog-objmin', min ? '1' : '0'); } catch (err) {}
 });
 $('bHolo').addEventListener('click', e => { e.currentTarget.blur(); holoToggle(); });
+$('bHelp').addEventListener('click', e => { e.currentTarget.blur(); if (exWorld.visible && state.mode === 'flying') aiHint(); });
 $('bPause').addEventListener('click', e => {
   e.currentTarget.blur();
   if (state.mode === 'flying') pause(true); else if (state.mode === 'paused') pause(false);
@@ -2083,7 +2113,7 @@ function updateShip(dt, controlled) {
   aimPrec = controlled && state.mode === 'flying' && (keys.KeyC || aimMouse || touchPrec);
   const pm = aimPrec ? .35 : 1;
   const sm = 1 - Math.exp(-dt * (aimPrec ? 6 : 4));
-  const tr = shipDef.turn * pilotDef.turn;
+  const tr = shipDef.turn * pilotDef.turn * cargoTurnMul();
   rate.p += (pi * 0.95 * tr * pm - rate.p) * sm;
   rate.y += (yi * 0.8 * tr * pm - rate.y) * sm;
   rate.r += (ri * 1.6 * tr * (aimPrec ? .5 : 1) - rate.r) * sm;
@@ -2158,6 +2188,7 @@ function damagePlayer(dmg, label, shake = 0.9) {
   state.shake = Math.max(state.shake, shake); state.hitT = 1.2; state.sinceHit = 0;
   flash();
   sfx('impact', 0, clamp(.45 + dmg / 30, .45, 1.3));   // 피해가 클수록 크게
+  if (exWorld.visible) cargoOnHit();
   if (label) toast(`${label}  −${Math.round(dmg)}`, '#ff6a6a');
   if (state.hull <= 0 && state.mode === 'flying') {
     burst(ship.position.clone().addScaledVector(fwd, 6), 0xffffff, 200, 30, 1.5);
@@ -2489,7 +2520,7 @@ function musicInit() {
 const COMBAT_MISSIONS = ['bots', 'ddos', 'stealth'];   // 봇 해적단 · DDoS 군체 · 무차별 대입 침투조
 function musicWant() {
   if (['title', 'select'].includes(state.mode)) return 'title';
-  return exWorld.visible && ex.ev && ['run', 'sync'].includes(ex.ev.phase) ? 'combat' : 'space';
+  return exWorld.visible && ex.ev && ['run', 'sync', 'collapse'].includes(ex.ev.phase) ? 'combat' : 'space';
 }
 function musicUpdate(dt) {
   if (!BGM.ready) return;
@@ -3166,8 +3197,10 @@ function setupExpansion() {
   Object.assign(ex, { day: 0, cum: 0, a: 1, era: 0, mission: null, crystals: 0, bhNear: false, q: 0, qMax: 0, sats: 0,
     newIdx: 0, maxA: 1, reached: 0, falsePos: 0, served: 0, phase: 1, fieldOn: false, field: 100, pulses: 0, ddosStats: null,
     reserveUsed: false, fuelWarn: 100, refueling: null, scooping: false, fuelBought: 0, scooped: 0, mood: 1, signals: [],
-    repairing: null, hullWarn: 100, dockWarned: false, godEra: 'primal', ev: null, chron: [], evCool: 0, born: 0, faith: 0 });
+    repairing: null, hullWarn: 100, dockWarned: false, godEra: 'primal', ev: null, chron: [], evCool: 0, born: 0, faith: 0,
+    cargo: [], ejectCd: 0, boostT: 0, inFlow: null, tips: {}, records: 0 });
   evReset();
+  salvageReset();
   clearPatches();
   echo = Echo.create({ games: EX_GAMES });
   exGal.forEach(g => { g.unstable = 0; g.eclipse = 0; g.sig = null; exGalLabel(g); });
@@ -3205,16 +3238,23 @@ function exPlaceGalaxies() {
 }
 function showExBrief() {
   state.mode = 'brief';
+  const n = gear.size;
   showCard(`<h1>EXPANSION</h1><h2>원시 · 이름 없는 징조</h2>
-    <p>넥슨의 모든 게임 세계에서 일어난 일은 기록으로 남고, 그 <b>잔향(Echo)</b>이 흘러들어 이 우주가 되었습니다.<br>
-    중심 항성 <b>넥슨닷컴</b>과 여섯 은하. 기록이 쌓이는 만큼 우주는 팽창합니다.</p>
+    <p>넥슨의 모든 게임 세계에서 일어난 일은 기록으로 남고, 그 <b>잔향(Echo)</b>이 흘러들어 이 우주가 되었습니다.
+    항해사의 일은 잔향을 <b>인양</b>해 기록으로 되돌리는 것. 기록이 쌓이는 만큼 우주는 팽창합니다.</p>
     <ol class="brief">
-      <li>은하를 돌며 <b>미해석 잔향(?)</b>에 가까이 가서 관측하세요. 관측할 때마다 결정을 얻습니다.</li>
-      <li>잔향이 크게 흔들리면 <b style="color:#ffb23e">이상 신호</b>가 옵니다. 로그가 폭증한 은하의 별은 <b>불안정한 별</b>이 되고, 기록이 끊긴 은하엔 <b>일식</b>이 찾아옵니다.</li>
-      <li>불안정한 별에 다가가면 <b>역할</b>을 고를 수 있습니다. 관측자 · 운반자 · 조율자. 보조선 두 척이 나머지 역할을 맡아 함께 별을 안정시킵니다.</li>
-      <li><b style="color:#3ee6c1">연료</b>는 FUEL 연료소, <b style="color:#ffb23e">선체</b>는 REPAIR 정비 도크에서. 불안정 파동에 닿으면 선체가 깎입니다.</li>
-      <li>오른쪽 위 <b>◈</b> 버튼<span class="key-only"> 또는 <kbd>O</kbd></span>으로 계기판 위 <b>관측 홀로그램</b>을 켜 신호를 볼 수 있습니다.</li>
+      <li>은하 외곽의 <b style="color:#bff8ff">흐린 잔향</b>을 가까이 지나가며 실으세요. 실을수록 <b>무거워져 둔해집니다</b>. 화물칸: <b>${cargoCap()}칸</b> (${shipDef.name})</li>
+      <li>넥슨닷컴 곁 <b style="color:#ffb23e">인양 정거장(SALVAGE)</b>에 내려야 기록이 됩니다. 기록이 쌓이면 새 장비가 열립니다.</li>
+      <li>은하를 감싸는 <b style="color:#7ff1ff">중력 흐름</b>(빛의 강)을 타면 빨라집니다. 흐름 방향으로 들어가세요.</li>
+      <li>로그가 폭증한 은하엔 <b>태어나지 못한 별</b>이 생깁니다. 깊은 곳엔 <b style="color:#ffd27a">희귀 잔향 핵</b>이 있지만, 별이 점화되면 <b>붕괴</b>가 시작됩니다.</li>
+      <li>위기엔 <b>X</b>(DROP)로 화물을 버리고 급가속. 막히면 <b>H</b>(?) — AI가 지금 할 일을 자세히 알려 줍니다.</li>
     </ol>
+    <p style="margin:12px 0 4px"><b>출항 장비</b> · 2개 선택 (${n}/2) · 보유 기록 ${REC.total}</p>
+    <div class="gear">${Object.entries(GEAR).map(([k, g]) => {
+      const lock = REC.total < g.unlock;
+      return `<button data-act="gear" data-g="${k}" class="${gear.has(k) ? 'on' : ''}" ${lock ? 'disabled' : ''}>
+        <b>${gear.has(k) ? '✓ ' : ''}${g.name}</b>${g.desc}<br><em>${lock ? `기록 ${g.unlock}개 필요` : g.cost}</em></button>`;
+    }).join('')}</div>
     <p style="color:#8ea3c6">※ 모든 수치는 모의 로그(가상 데이터)이며 실제 서비스 지표와 무관합니다.</p>
     <button data-act="ex-go">출항</button>`, true);
 }
@@ -3389,6 +3429,7 @@ function exUpdate(dt, now) {
   }
   if (fuelUpdate(dt, now)) return;
   repairUpdate(dt);
+  salvageUpdate(dt, now);
   if (!ex.mission && (!ex.ev || ex.ev.phase === 'call')) dqUpdate(dt, now);
   // 사건: 신호에서 태어난 '태어나지 못한 별'
   if (evUpdate(dt, now)) return;
@@ -3522,6 +3563,7 @@ function exFrame(dt, now) {
   repairFrame(dt, now);
   holoFrame(dt);
   evFrame(dt, now);
+  salvageFrame(dt, now);
   if (exSignalFrame(dt, now)) return;
   dqFrame(dt, now);
   // 라벨
@@ -3742,7 +3784,7 @@ function exSignalFrame(dt, now) {
     }
     if (g.corona) { g.corona.material.opacity = e; g.corona.visible = e > .02; }
     // 불안정 파동 발생
-    if (u > .6) { g.waveT = (g.waveT || 0) - dt; if (g.waveT <= 0) { g.waveT = 2.4; exSpawnWave(g); } }
+    if (u > .6) { g.waveT = (g.waveT || 0) - dt; if (g.waveT <= 0) { g.waveT = cargoCores() ? (hasGear('stab') ? 1.9 : 1.3) : 2.4; exSpawnWave(g); } }
   });
   for (let k = waves.length - 1; k >= 0; k--) {
     const w = waves[k];
@@ -3766,16 +3808,288 @@ function exMoodWord(m) {
 }
 
 // =====================================================================
-// 사건 「태어나지 못한 별」 — 급증 신호 → 역할 분담 협력 → 점화 · 명명 · 연대기
+// 잔향 인양 · 중력 흐름 · 장비 — 싣고, 둔해지고, 흐름을 타고, 버리고, 돌아온다
+// =====================================================================
+const GEAR = {
+  stab: { name: '잔향 고정기', desc: '피격 때 화물 유실 없음 · 희귀 핵의 파동 자극 감소', cost: '선회 −15%', unlock: 0 },
+  sail: { name: '중력 돛', desc: '흐름 가속 +20% · 흐름 위에서 연료 회복', cost: '흐름 밖 최고 속도 −10%', unlock: 0 },
+  eject: { name: '비상 방출기', desc: '화물 버리기 급가속 2배 · 쿨다운 절반', cost: '버린 화물은 사라짐', unlock: 5 },
+  hold: { name: '확장 화물칸', desc: '화물칸 +3칸', cost: '가득 실으면 더 둔해짐', unlock: 12 },
+};
+let gear = new Set(['stab', 'sail']);
+const REC = { total: 0 };
+try {
+  REC.total = +localStorage.getItem('nxlog-records') || 0;
+  const g = JSON.parse(localStorage.getItem('nxlog-gear') || 'null');
+  if (Array.isArray(g)) gear = new Set(g.filter(k => GEAR[k]).slice(0, 2));
+} catch (e) {}
+const hasGear = k => gear.has(k) && REC.total >= GEAR[k].unlock;
+const cargoCap = () => (shipDef.cargo || 6) + (hasGear('hold') ? 3 : 0);
+const cargoLoad = () => (ex.cargo || []).reduce((t, c) => t + c.w, 0);
+const cargoCores = () => (ex.cargo || []).filter(c => c.kind === 'core').length;
+const cargoFrac = () => Math.min(1, cargoLoad() / cargoCap());
+const heavyK = () => (shipDef.heavy || 1) * (hasGear('hold') ? 1.3 : 1);
+function cargoTurnMul() {
+  if (!exWorld.visible) return 1;
+  return (1 - .35 * cargoFrac() * heavyK()) * (hasGear('stab') ? .85 : 1);
+}
+const FLOW_R = 270, FLOW_W = 30, FLOW_V = 30;
+const evRingGeo = new THREE.TorusGeometry(1, .035, 6, 96), escRingGeo = new THREE.TorusGeometry(1, .004, 4, 200);
+const evMat = (c, o = .85) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+
+// ---------- 잔향 (흐린 잔향 1칸 · 희귀 핵 3칸) ----------
+const faintGeo = new THREE.IcosahedronGeometry(2.6, 0), coreGeo = new THREE.OctahedronGeometry(5);
+const faintGlow = new THREE.SpriteMaterial({ map: glowTexture([[0, '#ffffff'], [.3, '#9feaff88'], [1, '#00000000']], 64),
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+const coreGlow = new THREE.SpriteMaterial({ map: glowTexture([[0, '#fff6dc'], [.3, '#ffc85a99'], [1, '#00000000']], 64),
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+const echoes = [];   // { kind, parent, p(로컬), m, got, ambient, ev, respawn }
+function makeEcho(kind, parent, p, opt = {}) {
+  const core = kind === 'core';
+  const m = new THREE.Mesh(core ? coreGeo : faintGeo, new THREE.MeshBasicMaterial({ color: core ? 0xffd27a : 0xcff6ff, fog: false }));
+  const gl = new THREE.Sprite(core ? coreGlow : faintGlow); gl.scale.setScalar(core ? 46 : 18); m.add(gl);
+  if (core) { const ring = new THREE.Mesh(new THREE.TorusGeometry(9, .35, 6, 40), evMat(0xffd27a, .8)); ring.rotation.x = 1.2; m.add(ring); }
+  m.position.copy(p); parent.add(m);
+  const it = Object.assign({ kind, w: core ? 3 : 1, parent, p: p.clone(), m, got: false }, opt);
+  echoes.push(it);
+  return it;
+}
+const echoWorld = it => it.parent === exWorld ? it.p : tmpW.copy(it.p).add(it.parent.position);
+function removeEcho(it) { it.parent.remove(it.m); echoes.splice(echoes.indexOf(it), 1); }
+
+// ---------- 인양 정거장 (넥슨닷컴 곁) ----------
+const STATION_P = new THREE.Vector3(-260, 70, -120);
+const salvStation = (() => {
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(34, 2.2, 10, 64), new THREE.MeshStandardMaterial({ color: 0xc8d2e0, metalness: .7, roughness: .3, emissive: 0x2a1a00 }));
+  g.add(ring);
+  const glowRing = new THREE.Mesh(new THREE.TorusGeometry(34, .5, 6, 96), evMat(0xffb23e, .9)); g.add(glowRing);
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 16, 12), new THREE.MeshStandardMaterial({ color: 0x8a96aa, metalness: .6, roughness: .4 }));
+  core.rotation.x = Math.PI / 2; g.add(core);
+  for (let k = 0; k < 4; k++) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(27, 1.6, 1.6), new THREE.MeshStandardMaterial({ color: 0x6a7488, metalness: .6, roughness: .4 }));
+    arm.rotation.z = k * Math.PI / 2; arm.position.set(Math.cos(k * Math.PI / 2) * 17, Math.sin(k * Math.PI / 2) * 17, 0); g.add(arm);
+  }
+  const zone = new THREE.Mesh(evRingGeo, evMat(0xffb23e, .3)); zone.scale.setScalar(48); g.add(zone);
+  g.position.copy(STATION_P); g.lookAt(0, 70, 0);
+  return { g, glowRing, zone, label: null };
+})();
+
+// ---------- 중력 흐름: 은하를 감싸는 빛의 강 + 은하에서 허브로 가는 귀환 흐름 ----------
+const flows = [];
+function buildFlows() {
+  exGal.forEach(gal => {
+    if (gal.G.hub) return;
+    const n = 260, pos = new Float32Array(n * 3), th = new Float32Array(n), jit = new Float32Array(n * 2);
+    for (let k = 0; k < n; k++) { th[k] = Math.random() * Math.PI * 2; jit[k * 2] = rand(-FLOW_W * .6, FLOW_W * .6); jit[k * 2 + 1] = rand(-12, 12); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x9ff4ff, size: 3.4, map: dotTex, transparent: true, opacity: .75,
+      blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    pts.frustumCulled = false; gal.grp.add(pts);
+    flows.push({ kind: 'ring', gal, pts, th, jit, n });
+    // 귀환 흐름 (은하 → 허브)
+    const m = 180, pos2 = new Float32Array(m * 3), u = new Float32Array(m), j2 = new Float32Array(m * 2);
+    for (let k = 0; k < m; k++) { u[k] = Math.random(); j2[k * 2] = rand(-14, 14); j2[k * 2 + 1] = rand(-10, 10); }
+    const geo2 = new THREE.BufferGeometry(); geo2.setAttribute('position', new THREE.BufferAttribute(pos2, 3));
+    const pts2 = new THREE.Points(geo2, new THREE.PointsMaterial({ color: 0xffe6a8, size: 3, map: dotTex, transparent: true, opacity: .6,
+      blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    pts2.frustumCulled = false; exWorld.add(pts2);
+    flows.push({ kind: 'home', gal, pts: pts2, u, jit: j2, n: m, path: [] });
+  });
+}
+// 귀환 흐름 곡선: 은하 바깥 → 허브 곁 정거장 쪽
+function homePath(f) {
+  const G = f.gal.grp.position, H = STATION_P, d = tmpV.copy(H).sub(G).normalize();
+  const A = G.clone().addScaledVector(d, FLOW_R + 40), B = H.clone().addScaledVector(d, -80);
+  const C = A.clone().lerp(B, .5).add(new THREE.Vector3(-d.z, .15, d.x).multiplyScalar(A.distanceTo(B) * .18));
+  const pts = [];
+  for (let k = 0; k <= 24; k++) { const t = k / 24, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t;
+    pts.push(new THREE.Vector3(a * A.x + b * C.x + c * B.x, a * A.y + b * C.y + c * B.y, a * A.z + b * C.z + c * B.z)); }
+  f.path = pts;
+  return pts;
+}
+// 배의 위치가 흐름 안이면 흐름 방향(월드)을 돌려줌
+const _fd = new THREE.Vector3();
+function flowAt(pos) {
+  for (const f of flows) {
+    if (f.kind === 'ring') {
+      const G = f.gal.grp.position, lx = pos.x - G.x, ly = pos.y - G.y, lz = pos.z - G.z, r = Math.hypot(lx, lz);
+      if (Math.abs(r - FLOW_R) < FLOW_W && Math.abs(ly) < 26 && r > 1) return { f, dir: _fd.set(-lz / r, 0, lx / r) };
+    } else if (f.path.length) {
+      for (let k = 0; k < f.path.length - 1; k++) {
+        const a = f.path[k], b = f.path[k + 1];
+        tmpV.copy(b).sub(a); const L = tmpV.length(); tmpV.divideScalar(L);
+        const t = clamp(tmpW.copy(pos).sub(a).dot(tmpV), 0, L);
+        if (tmpW.copy(a).addScaledVector(tmpV, t).distanceTo(pos) < FLOW_W) return { f, dir: _fd.copy(tmpV) };
+      }
+    }
+  }
+  return null;
+}
+function salvageReset() {
+  while (echoes.length) removeEcho(echoes[0]);
+  if (!flows.length) buildFlows();
+  if (!salvStation.g.parent) {
+    exGal[0].grp.add(salvStation.g);
+    salvStation.label = exLabel('cc', '<b style="color:#ffb23e">SALVAGE</b><span>인양 정거장 · 화물을 내리는 곳</span>');
+  }
+  // 은하마다 외곽에 흐린 잔향 5개 (주우면 1분 뒤 다시 생김)
+  exGal.forEach(gal => {
+    if (gal.G.hub) return;
+    for (let k = 0; k < 5; k++) {
+      const a = rand(0, Math.PI * 2), r = rand(330, 430);
+      makeEcho('faint', gal.grp, new THREE.Vector3(Math.cos(a) * r, rand(-40, 40), Math.sin(a) * r), { ambient: true });
+    }
+  });
+  ex.cargo = []; ex.ejectCd = 0; ex.boostT = 0;
+}
+function tip(key, text, hold = 6) {
+  if (ex.tips[key]) return;
+  ex.tips[key] = true;
+  aiSay(text, { hold });
+}
+function cargoOnHit() {
+  if (!ex.cargo.length || hasGear('stab') || Math.random() > .5) return;
+  const it = ex.cargo.splice(Math.floor(Math.random() * ex.cargo.length), 1)[0];
+  makeEcho(it.kind, exWorld, ship.position.clone().add(randomDir().multiplyScalar(20)), { loose: true });
+  toast(`충격으로 화물 유실 · ${it.kind === 'core' ? '희귀 핵' : '흐린 잔향'} (다시 주울 수 있음)`, '#ffb23e');
+  tip('spill', '충격에 화물이 떨어졌어요. 근처에 떠 있으니 다시 주울 수 있어요. 잔향 고정기를 달면 떨어지지 않아요.');
+}
+function jettison() {
+  if (!ex.cargo.length || ex.ejectCd > 0) return;
+  const lost = hasGear('eject'), n = ex.cargo.length;
+  ex.cargo.forEach((it, k) => {
+    if (!lost) makeEcho(it.kind, exWorld, ship.position.clone().addScaledVector(fwd, -14 - k * 4).add(randomDir().multiplyScalar(6)), { loose: true });
+  });
+  ex.cargo = [];
+  ex.boostT = 1.1; ex.ejectCd = lost ? 3 : 6;
+  burst(ship.position.clone().addScaledVector(fwd, -10), 0xffd27a, 120, 30, 1.2);
+  sfx('warpOut'); state.shake = Math.max(state.shake, .5);
+  toast(`화물 ${n}개 방출 · 급가속!${lost ? '' : ' (방출한 잔향은 그 자리에 남음)'}`, '#ffd27a');
+}
+function unloadAtStation() {
+  const faint = ex.cargo.filter(c => c.kind === 'faint').length, cores = cargoCores();
+  const rec = faint + cores * 5;
+  ex.cargo = [];
+  ex.records += rec; ex.crystals += rec * 8;
+  const before = REC.total;
+  REC.total += rec;
+  try { localStorage.setItem('nxlog-records', String(REC.total)); } catch (e) {}
+  if (cores) ex.chron.push({ day: ex.day, kind: 'salvage', name: `희귀 기록 ${cores}개 인양`, gal: '인양 정거장' });
+  burst(ship.position, 0xffb23e, 140, 26, 1.2); sfx('blip', 200);
+  toast(`인양 완료 · 기록 +${rec} (보유 ${REC.total}) · 결정 +${rec * 8}`, '#ffb23e');
+  const opened = Object.values(GEAR).filter(g => before < g.unlock && REC.total >= g.unlock);
+  if (opened.length) {
+    setTimeout(() => toast(`장비 해금 · ${opened.map(g => g.name).join(', ')} — 다음 출항 때 고를 수 있어요`, '#7ff1ff'), 1600);
+    aiSay(`기록이 쌓여 ${opened.map(g => g.name).join(', ')}이(가) 열렸어요! 다음 출항 브리핑에서 장비를 바꿀 수 있어요.`, { hold: 7 });
+  } else aiSay(cores ? `희귀 기록 ${cores}개를 무사히 가져왔어요. 위험을 감수한 보람이 있네요.` : `기록 ${rec}개 저장. 화물칸이 다시 가벼워졌어요.`, { hold: 5 });
+}
+function salvageUpdate(dt, now) {
+  ex.ejectCd = Math.max(0, ex.ejectCd - dt);
+  const cap = cargoCap(), frac = cargoFrac();
+  // 무게: 최고 속도가 줄고, 중력 돛은 흐름 밖에서 조금 느림
+  MAX_SPEED = shipDef.maxSpeed * (1 - .3 * frac * heavyK()) * (hasGear('sail') && !ex.inFlow ? .9 : 1);
+  // 화물 버리기 (X / DROP)
+  if (keys.KeyX && !ex.xPrev) jettison();
+  ex.xPrev = !!keys.KeyX;
+  if (ex.boostT > 0) { ex.boostT -= dt; ship.position.addScaledVector(fwd, (hasGear('eject') ? 150 : 80) * Math.max(0, ex.boostT) * dt); }
+  // 중력 흐름
+  const fl = flowAt(ship.position);
+  ex.inFlow = fl;
+  if (fl) {
+    const v = FLOW_V * (shipDef.flow || 1) * (hasGear('sail') ? 1.2 : 1);
+    ship.position.addScaledVector(fl.dir, v * dt);
+    const aligned = fwd.dot(fl.dir) > .6;
+    if (aligned && hasGear('sail')) state.fuel = Math.min(100, state.fuel + 1.5 * dt);
+    tip('flow', fl.f.kind === 'home'
+      ? '금빛 귀환 흐름이에요. 이 흐름은 인양 정거장 쪽으로 흘러요. 흐름 방향으로 기수를 맞추면 무거워도 빨리 돌아갈 수 있어요.'
+      : '중력 흐름에 들어왔어요! 흐름 방향(입자가 흘러가는 쪽)으로 기수를 맞추면 크게 빨라져요. 거슬러 가면 밀려나요.', 7);
+  }
+  // 줍기
+  for (let i = echoes.length - 1; i >= 0; i--) {
+    const it = echoes[i];
+    if (it.got) continue;
+    const d = echoWorld(it).distanceTo(ship.position);
+    if (it.kind === 'core' && d < 260) tip('core', '금빛 희귀 잔향 핵이에요. 실으면 3칸을 차지하고 무겁고, 실은 동안 별의 파동이 더 자주 와요. 대신 정거장에 내리면 기록 5개가 돼요.', 8);
+    if (d > (it.kind === 'core' ? 20 : 16)) continue;
+    if (cargoLoad() + it.w > cap) {
+      if ((ex.fullTipT || 0) < now) { ex.fullTipT = now + 6; toast(`화물칸 가득 (${cargoLoad()}/${cap}) · 정거장에 내리거나 X로 버리세요`, '#ffb23e'); }
+      tip('full', '화물칸이 가득 찼어요. 넥슨닷컴 곁 인양 정거장에 내리거나, 급하면 X로 버려서 가볍게 만들 수 있어요.');
+      continue;
+    }
+    ex.cargo.push({ kind: it.kind, w: it.w, ev: !!it.ev });
+    sfx('blip', 350);
+    if (it.ambient) { it.got = true; it.m.visible = false; it.respawn = 60; }
+    else if (it.ev) { it.got = true; it.m.visible = false; }
+    else removeEcho(it);
+    toast(`${it.kind === 'core' ? '희귀 잔향 핵' : '흐린 잔향'} 적재 · 화물 ${cargoLoad()}/${cap}`, it.kind === 'core' ? '#ffd27a' : '#bff8ff');
+    tip('first', ex.ev ? '좋아요! 흐린 잔향은 별 둘레 청록 중계기에 전달하면 별이 안정돼요.' : '첫 잔향이에요. 많이 실을수록 둔해져요. 넥슨닷컴 곁 인양 정거장(주황 고리)에 내리면 기록이 돼요.');
+  }
+  if (frac > .6) tip('heavy', '화물이 무거워 선회와 속도가 떨어졌어요. 중력 흐름을 타면 무거워도 빨리 이동할 수 있어요.');
+  // 흐린 잔향 다시 생김
+  echoes.forEach(it => { if (it.ambient && it.got && (it.respawn -= dt) <= 0) { it.got = false; it.m.visible = true; } });
+  // 인양 정거장
+  salvStation.g.getWorldPosition(tmpV);
+  if (ex.cargo.length && ship.position.distanceTo(tmpV) < 52) unloadAtStation();
+  document.body.classList.toggle('cargo-on', ex.cargo.length > 0);
+}
+function salvageFrame(dt, now) {
+  // 흐름 입자 이동
+  flows.forEach(f => {
+    const arr = f.pts.geometry.attributes.position.array;
+    if (f.kind === 'ring') {
+      const w = FLOW_V / FLOW_R * 1.4;
+      for (let k = 0; k < f.n; k++) {
+        f.th[k] += w * dt; const r = FLOW_R + f.jit[k * 2];
+        arr[k * 3] = Math.cos(f.th[k]) * r; arr[k * 3 + 1] = f.jit[k * 2 + 1]; arr[k * 3 + 2] = Math.sin(f.th[k]) * r;
+      }
+    } else {
+      const P = homePath(f), L = P.length - 1;
+      for (let k = 0; k < f.n; k++) {
+        f.u[k] = (f.u[k] + dt * .05) % 1;
+        const x = f.u[k] * L, i = Math.min(L - 1, Math.floor(x)), t = x - i, a = P[i], b = P[i + 1];
+        arr[k * 3] = a.x + (b.x - a.x) * t + f.jit[k * 2]; arr[k * 3 + 1] = a.y + (b.y - a.y) * t + f.jit[k * 2 + 1];
+        arr[k * 3 + 2] = a.z + (b.z - a.z) * t + f.jit[k * 2 + 1];
+      }
+    }
+    f.pts.geometry.attributes.position.needsUpdate = true;
+  });
+  if (!salvStation.label) return;   // 확장 세계가 처음 열리기 전
+  echoes.forEach((it, k) => { if (!it.got) { it.m.rotation.y += dt * (it.kind === 'core' ? .8 : 1.6); it.m.position.y = it.p.y + Math.sin(now * 1.6 + k) * 2.5; } });
+  salvStation.glowRing.material.opacity = .6 + .3 * Math.sin(now * 3);
+  salvStation.zone.material.opacity = ex.cargo && ex.cargo.length ? .45 + .3 * Math.sin(now * 4) : .15;
+  salvStation.g.getWorldPosition(tmpW); tmpW.y += 50;
+  if (ship.position.distanceTo(tmpW) < 2400) placeLabel(salvStation.label, tmpW, 4); else salvStation.label.style.display = 'none';
+  // HUD 화물
+  const cap = cargoCap(), load = cargoLoad();
+  $('cargoS').textContent = `${load}/${cap}${cargoCores() ? ` · 핵 ${cargoCores()}` : ''}${ex.ejectCd > 0 ? ` · DROP ${Math.ceil(ex.ejectCd)}s` : ''}`;
+  $('cargoBar').style.width = load / cap * 100 + '%';
+  $('wpn').classList.toggle('heavy', cargoFrac() > .6);
+}
+function salvageRadar(g, toRadar) {
+  for (const it of echoes) {
+    if (it.got) continue;
+    const p = toRadar(echoWorld(it).clone(), false);
+    if (!p) continue;
+    g.fillStyle = it.kind === 'core' ? '#ffd27a' : '#bff8ff';
+    g.beginPath(); g.arc(p[0], p[1], it.kind === 'core' ? 3.5 : 2, 0, Math.PI * 2); g.fill();
+  }
+  salvStation.g.getWorldPosition(tmpV);
+  const q = toRadar(tmpV.clone(), false);
+  if (q) { g.strokeStyle = '#ffb23e'; g.lineWidth = 2; g.beginPath(); g.arc(q[0], q[1], 5, 0, Math.PI * 2); g.stroke(); }
+}
+function salvageQuest() {
+  if (!ex.cargo || !ex.cargo.length || ex.ev) return null;
+  salvStation.g.getWorldPosition(tmpV);
+  const cores = cargoCores();
+  return { text: `인양 정거장으로 귀환 · 화물 ${cargoLoad()}/${cargoCap()}${cores ? ` · 희귀 핵 ${cores}` : ''} (금빛 귀환 흐름을 타면 빨라요)`, pos: tmpV.clone(), col: Q_AMBER };
+}
+
+// =====================================================================
+// 사건 「태어나지 못한 별」 — 외곽 인양 → 중계기 전달(공동 목표) → 희귀 핵(선택) → 점화 → 붕괴 탈출
 // 첫 성공 때 함선 AI가 자신이 로고스임을 밝히고 원시 → 고대로 넘어간다
 // =====================================================================
-// 세 역할을 모두 끝내면 감쇠·피격 상한을 빼도 100%에 닿도록: 35 + 30×3 − 15 − 10 = 100
-const EV_LIMIT = 300, EV_START = 35, EV_DECAY = .08, EV_ROLE_PTS = 30, EV_RING = 160, EV_DECAY_MAX = 15, EV_HIT_MAX = 10;
-const ROLES = {
-  obs: { name: '관측자', desc: '별 주위 세 지점에서 4초씩 스캔', col: 0x4aa8ff },
-  carry: { name: '운반자', desc: '잔향 조각 6개를 모아 중계기로', col: 0xc49bff },
-  sync: { name: '조율자', desc: '중계기 세 개를 지정 위치에 배치', col: 0xffb23e },
-};
+const EV_LIMIT = 300, EV_START = 30, EV_PER = 7, EV_DECAY = .06, EV_RING = 160, EV_DECAY_MAX = 15, EV_HIT_MAX = 10, ESC_R = 650, ESC_T = 45;
 const STAR_NAMES = {
   maple: ['단풍의 심장', '첫 모험의 등불', '헤네시스의 아침', '버섯 언덕의 별'],
   fc: ['결승골의 섬광', '그라운드의 별', '열한 번째 빛', '이적시장의 등대'],
@@ -3784,12 +4098,7 @@ const STAR_NAMES = {
   els: ['엘의 조각', '수호자의 별', '엘리오스의 아침', '빛나는 결정'],
   heroes: ['콜헨의 등불', '용사의 맹세', '은빛 방패', '아침의 흉터'],
 };
-const evRingGeo = new THREE.TorusGeometry(1, .035, 6, 96);
-const evMat = (c, o = .85) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
-const fragGeo = new THREE.OctahedronGeometry(3.4);
 const relayGeo = new THREE.CylinderGeometry(2.6, 3.8, 10, 6);
-const fragGlowMat = new THREE.SpriteMaterial({ map: glowTexture([[0, '#f2e6ff'], [.35, '#c49bff66'], [1, '#00000000']], 64),
-  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
 const routes = [];
 let evLive = null;
 
@@ -3805,41 +4114,32 @@ function evReset() {
 function evSignal(gal, sig) {
   if (ex.ev || ex.mission) return;
   ex.ev = { phase: 'call', gal, t: 0, sig };
-  if (ex.godEra === 'ancient' && !GOD.on) godManifest([`${gal.G.ko}의 별이 숨을 고르지 못한다.`, '세 갈래로 나뉘어, 길을 열라.'], { delay: 900, hold: 1 });
+  if (ex.godEra === 'ancient' && !GOD.on) godManifest([`${gal.G.ko}의 별이 숨을 고르지 못한다.`, '흩어진 목소리를 모아, 별에게 돌려주라.'], { delay: 900, hold: 1 });
   aiSay(ex.godEra === 'ancient'
-    ? `${gal.G.ko}의 별이 너무 많은 목소리를 품었어요. 빛이 터지기 전에, 함께 길을 열어 줘요.`
-    : `${gal.G.ko} 쪽에서 이상 신호예요. 저 별은 너무 많은 목소리를 품고 있어요. 빛이 터지기 전에… 가 볼래요?`, { hold: 8 });
+    ? `${gal.G.ko}의 별이 너무 많은 목소리를 품었어요. 은하로 가면 할 일을 하나씩 알려 줄게요.`
+    : `${gal.G.ko} 쪽에서 이상 신호예요. 별이 불안정해요. 상단 안내를 따라 은하로 가 볼래요? 도착하면 할 일을 알려 줄게요.`, { hold: 8 });
 }
-function evOracle(e) {
-  return ex.godEra === 'ancient'
-    ? `${e.gal.G.ko}의 별이 숨을 고르지 못해요. 세 갈래로 나뉘어 길을 열면, 별은 제 이름을 갖게 될 거예요.`
-    : `저 별은 너무 많은 목소리를 품고 있어요. 빛이 터지기 전에 길을 열어 줄래요?`;
-}
-function evRoleCard(rec) {
+function evBriefCard() {
   const e = ex.ev;
   e.phase = 'choose';
-  e.rec = rec || e.rec || ['obs', 'carry', 'sync'][Math.floor(Math.random() * 3)];
   state.mode = 'evcard';
   showCard(`<h1>UNBORN STAR</h1><h2>태어나지 못한 별 · ${e.gal.G.ko}</h2>
-    <p style="font-style:italic;color:#bff8ff">“${evOracle(e)}”</p>
-    <p><b>실행 목표</b> · 별의 <b>안정도를 100%</b>까지 올린 뒤, 모두 <b>점화 고리</b>에 모여 4초간 함께 머물기. 제한 시간 5분.<br>
-    불안정 파동(주황 고리)에 닿으면 선체와 안정도가 조금 깎입니다.</p>
-    <div class="roles">${Object.entries(ROLES).map(([k, r]) =>
-      `<button data-act="ev-role" data-r="${k}" class="${k === e.rec ? 'rec' : ''}"><b>${r.name}${k === e.rec ? ' · 추천' : ''}</b>${r.desc}</button>`).join('')}</div>
-    <button data-act="ev-other">다른 역할은 없어?</button><button data-act="ev-none">탐사만 할게</button>`, true);
+    <p style="font-style:italic;color:#bff8ff">“저 별은 너무 많은 목소리를 품고 있어요. 흩어진 목소리를 모아 돌려주면, 별이 태어날 거예요.”</p>
+    <ol class="brief">
+      <li><b>외곽 인양</b> · 별 바깥의 <b style="color:#bff8ff">흐린 잔향</b>(하늘색)을 가까이 지나가며 싣기 (화물칸 ${cargoCap()}칸)</li>
+      <li><b>중계기 전달</b> · 별 둘레 <b style="color:#3ee6c1">청록 중계기</b> 근처를 지나가면 자동 전달 → 안정도 +${EV_PER}씩. 보조선 2척도 함께 채웁니다</li>
+      <li><b>선택: 희귀 핵</b> · 별 가까이 <b style="color:#ffd27a">금빛 핵</b> 2개. 정거장에 가져가면 기록 5개씩. 무겁고, 실은 동안 파동이 잦아집니다</li>
+      <li><b>점화</b> · 안정도 100%가 되면 청록 점화 고리에 모여 3초</li>
+      <li><b>붕괴 탈출</b> · 점화 직후 별이 무너지며 안쪽으로 당깁니다. ${ESC_T}초 안에 <b>바깥 탈출 고리</b>를 넘으세요. 위기엔 <b>X</b>로 화물을 버리고 급가속</li>
+    </ol>
+    <p style="color:#8ea3c6;font-size:13px">제한 시간 5분 · 주황 파동 고리에 닿으면 선체와 안정도가 깎입니다 · 막히면 H(?)</p>
+    <button data-act="ev-start">인양 시작</button><button data-act="ev-none">보조선에 맡기고 지켜볼게</button>`, true);
 }
 function evCardAct(act, el) {
-  const e = ex.ev;
-  if (act === 'ev-role') { hideCard(); state.mode = 'flying'; evBegin(el.dataset.r); return; }
-  if (act === 'ev-other') {
-    const ks = Object.keys(ROLES), nx = ks[(ks.indexOf(e.rec) + 1) % ks.length];
-    aiSay(`그럼 ${ROLES[nx].name}는 어때요? ${ROLES[nx].desc}.`, { hold: 4 });
-    evRoleCard(nx); return;
-  }
+  if (act === 'ev-start') { hideCard(); state.mode = 'flying'; evBegin(true); return; }
   if (act === 'ev-none') {
-    ex.faith -= 1;
-    hideCard(); state.mode = 'flying'; evBegin('none');
-    aiSay('…알겠어요. 보조선들과 해 볼게요. 점화할 땐 꼭 와 줘요.', { hold: 6 });
+    ex.faith -= 1; hideCard(); state.mode = 'flying'; evBegin(false);
+    aiSay('…알겠어요. 보조선들과 해 볼게요. 대신 점화할 땐 꼭 고리로 와 줘요.', { hold: 6 });
     return;
   }
   if (act === 'ev-name') { evNamed(el.dataset.n); return; }
@@ -3856,49 +4156,50 @@ function buildMate(col) {
   eng.position.z = -6; eng.scale.setScalar(9); g.add(eng);
   return g;
 }
-function evBegin(role) {
+function evBegin(helping) {
   const e = ex.ev, gal = e.gal;
   evLive = e;
-  Object.assign(e, { phase: 'run', role, t: 0, stab: EV_START, decay: 0, hits: 0, prog: { obs: 0, carry: 0, sync: 0 },
-    carrying: 0, syncT: 0, objs: [], said: {} });
+  Object.assign(e, { phase: 'run', helping, t: 0, stab: EV_START, delivered: 0, ai: 0, decay: 0, hits: 0, syncT: 0, objs: [], said: {}, step: 0 });
   const add = o => { gal.grp.add(o); e.objs.push(o); return o; };
-  e.scans = [0, 1, 2].map(k => {
-    const a = k * 2.094 + .4, pos = new THREE.Vector3(Math.cos(a) * 150, (k - 1) * 18, Math.sin(a) * 150);
-    const m = add(new THREE.Mesh(evRingGeo, evMat(0x4aa8ff))); m.position.copy(pos); m.scale.setScalar(30);
-    m.visible = role === 'obs';
-    return { p: pos, m, t: 0, done: false };
-  });
   e.relays = [0, 1, 2].map(k => {
     const a = k * 2.094 + 1.45, pos = new THREE.Vector3(Math.cos(a) * 112, 0, Math.sin(a) * 112);
-    const m = add(new THREE.Mesh(evRingGeo, evMat(0xffb23e))); m.position.copy(pos); m.scale.setScalar(20); m.rotation.x = Math.PI / 2;
-    const body = add(new THREE.Mesh(relayGeo, new THREE.MeshStandardMaterial({ color: 0xc8d2e0, metalness: .6, roughness: .35, emissive: 0x3a2400 })));
+    const m = add(new THREE.Mesh(evRingGeo, evMat(0x3ee6c1))); m.position.copy(pos); m.scale.setScalar(22); m.rotation.x = Math.PI / 2;
+    const body = add(new THREE.Mesh(relayGeo, new THREE.MeshStandardMaterial({ color: 0xc8d2e0, metalness: .6, roughness: .35, emissive: 0x003a30 })));
     body.position.copy(pos);
-    const built = role !== 'sync';   // 조율자가 아니면 보조선이 미리 설치해 둠
-    body.visible = built; m.visible = role === 'sync' || role === 'carry';
-    return { p: pos, m, body, done: built };
+    return { p: pos, m };
   });
-  e.frags = Array.from({ length: 6 }, () => {
-    const a = rand(0, Math.PI * 2), r = rand(210, 340), pos = new THREE.Vector3(Math.cos(a) * r, rand(-40, 40), Math.sin(a) * r);
-    const m = add(new THREE.Mesh(fragGeo, new THREE.MeshBasicMaterial({ color: 0xe6d6ff, fog: false })));
-    const gl = new THREE.Sprite(fragGlowMat); gl.scale.setScalar(20); m.add(gl);
-    m.position.copy(pos); m.visible = role === 'carry';
-    return { p: pos, m, got: false };
-  });
-  const aiRoles = Object.keys(ROLES).filter(r => r !== role);
+  // 외곽 흐린 잔향 10개 (사건용) · 별 가까이 희귀 핵 2개
+  e.items = [];
+  for (let k = 0; k < 10; k++) {
+    const a = k / 10 * Math.PI * 2 + rand(-.2, .2), r = rand(200, 320);
+    e.items.push(makeEcho('faint', gal.grp, new THREE.Vector3(Math.cos(a) * r, rand(-30, 30), Math.sin(a) * r), { ev: true }));
+  }
+  for (let k = 0; k < 2; k++) {
+    const a = k * Math.PI + rand(0, 1), r = rand(68, 86);
+    e.items.push(makeEcho('core', gal.grp, new THREE.Vector3(Math.cos(a) * r, rand(-8, 8), Math.sin(a) * r), { ev: true }));
+  }
   e.mates = ['A', 'B'].map((n, k) => {
     const g = add(buildMate(k ? '#ffb23e' : '#3ee6ff'));
-    const label = exLabel('cc', `<b style="color:#bff8ff">보조선 ${n}</b><span>${role === 'none' && k === 1 ? ROLES[aiRoles[1]].name + ' · ' + ROLES[aiRoles[2]].name : ROLES[aiRoles[k]].name}</span>`);
-    return { g, label, k };
+    return { g, k, label: exLabel('cc', `<b style="color:#bff8ff">보조선 ${n}</b><span>잔향 인양</span>`) };
   });
   e.ring = add(new THREE.Mesh(evRingGeo, evMat(0x3ee6c1, 0))); e.ring.scale.setScalar(EV_RING); e.ring.rotation.x = Math.PI / 2;
-  toast(role === 'none' ? '역할 없이 탐사 · 보조선이 세 역할을 나눠 맡습니다' : `역할: ${ROLES[role].name} — ${ROLES[role].desc}`, '#3ee6c1');
-  if (role !== 'none') aiSay(`좋아요, ${ROLES[role].name}! 나머지는 보조선이 맡을게요. 안정도가 100%가 되면 점화해요.`, { hold: 6 });
+  toast('인양 시작 · 흐린 잔향을 모아 중계기로', '#3ee6c1');
+  if (helping) aiSay(`좋아요! 1단계: 별 바깥을 떠다니는 하늘색 잔향을 가까이 지나가며 실어요. 상단 안내가 가장 가까운 잔향을 가리킬게요.`, { hold: 8 });
   holoApply();
 }
 function evClear(e) {
   (e.objs || []).forEach(o => e.gal.grp.remove(o));
   (e.mates || []).forEach(m => m.label.remove());
+  (e.items || []).forEach(it => { if (echoes.includes(it)) removeEcho(it); });
   if (e.nebula) e.gal.grp.remove(e.nebula);
+  if (e.debris) e.gal.grp.remove(e.debris);
+}
+function evStep(e) {   // 지금 단계 (체크리스트 · 안내용)
+  if (e.phase === 'sync') return 3;
+  if (e.phase === 'collapse') return 4;
+  const faintIn = ex.cargo.filter(c => c.ev && c.kind === 'faint').length;
+  if (faintIn) return 1;
+  return 0;
 }
 function evUpdate(dt, now) {
   const e = ex.ev;
@@ -3907,44 +4208,35 @@ function evUpdate(dt, now) {
   if (e.phase === 'call') {
     e.t += dt;
     if (!gal.sig || gal.sig.kind !== 'spike') { aiSay('신호가 잦아들었어요. 이번엔 별이 스스로 진정했네요.'); ex.ev = null; return false; }
-    if (local.length() < 620) evRoleCard();
+    if (local.length() < 620) evBriefCard();
     return false;
   }
   if (e.phase === 'run') {
     e.t += dt; e.decay += EV_DECAY * dt;
-    if (e.role === 'obs') for (const sc of e.scans) {
-      if (sc.done || local.distanceTo(sc.p) > 40) continue;   // 은하가 팽창으로 움직여도 머물 수 있게 넉넉히
-      sc.t += dt;
-      if (sc.t >= 4) { sc.done = true; e.prog.obs += 1 / 3; sc.m.material.color.setHex(0x3ee6c1); sfx('blip', 300);
-        toast(`스캔 완료 ${e.scans.filter(x => x.done).length}/3 · 안전 경로가 드러났습니다`, '#4aa8ff'); }
-    }
-    if (e.role === 'carry') {
-      for (const f of e.frags) if (!f.got && e.carrying < 3 && local.distanceTo(f.p) < 18) {
-        f.got = true; f.m.visible = false; e.carrying++; sfx('blip', 400); toast(`잔향 조각 확보 · 운반 중 ${e.carrying}/3`, '#c49bff');
-      }
-      if (e.carrying > 0 && e.relays.some(r => local.distanceTo(r.p) < 26)) {
-        e.prog.carry = Math.min(1, e.prog.carry + e.carrying / 6); toast(`중계기에 조각 ${e.carrying}개 전달`, '#c49bff');
-        burst(ship.position, 0xc49bff, 40, 10, .7); e.carrying = 0; sfx('blip', 300);
+    // 중계기 전달: 실은 '사건용 흐린 잔향'을 자동으로 넘김
+    if (e.relays.some(r => local.distanceTo(r.p) < 30)) {
+      const give = ex.cargo.filter(c => c.ev && c.kind === 'faint');
+      if (give.length) {
+        ex.cargo = ex.cargo.filter(c => !(c.ev && c.kind === 'faint'));
+        e.delivered += give.length;
+        burst(ship.position, 0x3ee6c1, 60, 14, .9); sfx('blip', 250);
+        toast(`중계기 전달 ${give.length}개 · 안정도 +${give.length * EV_PER}`, '#3ee6c1');
+        if (!e.said.deliver) { e.said.deliver = true; aiSay('전달 완료! 이렇게 계속 모아서 가져오면 돼요. 안정도가 100%가 되면 점화해요.', { hold: 6 }); }
       }
     }
-    if (e.role === 'sync') for (const r of e.relays) {
-      if (r.done || local.distanceTo(r.p) > 20) continue;
-      r.done = true; r.body.visible = true; r.m.material.color.setHex(0x3ee6c1); e.prog.sync += 1 / 3;
-      burst(ship.position, 0xffb23e, 50, 12, .8); sfx('blip', 300);
-      toast(`중계기 배치 ${e.relays.filter(x => x.done).length}/3`, '#ffb23e');
+    // 사건용 잔향이 바닥나면 외곽에 다시 흩뿌림
+    if (e.items.filter(it => it.kind === 'faint' && !it.got).length === 0) {
+      e.items.filter(it => it.kind === 'faint').forEach(it => {
+        const a = rand(0, Math.PI * 2), r = rand(200, 320);
+        it.p.set(Math.cos(a) * r, rand(-30, 30), Math.sin(a) * r); it.m.position.copy(it.p); it.got = false; it.m.visible = true;
+      });
     }
-    // 보조선이 맡은 역할은 꾸준히 진행
-    const aiRoles = Object.keys(ROLES).filter(r => r !== e.role), rate = e.role === 'none' ? 1 / 180 : 1 / 150;
-    aiRoles.forEach((r, k) => {
-      const before = e.prog[r];
-      e.prog[r] = Math.min(1, e.prog[r] + rate * dt);
-      const who = e.role === 'none' ? `보조선 ${k ? 'B' : 'A'}` : `보조선 ${'AB'[k]}`;
-      if (before < .5 && e.prog[r] >= .5) aiSay(r === 'obs' ? `${who}가 남쪽 진입 경로를 찾았어요.` : r === 'carry' ? `${who}가 잔향 조각을 절반쯤 옮겼어요.` : `${who}가 중계기 출력을 맞추는 중이에요.`, { hold: 4 });
-    });
-    e.stab = clamp(EV_START + EV_ROLE_PTS * (e.prog.obs + e.prog.carry + e.prog.sync) - Math.min(EV_DECAY_MAX, e.decay) - Math.min(EV_HIT_MAX, e.hits), 0, 100);
+    e.ai = Math.min(e.helping ? 40 : 70, e.ai + (e.helping ? .16 : .3) * dt);
+    e.stab = clamp(EV_START + e.delivered * EV_PER + e.ai - Math.min(EV_DECAY_MAX, e.decay) - Math.min(EV_HIT_MAX, e.hits), 0, 100);
+    if (e.stab >= 50 && !e.said.half) { e.said.half = true; aiSay('안정도 절반! 별 가까이 금빛 핵이 보여요. 가져갈지는 항해사님 선택이에요. 무거워진다는 것만 기억해요.', { hold: 7 }); }
     if (e.stab >= 100) {
-      e.phase = 'sync'; e.ring.material.opacity = .85;
-      aiSay('안정도 100%! 모두 점화 고리로 모여요. 속도를 줄이고, 함께 머물러요.', { hold: 7 });
+      e.phase = 'sync'; e.syncT = 0; e.ring.material.opacity = .85;
+      aiSay('안정도 100%! 4단계: 청록 점화 고리로 모여요. 고리 안에서 속도를 120 m/s 아래로 줄이고 3초 머물면 점화돼요.', { hold: 8 });
       sfx('warpIn'); toast('점화 준비 · 별 둘레의 청록 고리로', '#3ee6c1');
     } else if (e.t > EV_LIMIT || (e.stab <= 0 && e.t > 20)) evFail();
     return false;
@@ -3954,35 +4246,77 @@ function evUpdate(dt, now) {
     const dxz = Math.hypot(local.x, local.z);
     const inRing = Math.abs(dxz - EV_RING) < 34 && Math.abs(local.y) < 40 && state.speed <= REFUEL_SPEED;
     e.syncT = inRing ? e.syncT + dt : Math.max(0, e.syncT - dt * .5);
-    if (inRing && !e.said.ring) { e.said.ring = true; aiSay('동조 시작… 그대로 유지해요.', { hold: 3 }); }
-    if (e.syncT >= 4) evIgnite();
+    if (!inRing && Math.abs(dxz - EV_RING) < 34 && state.speed > REFUEL_SPEED && !e.said.slow) { e.said.slow = true; aiSay('고리 안이에요! S 키(또는 −)로 속도를 120 m/s 아래로 줄여요.', { hold: 5 }); }
+    if (e.syncT >= 3) evIgnite();
     else if (e.t > EV_LIMIT + 60) evFail();
+    return false;
+  }
+  if (e.phase === 'collapse') {
+    e.t += dt;
+    // 무너지는 별이 안쪽으로 끌어당김 (점점 강하게)
+    const pull = 6 + 26 * Math.min(1, e.t / ESC_T);
+    ship.position.addScaledVector(local.clone().normalize(), -pull * dt);
+    state.shake = Math.max(state.shake, .18 + .25 * e.t / ESC_T);
+    if (local.length() > ESC_R) { evEscaped(); return false; }
+    if (e.t > ESC_T) {
+      const lost = cargoCores();
+      ex.cargo = ex.cargo.filter(c => c.kind !== 'core');
+      e.collapseHit = true;
+      if (damagePlayer(30, 'COLLAPSE')) return true;
+      toast(lost ? `붕괴에 휩쓸림 · 희귀 핵 ${lost}개를 잃었다` : '붕괴에 휩쓸림', '#ff6a78');
+      aiSay('붕괴에 휩쓸렸어요… 그래도 별은 태어났어요. 다음엔 화물을 조금 덜 실어 봐요.', { hold: 6 });
+      evToName();
+    }
     return false;
   }
   if (e.phase === 'recover') {
     e.t += dt;
-    for (const f of e.frags) if (!f.got && local.distanceTo(f.p) < 18) { f.got = true; f.m.visible = false; sfx('blip', 400); }
-    const got = e.frags.filter(f => f.got).length;
-    if (got >= e.frags.length || e.t > 90) evRecoverEnd(got);
+    const left = e.items.filter(it => it.kind === 'faint' && !it.got).length;
+    if (left === 0 || e.t > 90) evRecoverEnd(e.items.filter(it => it.kind === 'faint' && it.got).length);
   }
   return false;
 }
 function evIgnite() {
   const e = ex.ev, gal = e.gal, S = gal.grp.position.clone();
-  e.phase = 'named';
   gal.ignited = true; exGalLabel(gal);
   gal.starCol = gal.starCol ? gal.starCol.clone().lerp(new THREE.Color(0xffffff), .35) : null;
   burst(S, 0xffffff, 260, 60, 2.2); burst(S, new THREE.Color(gal.G.col).getHex(), 300, 40, 2.6); burst(S, 0x7ff1ff, 160, 80, 1.6);
   if (typeof addShock === 'function') addShock(S, 3);
   sfx('boom'); flash();
-  // 새 항로: 허브와 이 은하를 잇는 빛의 길
   const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), S]),
     new THREE.LineBasicMaterial({ color: 0x7ff1ff, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
   line.frustumCulled = false; exWorld.add(line); routes.push({ line, gal });
   e.ring.material.opacity = 0;
   e.mates.forEach(m => m.label.remove()); e.mates.forEach(m => gal.grp.remove(m.g)); e.mates = [];
-  toast(`${gal.G.ko} · 별이 태어났다! 새 항로가 열렸습니다`, '#7ff1ff');
-  setTimeout(() => evNameCard(), 1800);
+  // 붕괴 시작: 탈출 고리 + 안쪽으로 빨려 드는 잔해
+  e.phase = 'collapse'; e.t = 0;
+  e.esc = new THREE.Mesh(escRingGeo, evMat(0x7ff1ff, .9)); e.esc.scale.setScalar(ESC_R); e.esc.rotation.x = Math.PI / 2;
+  gal.grp.add(e.esc); e.objs.push(e.esc);
+  const n = 500, pos = new Float32Array(n * 3); e.deb = [];
+  for (let k = 0; k < n; k++) e.deb.push({ a: rand(0, 6.28), r: rand(150, 700), y: rand(-60, 60), v: rand(40, 120) });
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  e.debris = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffb08a, size: 3.2, map: dotTex, transparent: true, opacity: .8,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  e.debris.frustumCulled = false; gal.grp.add(e.debris);
+  toast(`별이 태어났다! 붕괴 시작 — ${ESC_T}초 안에 바깥 탈출 고리로`, '#ff8a78');
+  aiSay(`점화 성공! 그런데 별이 무너지며 안쪽으로 당겨요. 5단계: 바깥의 청록 탈출 고리까지 ${ESC_T}초 안에 빠져나가요. 무거우면 X로 화물을 버리고 급가속!`, { hold: 9 });
+}
+function evEscaped() {
+  const e = ex.ev, cores = cargoCores();
+  e.escaped = true;
+  ex.crystals += 40 + cores * 20;
+  toast(`탈출 성공!${cores ? ` 희귀 핵 ${cores}개를 지켜 냈다` : ''} · 결정 +${40 + cores * 20}`, '#7ff1ff');
+  aiSay(cores ? `해냈어요! 희귀 핵까지 무사해요. 인양 정거장에 내리면 기록이 돼요.` : '해냈어요! 무사히 빠져나왔어요.', { hold: 6 });
+  sfx('warpOut');
+  evToName();
+}
+function evToName() {
+  const e = ex.ev;
+  e.phase = 'named';
+  if (e.esc) e.esc.visible = false;
+  if (e.debris) { e.gal.grp.remove(e.debris); e.debris = null; }
+  e.items.forEach(it => { if (!it.got) it.m.visible = false; it.got = true; });
+  setTimeout(() => evNameCard(), 1600);
 }
 function evNameCard() {
   const e = ex.ev, pool = (STAR_NAMES[e.gal.G.id] || ['새벽의 별', '첫 빛', '항해사의 별']).slice().sort(() => Math.random() - .5).slice(0, 3);
@@ -3992,15 +4326,17 @@ function evNameCard() {
     <div class="names">${pool.map(n => `<button data-act="ev-name" data-n="${n}">✦ ${n}</button>`).join('')}</div>`, true);
 }
 function evNamed(name) {
-  const e = ex.ev, gal = e.gal, roleName = e.role === 'none' ? '탐사' : ROLES[e.role].name;
+  const e = ex.ev, gal = e.gal;
   gal.starName = name; exGalLabel(gal);
   ex.born++; ex.crystals += 120; state.fuel = Math.min(100, state.fuel + 20);
-  ex.chron.push({ day: ex.day, kind: 'born', gal: gal.G.ko, name, role: roleName, time: e.t });
+  const role = `인양 ${e.delivered}개${e.escaped ? ' · 탈출' : ' · 붕괴 휩쓸림'}`;
+  ex.chron.push({ day: ex.day, kind: 'born', gal: gal.G.ko, name, role, time: e.t });
   showCard(`<h1>CHRONICLE</h1><h2>우주 연대기에 기록되었습니다</h2>
     <div class="chron">${ex.chron.slice(-5).reverse().map(c => c.kind === 'born'
       ? `DAY ${Math.floor(c.day)} · <b>${c.name}</b> 탄생 — ${c.gal} 은하 · 항해사(${c.role}) · 보조선 A · 보조선 B`
-      : `DAY ${Math.floor(c.day)} · <b>${c.name}</b> — 조각 ${c.got}/6 회수`).join('<br>')}</div>
-    <p style="color:#8ea3c6;font-size:13px">보상 · 결정 +120 · 연료 +20%</p>
+      : c.kind === 'salvage' ? `DAY ${Math.floor(c.day)} · <b>${c.name}</b> — ${c.gal}`
+      : `DAY ${Math.floor(c.day)} · <b>${c.name}</b> — 조각 ${c.got}개 회수`).join('<br>')}</div>
+    <p style="color:#8ea3c6;font-size:13px">보상 · 결정 +120 · 연료 +20%${cargoCores() ? ` · 실은 희귀 핵 ${cargoCores()}개는 인양 정거장에 내려야 기록이 됩니다` : ''}</p>
     <button data-act="ev-ok">계속</button>`, true);
 }
 const LOGOS_LINES = [
@@ -4013,6 +4349,7 @@ const LOGOS_LINES = [
 function evAfterChron() {
   hideCard();
   evClear(ex.ev); evLive = null; ex.ev = null;
+  const after = () => { if (ex.cargo.length) setTimeout(() => aiSay('실은 화물은 넥슨닷컴 곁 인양 정거장(주황 고리)에 내려야 기록이 돼요. 금빛 귀환 흐름을 타면 빨라요.', { hold: 7 }), 2500); };
   if (ex.godEra === 'primal') {
     state.mode = 'evcard';
     godManifest(GOD_REVEAL, { block: true }).then(() => playScene(LOGOS_LINES, ['LOGOS', '로고스 · 기록을 읽는 자'], () => {
@@ -4020,9 +4357,9 @@ function evAfterChron() {
       state.mode = 'flying';
       toast('고대 · 로고스의 시대가 열렸다', '#ffd27a');
       sfx('warpOut');
-      setTimeout(() => aiSay('다음 신호가 오면 알려 줄게요. 그동안 우주를 둘러봐요.', { hold: 5 }), 1500);
+      after();
     }, '고대로 ›'));
-  } else { state.mode = 'flying'; aiSay('별이 또 하나 이름을 얻었어요. 고마워요, 항해사님.', { hold: 5 }); }
+  } else { state.mode = 'flying'; aiSay('별이 또 하나 이름을 얻었어요. 고마워요, 항해사님.', { hold: 5 }); after(); }
 }
 function evFail() {
   const e = ex.ev, gal = e.gal, S = gal.grp.position.clone();
@@ -4031,64 +4368,59 @@ function evFail() {
   burst(S, 0xa98bff, 320, 50, 2.4); sfx('boom'); flash();
   e.mates.forEach(m => m.label.remove()); e.mates.forEach(m => gal.grp.remove(m.g)); e.mates = [];
   e.ring.material.opacity = 0;
-  [...e.scans, ...e.relays].forEach(x => { x.m.visible = false; if (x.body) x.body.visible = false; });
-  // 흩어진 별: 보라 성운 + 다시 모을 조각 6개
+  e.relays.forEach(r => { r.m.visible = false; });
   const n = 900, pos = new Float32Array(n * 3);
   for (let k = 0; k < n; k++) { const v = randomDir().multiplyScalar(rand(20, 260)); v.y *= .4; pos.set([v.x, v.y, v.z], k * 3); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   e.nebula = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xa98bff, size: 3, map: dotTex, transparent: true, opacity: .7,
     blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
   gal.grp.add(e.nebula);
-  e.frags.forEach(f => { f.got = false; f.p.set(rand(-240, 240), rand(-40, 40), rand(-240, 240)); f.m.position.copy(f.p); f.m.visible = true; });
-  aiSay('별이 흩어졌어요… 조각을 모아 줘요. 다음 별의 씨앗이 될 거예요.', { hold: 7 });
+  e.items.forEach(it => { it.got = it.kind === 'core'; it.m.visible = it.kind !== 'core';
+    if (it.kind === 'faint') { it.p.set(rand(-240, 240), rand(-40, 40), rand(-240, 240)); it.m.position.copy(it.p); } });
+  aiSay('별이 흩어졌어요… 흩어진 잔향을 주워 줘요. 정거장에 내리면 다음 별의 씨앗이 될 거예요.', { hold: 7 });
   toast('별이 성운으로 흩어졌다 · 조각 회수 (90초)', '#a98bff');
 }
 function evRecoverEnd(got) {
   const e = ex.ev;
   ex.chron.push({ day: ex.day, kind: 'scattered', gal: e.gal.G.ko, name: `흩어진 별 (${e.gal.G.ko})`, got });
-  ex.crystals += got * 8;
-  toast(`연대기 기록 · 흩어진 별 조각 ${got}/6 회수`, '#a98bff');
-  aiSay(got >= 4 ? '이 정도면 다음 별을 피울 수 있을 거예요.' : '괜찮아요. 잔향은 다시 모여요.', { hold: 5 });
+  toast(`연대기 기록 · 흩어진 별 조각 ${got}개 회수`, '#a98bff');
+  aiSay(got >= 5 ? '이 정도면 다음 별을 피울 수 있을 거예요. 주운 조각은 정거장에 내려 줘요.' : '괜찮아요. 잔향은 다시 모여요.', { hold: 6 });
   evClear(e); evLive = null; ex.ev = null;
 }
 function evQuest() {
   const e = ex.ev;
   if (!e) return null;
   const S = e.gal.grp.position, w = v => v.clone().add(S);
-  if (e.phase === 'call') return { text: `이상 신호 · ${e.gal.G.ko}의 불안정한 별로 접근`, pos: S, col: Q_AMBER };
+  const near = list => { let b = null, bd = Infinity; for (const x of list) { const d = w(x.p).distanceTo(ship.position); if (d < bd) { bd = d; b = x; } } return b; };
+  if (e.phase === 'call') return { text: `이상 신호 · ${e.gal.G.ko}의 불안정한 별로 접근 (가까이 가면 할 일 안내)`, pos: S, col: Q_AMBER };
   if (e.phase === 'run') {
-    const near = list => { let b = null, bd = Infinity; for (const x of list) { const d = w(x.p).distanceTo(ship.position); if (d < bd) { bd = d; b = x; } } return b; };
-    if (e.role === 'obs') { const sc = near(e.scans.filter(x => !x.done));
-      if (sc) return { text: `관측자 · 스캔 지점(파랑) 안에서 4초 ${sc.t > 0 ? `· ${sc.t.toFixed(1)}s` : ''} · 안정도 ${Math.round(e.stab)}%`, pos: w(sc.p), col: Q_BLUE }; }
-    if (e.role === 'carry') {
-      if (e.carrying > 0) { const r = near(e.relays); return { text: `운반자 · 중계기로 조각 ${e.carrying}개 전달 · 안정도 ${Math.round(e.stab)}%`, pos: w(r.p), col: Q_AMBER }; }
-      const f = near(e.frags.filter(x => !x.got)); if (f) return { text: `운반자 · 잔향 조각(보라) 확보 · 안정도 ${Math.round(e.stab)}%`, pos: w(f.p), col: Q_VIOLET };
-    }
-    if (e.role === 'sync') { const r = near(e.relays.filter(x => !x.done));
-      if (r) return { text: `조율자 · 중계기 배치 지점(주황) 통과 ${e.relays.filter(x => x.done).length}/3 · 안정도 ${Math.round(e.stab)}%`, pos: w(r.p), col: Q_AMBER }; }
-    return { text: `안정도 ${Math.round(e.stab)}% · 보조선과 함께 별 곁을 지키기 (파동 주의)`, pos: S, col: Q_AMBER };
+    const st = `안정도 ${Math.round(e.stab)}%`;
+    if (ex.cargo.some(c => c.ev && c.kind === 'faint')) { const r = near(e.relays);
+      return { text: `2단계 · 청록 중계기로 전달 (흐린 잔향 ${ex.cargo.filter(c => c.ev && c.kind === 'faint').length}개) · ${st}`, pos: w(r.p), col: Q_TEAL }; }
+    if (cargoLoad() >= cargoCap()) return { text: `화물칸 가득 · 희귀 핵은 전달 불가 — X로 버리거나 점화 후 정거장으로 · ${st}`, pos: S, col: Q_AMBER };
+    const f = near(e.items.filter(it => it.kind === 'faint' && !it.got));
+    if (f) return { text: `1단계 · 흐린 잔향(하늘색) 싣기 · 화물 ${cargoLoad()}/${cargoCap()} · ${st}`, pos: w(f.p), col: Q_BLUE };
+    return { text: `${st} · 보조선과 함께 채우는 중 (파동 주의)`, pos: S, col: Q_AMBER };
   }
   if (e.phase === 'sync') {
     tmpW.copy(ship.position).sub(S).setY(0); if (tmpW.lengthSq() < 1) tmpW.set(1, 0, 0);
-    return { text: `점화 · 청록 고리 안에서 120 m/s 이하로 함께 ${e.syncT.toFixed(1)}/4초`, pos: tmpW.normalize().multiplyScalar(EV_RING).add(S), col: Q_TEAL };
+    return { text: `4단계 · 점화 고리 안에서 120 m/s 이하로 ${e.syncT.toFixed(1)}/3초`, pos: tmpW.normalize().multiplyScalar(EV_RING).add(S), col: Q_TEAL };
+  }
+  if (e.phase === 'collapse') {
+    tmpW.copy(ship.position).sub(S); const d = tmpW.length(); if (d < 1) tmpW.set(1, 0, 0);
+    return { text: `5단계 · 붕괴 탈출! 바깥 고리까지 ${Math.max(0, Math.round((ESC_R - d) * 10))} m · ${Math.max(0, ESC_T - e.t).toFixed(0)}초 · 무거우면 X`, pos: tmpW.normalize().multiplyScalar(ESC_R + 20).add(S), col: Q_RED };
   }
   if (e.phase === 'recover') {
-    const f = e.frags.find(x => !x.got);
-    return { text: `흩어진 별 조각 회수 ${e.frags.filter(x => x.got).length}/6 · ${Math.max(0, 90 - e.t).toFixed(0)}초`, pos: f ? w(f.p) : S, col: Q_VIOLET };
+    const f = near(e.items.filter(it => it.kind === 'faint' && !it.got));
+    return { text: `흩어진 별 조각 줍기 · ${Math.max(0, 90 - e.t).toFixed(0)}초`, pos: f ? w(f.p) : S, col: Q_VIOLET };
   }
   return null;
 }
 function evRadar(g, toRadar) {
   const e = ex.ev;
-  if (!e || !e.scans) return;
-  const S = e.gal.grp.position, w = v => v.clone().add(S);
-  const dot = (v, c, sz) => { const p = toRadar(w(v), false); if (p) { g.fillStyle = c; g.fillRect(p[0] - sz / 2, p[1] - sz / 2, sz, sz); } };
-  if (e.phase === 'run') {
-    if (e.role === 'obs') e.scans.forEach(x => !x.done && dot(x.p, '#4aa8ff', 6));
-    if (e.role === 'sync') e.relays.forEach(x => !x.done && dot(x.p, '#ffb23e', 6));
-    if (e.role === 'carry') { e.frags.forEach(x => !x.got && dot(x.p, '#c49bff', 4)); e.relays.forEach(x => dot(x.p, '#ffb23e', 5)); }
-  }
-  if (e.phase === 'recover') e.frags.forEach(x => !x.got && dot(x.p, '#c49bff', 5));
+  if (!e || !e.relays || !['run', 'sync'].includes(e.phase)) return;
+  const S = e.gal.grp.position;
+  e.relays.forEach(r => { const p = toRadar(r.p.clone().add(S), false); if (p) { g.fillStyle = '#3ee6c1'; g.fillRect(p[0] - 3, p[1] - 3, 6, 6); } });
 }
 function evFrame(dt, now) {
   routes.forEach(r => {
@@ -4098,22 +4430,74 @@ function evFrame(dt, now) {
   });
   const e = ex.ev;
   if (!e || !e.objs) return;
-  e.frags.forEach((f, k) => { f.m.rotation.y += dt * 2; f.m.position.y = f.p.y + Math.sin(now * 2 + k) * 2; });
-  e.scans.forEach(sc => { if (!sc.done) sc.m.material.opacity = .5 + .35 * Math.sin(now * 4); sc.m.rotation.y += dt * .6; });
-  e.relays.forEach(r => { if (!r.done) r.m.material.opacity = .5 + .35 * Math.sin(now * 4 + 1); });
+  e.relays.forEach((r, k) => { r.m.material.opacity = .5 + .35 * Math.sin(now * 4 + k); });
   if (e.ring && e.phase === 'sync') e.ring.material.opacity = .55 + .35 * Math.sin(now * 5);
   if (e.nebula) e.nebula.rotation.y += dt * .05;
-  // 보조선: 별 주위를 돌다가 점화 단계엔 고리 위로 모임
+  if (e.esc && e.phase === 'collapse') e.esc.material.opacity = .55 + .4 * Math.sin(now * 6);
+  if (e.debris) {
+    const arr = e.debris.geometry.attributes.position.array;
+    e.deb.forEach((d, k) => {
+      d.r -= d.v * dt; d.a += dt * 60 / Math.max(40, d.r);
+      if (d.r < 50) { d.r = rand(600, 720); d.a = rand(0, 6.28); }
+      arr[k * 3] = Math.cos(d.a) * d.r; arr[k * 3 + 1] = d.y * d.r / 700; arr[k * 3 + 2] = Math.sin(d.a) * d.r;
+    });
+    e.debris.geometry.attributes.position.needsUpdate = true;
+  }
   (e.mates || []).forEach(m => {
-    const sync = e.phase === 'sync', r = sync ? EV_RING : 175 + m.k * 55, a = now * (sync ? .12 : .22) * (m.k ? -1 : 1) + m.k * Math.PI;
+    const sync = e.phase === 'sync', r = sync ? EV_RING : 200 + m.k * 70, a = now * (sync ? .12 : .2) * (m.k ? -1 : 1) + m.k * Math.PI;
     const y = sync ? 0 : Math.sin(now * .7 + m.k) * 30;
     m.g.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
     tmpW.set(-Math.sin(a) * (m.k ? -1 : 1), 0, Math.cos(a) * (m.k ? -1 : 1)).add(m.g.position).add(e.gal.grp.position);
-    m.g.lookAt(tmpW);   // 진행 방향(접선)을 바라봄
+    m.g.lookAt(tmpW);
     tmpW.copy(m.g.position).add(e.gal.grp.position); tmpW.y += 14;
     placeLabel(m.label, tmpW, 4);
   });
 }
+// 홀로그램 사건 화면: 단계 체크리스트
+function holoEvent(e, body) {
+  const left = Math.max(0, (e.phase === 'recover' ? 90 : e.phase === 'collapse' ? ESC_T : EV_LIMIT) - e.t);
+  $('hbTitle').textContent = `UNBORN STAR · ${e.gal.G.ko}`;
+  $('hbMood').textContent = `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
+  if (e.phase === 'recover') {
+    const got = e.items.filter(it => it.kind === 'faint' && it.got).length;
+    body.innerHTML = `<div class="hb-ev"><div class="ttl" style="color:#c9b3ff">흩어진 별 · 조각 줍기</div>
+      <div class="stab"><span>회수</span><span>${got}개</span></div></div>`;
+    return;
+  }
+  const st = Math.round(e.stab), sc = e.phase !== 'run' ? '#3ee6c1' : st > 66 ? '#7ff1ff' : st > 33 ? '#ffb23e' : '#ff6a78';
+  const cur = evStep(e), cores = e.items.filter(it => it.kind === 'core');
+  const steps = [
+    ['외곽의 흐린 잔향 싣기', e.phase !== 'run'],
+    ['청록 중계기에 전달', e.phase !== 'run'],
+    [`(선택) 희귀 핵 · ${cores.filter(c => c.got).length}/2`, cores.every(c => c.got)],
+    ['점화 고리에서 3초', ['collapse', 'named'].includes(e.phase)],
+    [`붕괴 탈출 · ${ESC_T}초`, e.escaped],
+  ];
+  body.innerHTML = `<div class="hb-ev">
+    <div class="stab"><span>안정도 · 전달 ${e.delivered}개</span><span style="color:${sc}">${st}%</span></div>
+    <div class="hb-bar big"><i style="width:${st}%;background:${sc}"></i></div>
+    <div class="steps">${steps.map(([t, done], k) => `<div class="${done ? 'done' : k === cur ? 'on' : ''}">${done ? '✓' : k === cur ? '▶' : '·'} ${k + 1}. ${t}</div>`).join('')}</div>
+    <div class="hint">화물 ${cargoLoad()}/${cargoCap()}${cargoCores() ? ` · 핵 ${cargoCores()}` : ''}${e.hits ? ` · 파동 피격 ${e.hits}` : ''}</div></div>`;
+}
+// H(?) — 지금 상황에서 할 일을 구체적으로
+function aiHint() {
+  const q = questInfo(), e = ex.ev;
+  const dist = q && q.pos ? ` (${fmtDist(q.pos.distanceTo(ship.position))})` : '';
+  let how = '';
+  if (e && e.phase === 'run') {
+    if (ex.cargo.some(c => c.ev && c.kind === 'faint')) how = '중계기는 별 둘레의 청록 고리 3개예요. 고리 근처를 지나가기만 하면 실은 흐린 잔향이 자동으로 넘어가요.';
+    else if (cargoLoad() >= cargoCap()) how = '화물칸이 꽉 찼어요. 희귀 핵은 중계기에 줄 수 없어요. X로 버리면 가벼워지고, 버린 건 그 자리에 남아요.';
+    else how = '하늘색 반짝이는 조각이 흐린 잔향이에요. 상단 화살표를 따라가 가까이 지나가면 자동으로 실려요. 주황 고리(파동)는 피하세요.';
+  } else if (e && e.phase === 'sync') how = '청록 고리 위에서 S 키(또는 −)로 속도를 120 m/s 아래로 낮추고 3초 버티면 돼요.';
+  else if (e && e.phase === 'collapse') how = '별 반대 방향으로 전속(W, Shift 워프)! 화물이 무거우면 X로 버려 급가속하세요. 중력 흐름이 바깥으로 향하면 올라타요.';
+  else if (e && e.phase === 'call') how = '상단 안내가 가리키는 은하로 가요. 가까이 가면 사건 안내 카드가 떠요. 멀면 Shift로 워프하세요.';
+  else if (ex.cargo.length) how = '넥슨닷컴 곁 주황 고리가 인양 정거장이에요. 근처를 지나가면 화물이 자동으로 내려지고 기록이 돼요. 금빛 귀환 흐름을 타면 빨라요.';
+  else how = '은하 외곽의 하늘색 잔향을 실어 정거장에 내려 보세요. 기록이 쌓이면 새 장비가 열려요. 이상 신호가 오면 바로 알려 줄게요.';
+  aiSay(`${q ? `지금 할 일: ${q.text}${dist}. ` : ''}${how}`, { hold: 9 });
+}
+
+// 은하 사이 흐름 길이 은하 이동(팽창)에 맞게 처음 한 번 계산되도록
+buildFlows();
 
 
 // ---------- 신의 현현: 거대한 얼굴이 창 밖에 떠올라 한 줄씩 말한다 ----------
@@ -4172,7 +4556,7 @@ const HOLO = { pinned: false, popT: 0, t: 0 };
 function holoToggle() { HOLO.pinned = !HOLO.pinned; HOLO.popT = 0; holoApply(); sfx('blip', 600); }
 function holoPop() { HOLO.popT = 5; holoApply(); }
 function holoApply() {
-  const on = HOLO.pinned || HOLO.popT > 0 || (ex.ev && ['run', 'sync', 'recover'].includes(ex.ev.phase));
+  const on = HOLO.pinned || HOLO.popT > 0 || (ex.ev && ['run', 'sync', 'collapse', 'recover'].includes(ex.ev.phase));
   $('holo').classList.toggle('min', !on);
   $('bHolo').classList.toggle('on', HOLO.pinned);
 }
@@ -4185,25 +4569,7 @@ function holoFrame(dt) {
   holoApply();
   if ($('holo').classList.contains('min')) return;
   const e = ex.ev, body = $('hbBody');
-  if (e && ['run', 'sync', 'recover'].includes(e.phase)) {
-    const left = Math.max(0, (e.phase === 'recover' ? 90 : EV_LIMIT) - e.t);
-    $('hbTitle').textContent = `UNBORN STAR · ${e.gal.G.ko}`;
-    $('hbMood').textContent = `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
-    if (e.phase === 'recover') {
-      body.innerHTML = `<div class="hb-ev"><div class="ttl" style="color:#c9b3ff">흩어진 별 · 조각 회수</div>
-        <div class="stab"><span>회수</span><span>${e.frags.filter(f => f.got).length}/6</span></div>
-        <div class="hb-bar big"><i style="width:${e.frags.filter(f => f.got).length / 6 * 100}%;background:#a98bff"></i></div></div>`;
-      return;
-    }
-    const st = Math.round(e.stab), sc = e.phase === 'sync' ? '#3ee6c1' : st > 66 ? '#7ff1ff' : st > 33 ? '#ffb23e' : '#ff6a78';
-    const who = r => r === e.role ? '나' : e.role === 'none' ? '보조선' : `보조선 ${'AB'[Object.keys(ROLES).filter(x => x !== e.role).indexOf(r)]}`;
-    body.innerHTML = `<div class="hb-ev">
-      <div class="stab"><span>안정도</span><span style="color:${sc}">${st}%</span></div>
-      <div class="hb-bar big"><i style="width:${st}%;background:${sc}"></i></div>
-      <div class="roles">${Object.entries(ROLES).map(([k, r]) => `<div>${r.name} ${Math.round(e.prog[k] * 100)}%<span>${who(k)}</span></div>`).join('')}</div>
-      <div class="hint">${e.phase === 'sync' ? `점화 고리 동조 ${e.syncT.toFixed(1)}/4초` : e.hits ? `파동 피격 ${e.hits}회 · 안정도 -${Math.min(EV_HIT_MAX, e.hits)}` : '불안정 파동(주황 고리)을 피하세요'}</div></div>`;
-    return;
-  }
+  if (e && ['run', 'sync', 'collapse', 'recover'].includes(e.phase)) { holoEvent(e, body); return; }
   const md = exMoodWord(ex.mood || 1);
   $('hbTitle').textContent = 'ECHO OBSERVATORY';
   $('hbMood').innerHTML = `<span style="color:${md[1]}">${md[0]} ×${(ex.mood || 1).toFixed(2)}</span>`;
@@ -4219,7 +4585,7 @@ function holoFrame(dt) {
     const h = (sg.t % 1) * 24;
     return `<div>D${Math.floor(sg.t)} ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')} · ${G ? G.ko : '여러 은하'} ${Echo.KIND_KO[sg.kind]}${sg.state === 'end' ? ' 해소' : ''} → ${ev ? ev.name : '해석 대기'}</div>`;
   }).join('') || '<div>감지된 신호 없음</div>';
-  body.innerHTML = `<div class="hb-g">${rows}</div><div class="hb-feed">${feed}</div>`;
+  body.innerHTML = `<div class="hb-g">${rows}</div><div class="hb-feed">${feed}<div style="color:#ffd27a">화물 ${cargoLoad()}/${cargoCap()} · 희귀 핵 ${cargoCores()} · 보유 기록 ${REC.total}</div></div>`;
 }
 
 // =====================================================================
@@ -4993,6 +5359,7 @@ function exRadar(g, toRadar, R, range) {
   fuelRadar(g, toRadar);
   repairRadar(g, toRadar);
   evRadar(g, toRadar);
+  salvageRadar(g, toRadar);
   dqRadar(g, toRadar);
   g.fillStyle = 'rgba(255,138,90,.8)';
   for (let k = 0; k < drones.length; k += 2) { const p = toRadar(drones[k].p, false); if (p) g.fillRect(p[0] - 1, p[1] - 1, 2, 2); }
@@ -5378,6 +5745,8 @@ function questInfo() {
     if (ex.mission === 'stealth') return { text: `/login 주변 침투조 추적 · 401 섬광 순간 사격 ${ex.stKills}/6`, pos: exGal[0].planets[1].world, col: Q_AMBER };
     const eq = evQuest();
     if (eq) return eq;
+    const sq = salvageQuest();
+    if (sq) return sq;
     const dq = dqQuest();
     if (dq) return dq;
     let best = null, bd = Infinity;
@@ -5567,9 +5936,11 @@ function statusInfo() {
   if (state.mode !== 'flying') return ['STANDBY', '#8ea3c6'];
   if (state.hitT > 0) return ['DAMAGE', '#ff5a5a'];
   if (state.warp > 0.3) return ['WARP', '#a98bff'];
+  if (exWorld.visible && ex.ev && ex.ev.phase === 'collapse') return ['COLLAPSE', '#ff6a78'];
   if (exWorld.visible && ex.ev && ex.ev.phase === 'sync') return ['SYNC', '#3ee6c1'];
   if (exWorld.visible && ex.ev && ex.ev.phase === 'run') return ['UNSTABLE', '#ffb23e'];
   if (exWorld.visible && ex.refueling) return ['REFUEL', '#3ee6c1'];
+  if (exWorld.visible && ex.inFlow) return ['FLOW', '#7ff1ff'];
   if (exWorld.visible && ex.repairing) return ['REPAIR', '#ffb23e'];
   if (exWorld.visible && ex.scooping) return ['SCOOP', '#ffb23e'];
   if (exWorld.visible && ex.bhNear) return ['GRAVITY', '#a98bff'];
@@ -5941,6 +6312,8 @@ function showHelp() {
     <span><kbd>C</kbd> · 우클릭</span><span>정밀 조준 (선회 감속 · 확대) · 우클릭한 채 마우스로 미세 조준</span>
     <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
     <span><kbd>O</kbd></span><span>관측 홀로그램 켜기 / 끄기</span>
+    <span><kbd>X</kbd></span><span>화물 버리기 · 순간 급가속 (위기 탈출)</span>
+    <span><kbd>H</kbd></span><span>AI에게 지금 할 일 자세히 묻기</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
   </div>
   <p style="color:#8ea3c6;font-size:12px">상단 퀘스트 안내와 레이더의 목표 지점을 따라가세요.</p>
