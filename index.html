@@ -249,9 +249,14 @@
   #titleScr { position: fixed; inset: 0; z-index: 25; overflow: hidden; background: #02040a; cursor: pointer;
     font-family: "Noto Sans KR", sans-serif; user-select: none; }
   #titleScr.hidden { display: none; }
-  .t-bg { position: absolute; inset: 0; background: url(assets/title-bg.webp?v=3) center 42% / cover;
-    animation: tDrift 40s ease-in-out infinite alternate; transform-origin: 50% 40%; }
-  @keyframes tDrift { from { transform: scale(1.02); } to { transform: scale(1.08) translate(-.6%, .4%); } }
+  /* 첫화면 3층: 바깥 우주(정지 이미지 위에 반복 영상) → 효과 → 조종석(배경에서 잘라낸 투명 이미지, 고정) */
+  .t-bg { position: absolute; inset: 0; background: url(assets/title-space-a.webp?v=1) center 40% / cover;
+    animation: tDrift 60s ease-in-out infinite alternate; transform-origin: 50% 35%; }
+  @keyframes tDrift { from { transform: scale(1.04); } to { transform: scale(1.1) translate(-.8%, .5%); } }
+  .t-bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%;
+    opacity: 0; transition: opacity 1s linear; }
+  .t-bg video.on { opacity: 1; }
+  .t-cockpit { position: absolute; inset: 0; background: url(assets/title-cockpit.webp?v=1) center 42% / cover; pointer-events: none; }
   /* 하늘을 튕겨 다니는 표류 잔향 (배경과 함께 움직이도록 .t-bg 안에) */
   .t-drift { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
   .t-bg::after { content: ""; position: absolute; inset: 0;
@@ -305,12 +310,12 @@
   #titleScr.mute-hint .t-sndhint { opacity: 1; animation: tSndPulse 1.6s ease-in-out infinite; }
   @keyframes tSndPulse { 50% { box-shadow: 0 0 0 6px #5ff2e033; } }
   @media (max-width: 640px) {
-    .t-bg { background-position: 47% 40%; }
+    .t-cockpit { background-position: 47% 40%; }
     .t-main { top: 20%; }
     .t-tag { letter-spacing: .16em; margin-right: -.16em; }
     .t-hint { font-size: 13px; letter-spacing: .14em; }
   }
-  @media (prefers-reduced-motion: reduce) { .t-bg, .t-main { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .t-bg, .t-main { animation: none; } .t-bg video { display: none; } }
   /* 세계관: 관측 보조 AI 로기가 등장해 설명 */
   #lore { position: fixed; inset: 0; z-index: 28; overflow: hidden; font-family: "Noto Sans KR", sans-serif; cursor: pointer;
     background: radial-gradient(ellipse 80% 70% at 28% 60%, #0a2a3acc, #02050ce6 70%); user-select: none; }
@@ -1021,7 +1026,11 @@
   </div>
 </div>
 <div id="titleScr" class="hidden">
-  <div class="t-bg" id="tBg"><canvas class="t-drift" id="tDrift"></canvas></div>
+  <div class="t-bg" id="tBg">
+    <video muted playsinline preload="auto" src="assets/title-space-a.mp4?v=1"></video><video muted playsinline preload="auto" src="assets/title-space-a.mp4?v=1"></video>
+    <canvas class="t-drift" id="tDrift"></canvas>
+  </div>
+  <div class="t-cockpit"></div>
   <div class="t-main">
     <h1><img src="assets/title-logo2.webp?v=1" alt="별의 잔향 · Echoes Among the Stars" width="1939" height="533"></h1>
     <p class="t-tag">로그가 별이 되는 우주, 지금 출항합니다.</p>
@@ -6718,8 +6727,19 @@ const titleFx = (() => {
     dots = Array.from({ length: Math.round(W * H / 42000) }, () => ({ x: Math.random() * W, y: Math.random() * H * .62,
       vx: rand(-6, 6), vy: rand(-3, 3), r: rand(.8, 2), t: rand(1, 9), trail: 0, px: 0, py: 0, lav: Math.random() < .6 }));
   }
+  const vids = [...document.querySelectorAll('#tBg video')];
+  function swap(from) {
+    const to = vids.find(v => v !== from);
+    if (!to.paused) return;
+    to.currentTime = 0; to.play().catch(() => {}); to.classList.add('on'); from.classList.remove('on');
+    setTimeout(() => from.pause(), 1100);
+  }
+  vids.forEach(v => {
+    v.addEventListener('timeupdate', () => { if (v.classList.contains('on') && v.duration && v.currentTime > v.duration - 1.05) swap(v); });
+    v.addEventListener('ended', () => swap(v));
+  });
   function frame(now) {
-    if (!on()) { raf = 0; return; }
+    if (!on()) { raf = 0; vids.forEach(v => v.pause()); return; }
     raf = requestAnimationFrame(frame);
     const dt = Math.min(.05, (now - (tick || now)) / 1000); tick = now;
     const cv = $('tDrift'), g = cv.getContext('2d'), d = cv.width / ($('tBg').clientWidth || 1);
@@ -6744,7 +6764,11 @@ const titleFx = (() => {
   return {
     start() {
       layout();
-      if (!raf && !matchMedia('(prefers-reduced-motion: reduce)').matches) { tick = 0; raf = requestAnimationFrame(frame); }
+      if (!raf && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        tick = 0; raf = requestAnimationFrame(frame);
+        const v = vids.find(x => x.classList.contains('on')) || vids[0];
+        v.classList.add('on'); v.play().catch(() => {});   // 음소거 영상이라 자동 재생 허용 (첫 프레임 전까지는 아래 정지 이미지가 보임)
+      }
     },
   };
 })();
