@@ -221,6 +221,7 @@
     justify-content: center; background: radial-gradient(#0009, #000a); cursor: pointer; pointer-events: auto; }
   #overlay.hidden { display: none; }
   #overlay { z-index: 12; }   /* 카드가 홀로그램·통신창보다 위 */
+  #speedBox, #wpn, #obj, #btns, #brand, #quest { z-index: 9; }   /* 계기판 기둥 그림보다 위 */
   body.card-on #holo, body.card-on #comm { opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
   #overlay.over-title { z-index: 30; height: 100%; background: radial-gradient(#000a, #000d); }
   .card { touch-action: pan-y; text-align: center; padding: 26px 34px; max-width: 560px; max-height: calc(var(--win-h) - 40px); overflow: auto;
