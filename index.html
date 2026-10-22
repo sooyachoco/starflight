@@ -124,8 +124,14 @@
   #quest svg { flex: none; width: 16px; height: 16px; fill: var(--qc, #3ee6c1); transition: transform .15s linear; }
   #quest.new { animation: qpulse .9s ease-out; }
   @keyframes qpulse { 0% { transform: translateX(-50%) scale(1.12); box-shadow: 0 0 0 0 var(--qc); } 100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 0 14px transparent; } }
+  /* 안내 메시지: 어떤 배경 위에서도 읽히게 반투명 검은 띠 + 흰 글자, 원래 색은 왼쪽 막대와 분류 글자에만 */
   #toast { position: absolute; left: 50%; top: calc(var(--win-h) * .3); transform: translate(-50%, -50%);
-    font-size: 28px; font-weight: 700; letter-spacing: .08em; opacity: 0; white-space: nowrap; }
+    display: flex; align-items: center; gap: 12px; padding: 10px 20px 10px 16px; border-radius: 10px;
+    background: #040a16c7; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    border: 1px solid #ffffff1c; border-left: 4px solid var(--tc, #3ee6c1); box-shadow: 0 8px 28px #000b;
+    font-size: 21px; font-weight: 700; letter-spacing: .03em; color: #f2f6ff; opacity: 0; white-space: nowrap; pointer-events: none; }
+  #toast .toast-lab { color: var(--tc, #3ee6c1); font-weight: 700; flex: none; }
+  #toast .toast-txt { color: #f2f6ff; }
   #toast.show { animation: pop 1.3s ease-out forwards; }
   @keyframes pop { 0% { opacity: 0; transform: translate(-50%, -30%); } 12% { opacity: 1; transform: translate(-50%, -50%); }
     75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -70%); } }
@@ -759,7 +765,7 @@
     .g .gl { font-size: 11px; letter-spacing: .06em; }
     .g b { font-size: 15px; }
     .modes { font-size: 11px; }
-    #toast { font-size: 18px; white-space: normal; width: 88vw; text-align: center; }
+    #toast { font-size: 15px; white-space: normal; max-width: 88vw; width: max-content; padding: 8px 14px 8px 12px; gap: 8px; }
     #quest { top: calc(var(--win-h) - 200px); max-width: 92vw; font-size: 13px; padding: 5px 12px 5px 10px; }
     #quest .qt { font-size: 12px; }
     #speedBox { transform: scale(.78); transform-origin: 0 0; top: 50px; left: 14px; }
@@ -807,7 +813,7 @@
     #btns { top: 8px; right: 14px; }
     #btns button { width: 38px; height: 38px; }
     #reticle { transform: scale(.6); }
-    #toast { font-size: 20px; }
+    #toast { font-size: 17px; }
     #quest { top: 8px; max-width: 46vw; font-size: 12px; padding: 4px 10px 4px 8px; gap: 7px; }
     #brand .mode, #brand > i { display: none; }
     #quest .qt { font-size: 11.5px; }
@@ -1890,9 +1896,15 @@ function showCard(html, settings) {
 function hideCard() { $('overlay').classList.add('hidden'); $('overlay').classList.remove('over-title'); document.body.classList.remove('card-on'); }
 function toast(text, color = '#3ee6c1') {
   const t = $('toast');
-  t.textContent = text;
-  t.style.color = color;
-  t.style.textShadow = `0 0 14px ${color}`;
+  // "분류 · 내용"이면 분류만 색 글자로, 나머지는 흰 글자로
+  const k = text.indexOf(' · ');
+  t.innerHTML = '';
+  if (k > 0 && k < 14) {
+    const l = document.createElement('span'); l.className = 'toast-lab'; l.textContent = text.slice(0, k);
+    const b = document.createElement('span'); b.className = 'toast-txt'; b.textContent = text.slice(k + 3);
+    t.append(l, b);
+  } else { const b = document.createElement('span'); b.className = 'toast-txt'; b.textContent = text; t.append(b); }
+  t.style.setProperty('--tc', color);
   t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
 }
 function flash() {
