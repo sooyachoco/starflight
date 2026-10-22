@@ -420,10 +420,12 @@
   .sx-thumb.on { border: 2px solid #ffb23e; box-shadow: 0 0 18px #ffb23e66, inset 0 0 20px #ffb23e22; }
   .sx-thumb.on img { opacity: 1; } .sx-thumb.on b { color: #ffc65a; }
   /* 조종사: 화면 높이에 맞춰 키우고(원본보다 큰 화면에서도) 허벅지 아래는 화면 밖으로 */
-  .sx-hero { position: absolute; z-index: -1; left: 12%; right: 34%; top: 7%; bottom: -16%; display: flex; align-items: flex-end; justify-content: center; pointer-events: none; }
-  .sx-hero img { height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: 50% 0; filter: drop-shadow(0 20px 30px #000c); }
+  .sx-hero { position: absolute; z-index: -1; left: 12%; right: 34%; top: 7%; bottom: -16%; display: flex; align-items: flex-start; justify-content: center; pointer-events: none; }
+  /* 높이에 맞추되 폭이 모자라면 폭에 맞춤. 어느 쪽이든 아래쪽은 잘린 선 없이 서서히 사라짐 */
+  .sx-hero img { width: auto; height: auto; max-width: 100%; max-height: 100%; filter: drop-shadow(0 20px 30px #000c);
+    -webkit-mask-image: linear-gradient(#000 76%, transparent 97%); mask-image: linear-gradient(#000 76%, transparent 97%); }
   #select.ship .sx-hero { top: 12%; bottom: 8%; left: 6%; right: 34%; align-items: center; }
-  #select.ship .sx-hero img { height: auto; max-height: 92%; object-position: 50% 50%; }
+  #select.ship .sx-hero img { max-height: 92%; -webkit-mask-image: none; mask-image: none; }
   .sx-panel { grid-area: panel; align-self: center; display: flex; flex-direction: column; min-width: 0; }
   .sx-reg { display: flex; justify-content: flex-end; padding: 8px 0; border-top: 1px solid #ffffff2e; border-bottom: 1px solid #ffffff2e;
     font: 600 12px Rajdhani, sans-serif; letter-spacing: .24em; color: #9fb3d2; position: relative; }
