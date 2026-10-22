@@ -1948,13 +1948,13 @@ function openSelect() {
   $('titleScr').classList.add('hidden');
   state.mode = 'select';
   buildSelect('pilot');
-  selIdx = PILOTS.indexOf(pilotDef);
+  selIdx = 0;   // 선택 화면은 항상 1번부터
   $('select').classList.remove('hidden');
   renderSelect();
 }
 function openShipSelect() {
   buildSelect('ship');
-  selIdx = SHIPS.indexOf(shipDef);
+  selIdx = 0;
   renderSelect();
 }
 function closeSelect() { $('select').classList.add('hidden'); }
