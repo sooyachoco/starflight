@@ -669,23 +669,13 @@
   .gp-wrap { position: absolute; left: 50%; top: 46%; height: min(122%, 112vw); aspect-ratio: 1200 / 1054; transform: translate(-50%, -50%) scale(1.06);
     transition: transform 6s cubic-bezier(.2, .7, .2, 1); }
   #godP.on .gp-wrap { transform: translate(-50%, -50%) scale(1); }
-  .gp-wrap img { width: 100%; height: 100%; opacity: .72;   /* 알파 이미지라 합성 모드 없이 투명 */ filter: contrast(1.12) saturate(.85);
-    animation: gpBreath 7s ease-in-out infinite, gpWarp 9s ease-in-out infinite; }
-  @keyframes gpBreath { 50% { opacity: .48; filter: contrast(1.2) saturate(.8) blur(.6px); } }
-  @keyframes gpWarp { 0%, 100% { transform: none; } 33% { transform: skewX(.6deg) scale(1.01, .995); } 66% { transform: skewX(-.5deg) scale(.995, 1.01); } }
-  .gp-eye { position: absolute; top: 40.2%; width: 9%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%;
-    background: radial-gradient(circle, #fff6e0 0, #ffcf86cc 18%, #ff9a3a55 42%, transparent 70%); mix-blend-mode: screen;
-    animation: gpEye 3.2s ease-in-out infinite; }
-  .gp-eye.l { left: 40.2%; } .gp-eye.r { left: 60.8%; animation-delay: .15s; }
-  #godP.speak .gp-eye { animation-duration: .9s; }
-  @keyframes gpEye { 50% { opacity: .55; transform: translate(-50%, -50%) scale(.82); } }
+  #gpCanvas { width: 100%; height: 100%; display: block; }   /* 얼굴은 점으로만 그린다 (logosFace) */
   .gp-text { position: absolute; left: 6%; right: 6%; bottom: 9%; margin: 0; text-align: center; font: 700 clamp(20px, 2.6vw, 38px) "Noto Serif KR", serif;
     color: #ffe9c8; letter-spacing: .06em; line-height: 1.5; text-shadow: 0 0 18px #ff9a3acc, 0 0 2px #fff, 0 2px 10px #000; min-height: 1.5em; }
   .gp-text.fade { opacity: 0; transition: opacity .5s; }
   /* 현현 동안 옆 패널은 물러남 */
   #speedBox, #wpn, #obj, #quest, #comm, #holo, #brand, #reticle { transition: opacity .8s; }
   body.god-on #speedBox, body.god-on #wpn, body.god-on #obj, body.god-on #quest, body.god-on #holo, body.god-on #brand, body.god-on #reticle { opacity: .08; }
-  @media (prefers-reduced-motion: reduce) { .gp-wrap img, .gp-eye { animation: none; } }
   /* 세로 화면(폰): 대시보드 2×2 */
   @media (max-width: 640px) and (orientation: portrait) {
     :root { --dash-h: 42vh; --stk: 112px; }
@@ -841,7 +831,7 @@
   <div id="lwLabels" hidden></div>
   <div id="godP" aria-live="assertive">
     <div class="gp-dim"></div>
-    <div class="gp-wrap"><img src="assets/god-face-a.webp?v=1" alt="" width="1200" height="1054"><i class="gp-eye l"></i><i class="gp-eye r"></i></div>
+    <div class="gp-wrap"><canvas id="gpCanvas"></canvas></div>
     <p class="gp-text" id="gpText"></p>
   </div>
   <svg id="frame" viewBox="0 0 1000 1000" preserveAspectRatio="none">
@@ -4514,12 +4504,169 @@ function aiHint() {
 buildFlows();
 
 
+// ---------- 로고스의 얼굴: 점묘로만 그린다 ----------
+// 형태와 명암은 assets/god-face.webp의 밝기 지도를 따르고, 이미지 자체는 그리지 않는다.
+// 말할 때 턱과 입술이 음절마다 움직이고, 눈빛은 맥동한다. 첫 현현 때 한 번만 만든다.
+const logosFace = (() => {
+  const FW = 600, FH = 527, CX = 300, MOUTH_Y = 331;
+  const EYES = [[241, 212], [365, 212]];
+  const R = Math.random;
+  const gauss = () => { let u = 0, v = 0; while (!u) u = R(); while (!v) v = R(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const sstep = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+  // 입술 가로 분포(입꼬리로 갈수록 0), 턱 가로 분포(넓게)
+  const lipW = x => Math.exp(-Math.pow((x - CX) / 34, 2));
+  const jawW = x => Math.exp(-Math.pow((x - CX) / 105, 2));
+  // 연속적인 변형장: 입선 아래는 턱과 함께 내려가고 위는 살짝 올라감 → 틈은 입 모양으로만 생김
+  function jawAt(x, y) {
+    const dy = y - MOUTH_Y;
+    if (dy >= 0) return (lipW(x) * (1 - sstep(0, 45, dy)) + jawW(x) * .75 * sstep(0, 45, dy)) * (1 - sstep(130, 190, dy));
+    return -.22 * lipW(x) * (1 - sstep(0, 22, -dy));
+  }
+  const pts = [];   // x, y, size, alpha, jaw, phase, kind, auxX, auxY, auxZ, r, g, b
+  const push = (x, y, size, a, jaw, kind, aux = [0, 0, 0], col = [1, .92, .84]) =>
+    pts.push(x, y, size, a, jaw, R(), kind, aux[0], aux[1], aux[2], col[0], col[1], col[2]);
+
+  function build(d, budget) {
+    const px = (x, y) => { const i = ((y | 0) * FW + (x | 0)) * 4; return [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]; };
+    let n = 0;
+    for (let k = 0; k < 2500000 && n < budget; k++) {
+      const x = R() * FW, y = R() * FH, [r, g, b] = px(x, y), v = Math.max(r, g, b);
+      if (v < .05 || R() > Math.pow(v, 1.25) * 1.15) continue;   // 밝을수록 점이 촘촘
+      const eye = EYES.find(([ex, ey]) => Math.hypot(x - ex, y - ey) < 22 && v > .8);
+      const k2 = Math.min(1, v * 1.3), col = [Math.min(1, r / v * 1.05), Math.min(1, g / v), Math.min(1, b / v * .98)];
+      if (eye) { if (R() < .6) push(x, y, rand(.8, 1.6), .35 + v * .45, 0, 1, [eye[0], eye[1], 0], [1, .86, .62]); }
+      else push(x, y, (R() < .03 ? rand(1.3, 2) : rand(.55, 1.15)) * (.6 + .55 * k2), .1 + .75 * k2, jawAt(x, y), 0, [0, 0, 0], col);
+      n++;
+    }
+    // 눈빛: 중심에 몰린 점 덩어리
+    for (const [ex, ey] of EYES) for (let k = 0; k < 1100; k++) {
+      const rr = Math.abs(gauss()) * (k < 350 ? 2.4 : k < 700 ? 6 : 14), a = rand(0, 6.28);
+      push(ex + Math.cos(a) * rr * 1.3, ey + Math.sin(a) * rr * .85, rand(.8, 1.7), Math.max(.1, 1 - rr / 20), 0, 1, [ex, ey, 0], rr < 4 ? [1, .97, .9] : [1, .74, .42]);
+    }
+    // 연기: 얼굴 둘레에서 바깥으로 흘러나가는 점
+    for (let k = 0; k < 6000; k++) {
+      const a = rand(0, 6.28), bx = CX + Math.cos(a) * rand(150, 200), by = 250 + Math.sin(a) * rand(190, 240);
+      push(bx, by, rand(.5, 1.4), rand(.12, .4), 0, 2, [Math.cos(a) * rand(.4, 1.1) + rand(-.3, .3), Math.sin(a) * rand(.3, .9) - .25, rand(5, 11)], [.86, .82, .78]);
+    }
+    // 입 안: 벌어진 틈 안쪽에만 따뜻한 점
+    for (let k = 0; k < 500; k++) {
+      const x = CX + gauss() * 17;
+      push(x, MOUTH_Y, rand(.5, 1.1), rand(.15, .4), 0, 3, [lipW(x), R(), 0], [1, .6, .35]);
+    }
+  }
+
+  let renderer = null, scene, camera, uni, ready = null, raf = 0, last = 0;
+  const S = { open: 0, target: 0, offAt: 0 };
+  function init() {
+    const canvas = $('gpCanvas');
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+    renderer.setClearColor(0x000000, 0);
+    scene = new THREE.Scene(); camera = new THREE.Camera();
+    uni = { uTime: { value: 0 }, uOpen: { value: 0 }, uPulse: { value: 1 }, uScale: { value: 1 }, uPx: { value: 1 }, uTilt: { value: 0 } };
+    const mat = new THREE.ShaderMaterial({
+      uniforms: uni, transparent: true, depthTest: false, depthWrite: false, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor,   // 알파 0이라 순수 가산
+      vertexShader: `
+        attribute float aSize, aAlpha, aJaw, aPhase, aKind; attribute vec3 aAux, aCol;
+        uniform float uTime, uOpen, uPulse, uScale, uPx, uTilt;
+        varying vec3 vCol; varying float vA;
+        void main() {
+          vec2 p = position.xy; float a = aAlpha;
+          if (aKind < .5) {                        // 얼굴
+            p.y += aJaw * uOpen * 10.;
+            p += vec2(sin(uTime * .7 + aPhase * 40.), cos(uTime * .8 + aPhase * 33.)) * .3;
+            a *= .74 + .26 * sin(uTime * (1. + aPhase * 2.) + aPhase * 6.28);
+          } else if (aKind < 1.5) {                // 눈: 가장자리는 고정, 중심만 맥동
+            vec2 e = p - aAux.xy;
+            p = aAux.xy + e * mix(uPulse, 1., smoothstep(3., 16., length(e)));
+            a *= mix(.75 + .25 * uPulse * uPulse, 1., smoothstep(6., 20., length(e)));
+            a *= .8 + .2 * sin(uTime * 9. + aPhase * 6.28);
+          } else if (aKind < 2.5) {                // 연기
+            float age = mod(uTime + aPhase * aAux.z, aAux.z);
+            p += aAux.xy * age * 7. + vec2(sin(uTime * .6 + p.y * .02), 0.) * age;
+            a *= sin(age / aAux.z * 3.14159);
+          } else {                                 // 입 안
+            float h = uOpen * 10. * aAux.x;
+            p.y += -.22 * uOpen * 10. * aAux.x + aAux.y * h * 1.1;
+            a *= smoothstep(.1, .5, uOpen) * smoothstep(.15, .5, aAux.x);
+          }
+          vec2 c = (p - vec2(300., 263.5)) * uScale;
+          float s = sin(uTilt), co = cos(uTilt);
+          c = vec2(c.x * co - c.y * s, c.x * s + c.y * co);
+          gl_Position = vec4(c.x / 300., -c.y / 263.5, 0., 1.);
+          gl_PointSize = max(1., aSize * uScale * uPx * 1.05);
+          vCol = aCol; vA = a;
+        }`,
+      fragmentShader: `
+        varying vec3 vCol; varying float vA;
+        void main() {
+          vec2 d = gl_PointCoord - .5;
+          if (dot(d, d) > .25) discard;            // 단단한 원형 점 (번짐 없음)
+          gl_FragColor = vec4(vCol * vA * 1.05, 0.); // 알파 0 = 뒤 우주 위에 빛만 더함
+        }`,
+    });
+    ready = new Promise(res => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas'); c.width = FW; c.height = FH;
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0, FW, FH);
+        build(g.getImageData(0, 0, FW, FH).data, innerWidth < 900 ? 60000 : 95000);
+        const F = 13, N = pts.length / F, geo = new THREE.BufferGeometry();
+        const attr = (name, size, idx) => { const a = new Float32Array(N * size); for (let i = 0; i < N; i++) for (let j = 0; j < size; j++) a[i * size + j] = pts[i * F + idx + j]; geo.setAttribute(name, new THREE.BufferAttribute(a, size)); };
+        const pos = new Float32Array(N * 3); for (let i = 0; i < N; i++) { pos[i * 3] = pts[i * F]; pos[i * 3 + 1] = pts[i * F + 1]; }
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        attr('aSize', 1, 2); attr('aAlpha', 1, 3); attr('aJaw', 1, 4); attr('aPhase', 1, 5); attr('aKind', 1, 6); attr('aAux', 3, 7); attr('aCol', 3, 10);
+        const face = new THREE.Points(geo, mat); face.frustumCulled = false;   // 셰이더에서 좌표를 직접 변환
+        scene.add(face); pts.length = 0; res();
+      };
+      img.onerror = () => res();
+      img.src = 'assets/god-face.webp?v=1';
+    });
+  }
+  function frame(now) {
+    const el = $('godP');
+    if (!el.classList.contains('on') && now > S.offAt) { raf = 0; return; }   // 사라진 뒤엔 멈춤
+    if (el.classList.contains('on')) S.offAt = now + 1600;
+    raf = requestAnimationFrame(frame);
+    const dt = Math.min(.05, (now - last) / 1000); last = now; const t = now / 1000;
+    const cv = $('gpCanvas'), w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
+    if (!w || !h) return;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { renderer.setPixelRatio(dpr); renderer.setSize(w, h, false); }
+    S.open += (S.target - S.open) * (1 - Math.exp(-dt * 13));
+    uni.uTime.value = t; uni.uOpen.value = S.open;
+    uni.uPulse.value = 1 + .12 * Math.sin(t * (el.classList.contains('speak') ? 7 : 2.2));
+    uni.uScale.value = .92 * (1 + .01 * Math.sin(t * .9));
+    uni.uPx.value = h / FH * dpr;
+    uni.uTilt.value = .012 * Math.sin(t * .37);
+    renderer.render(scene, camera);
+  }
+  // 한글 중성(모음)에 따라 입 크기
+  function openFor(ch) {
+    const c = (ch || ' ').charCodeAt(0);
+    if (c < 0xAC00 || c > 0xD7A3) return 0;
+    const v = Math.floor(((c - 0xAC00) % 588) / 28);
+    return [1, .9, 1, .9, .7, .65, .75, .7, .55, .9, .8, .6, .45, .4, .6, .55, .45, .4, .35, .4, .3][v] ?? .5;
+  }
+  let closeT = 0;
+  return {
+    start() {
+      if (!renderer) { try { init(); } catch (e) { return; } }
+      ready.then(() => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } });
+    },
+    say(ch, nextCh) {
+      clearTimeout(closeT);
+      S.target = openFor(ch) * rand(.85, 1.05);
+      if (S.target) closeT = setTimeout(() => { S.target = /[\s.,…—!?]/.test(nextCh || ' ') ? 0 : S.target * .45; }, 40);
+    },
+  };
+})();
+
 // ---------- 신의 현현: 거대한 얼굴이 창 밖에 떠올라 한 줄씩 말한다 ----------
 const GOD = { on: false, skip: null };
 function godManifest(lines, opt = {}) {
   return new Promise(resolve => {
     const el = $('godP'), tx = $('gpText');
     GOD.on = true; document.body.classList.add('god-on');
+    logosFace.start();
     el.classList.add('on'); el.classList.toggle('block', !!opt.block);
     sfx('presence');
     state.shake = Math.max(state.shake, .35);
@@ -4537,12 +4684,13 @@ function godManifest(lines, opt = {}) {
       clearInterval(typing);
       typing = setInterval(() => {
         tx.textContent = line.slice(0, ++n);
-        if (n >= line.length) { clearInterval(typing); el.classList.remove('speak'); timer = setTimeout(next, (opt.hold || 1.4) * 1000 + line.length * 45); }
+        logosFace.say(line[n - 1], line[n]);
+        if (n >= line.length) { clearInterval(typing); el.classList.remove('speak'); logosFace.say(' '); timer = setTimeout(next, (opt.hold || 1.4) * 1000 + line.length * 45); }
       }, 70);
     };
     const next = () => { tx.classList.add('fade'); setTimeout(show, 450); };
     // 막는 현현은 클릭 · 키로 다음 줄
-    GOD.skip = () => { clearTimeout(timer); clearInterval(typing); next(); };
+    GOD.skip = () => { clearTimeout(timer); clearInterval(typing); logosFace.say(' '); next(); };
     setTimeout(show, opt.delay || 1600);
   });
 }
