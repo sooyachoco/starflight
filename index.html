@@ -1042,7 +1042,7 @@
   </div>
   <h1 id="selTitle">SELECT YOUR PILOT</h1>
   <p class="sub" id="selSub">Choose your flight profile</p>
-  <button class="glass" id="selSound" title="효과음 켜기 / 끄기">
+  <button class="glass" id="selSound" title="설정" aria-label="설정">
     <svg viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
   </button>
   <div class="sel-cards" id="selCards"></div>
@@ -1829,8 +1829,8 @@ function pause(on) {
 }
 function openSettings() {
   if (state.mode === 'flying') state.mode = 'paused';
-  const onTitle = state.mode === 'title';
-  $('overlay').classList.toggle('over-title', onTitle);   // 타이틀 화면 위에 카드를 띄움
+  const onTitle = state.mode === 'title' || state.mode === 'select';
+  $('overlay').classList.toggle('over-title', onTitle);   // 타이틀·조종사/기체 선택 화면 위에 카드를 띄움
   showCard(`<h1>SETTINGS</h1><h2>설정</h2>
     <button data-act="invert">상하 반전: ${state.invert ? 'ON' : 'OFF'}</button>
     <button data-act="sound">효과음: ${state.sound ? 'ON' : 'OFF'}</button>
@@ -1912,7 +1912,6 @@ function buildSelect(kind = selKind) {
 function renderSelect() {
   document.querySelectorAll('.ship-card').forEach(c => c.classList.toggle('sel', +c.dataset.i === selIdx));
   $('selIdx').textContent = SEL[selKind].items[selIdx].no;
-  $('selSound').classList.toggle('muted', !state.sound);
 }
 function openSelect() {
   hideCard();
@@ -1963,9 +1962,8 @@ $('selGo').addEventListener('click', confirmSel);
 $('selBack').addEventListener('click', selBack);
 $('selSound').addEventListener('click', e => {
   initAudio();
-  state.sound = !state.sound;
   e.currentTarget.blur();
-  renderSelect();
+  openSettings();
 });
 $('select').addEventListener('pointerdown', initAudio);
 
@@ -2046,7 +2044,10 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   if (LORE.open) { loreKey(e.code); return; }
   if (GOD.on && $('godP').classList.contains('block')) { if (['Enter', 'Space'].includes(e.code) && GOD.skip) GOD.skip(); return; }
-  if (state.mode === 'select') { selectKey(e.code); return; }
+  if (state.mode === 'select') {
+    if (!$('overlay').classList.contains('hidden')) { if (e.code === 'Escape') hideCard(); return; }
+    selectKey(e.code); return;
+  }
   if (e.code === 'Enter') primaryAction();
   if (e.code === 'Escape' && state.mode === 'title') showTitle();
   if (e.code === 'KeyP' || e.code === 'Escape') {
