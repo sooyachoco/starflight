@@ -2890,37 +2890,35 @@ const ERAS = [
 ];
 // stat: 리포트 항목 비율을 따른 가상 프로필 (visit·sn·pv·ses는 가상 배율, re·male은 비율, age는 연령대별 %)
 const EX_AGE = ['0–13', '14–16', '17–19', '20–24', '25–29', '30–39', '40–49', '50–59', '60+'];
+// 게임별 은하 대신 이름 없는 별 구역(별무리). 구역은 게임이 아니라 잔향의 '성질'로 나뉜다 (넥슨 전체 합산을 성질별로 나눈 가상 값)
 const EX_GAMES = [
   { id: 'nexon', name: 'NEXON.COM', ko: '넥슨닷컴', col: 0xffc861, hub: true, R: 42, daily: 2840000,
     stat: {visit: 51300.0, sn: 37550.0, pv: 140170.0, ses: 60090.0, re: 0.289, dt: 118, bounce: 42.7, pcb: 23.2, male: 0.811, age: [0.0, 0.0, 0.6, 7.8, 25.9, 43.0, 7.7, 10.3, 4.6]},
     eps: [['/', .3], ['/login', .25], ['/launcher', .2], ['/cash', .1], ['/event', .15]] },
-  { id: 'maple', name: 'MAPLESTORY', ko: '메이플스토리', col: 0xff9a3d, ang: .45, R: 30, daily: 88780000,
-    stat: {visit: 728440.0, sn: 273610.0, pv: 4386620.0, ses: 940710.0, re: 0.702, dt: 272, bounce: 49.6, pcb: 23.9, male: 0.837, age: [0.0, 0.1, 1.6, 11.3, 23.0, 31.5, 12.5, 14.7, 5.3]},
-    eps: [['/', .25], ['/news', .15], ['/ranking', .2], ['/guide', .15], ['/login', .25]] },
-  { id: 'fc', name: 'FC ONLINE', ko: 'FC온라인', col: 0x4fe08a, ang: 2.6, R: 24, daily: 5310000,
-    stat: {visit: 44200.0, sn: 16270.0, pv: 262280.0, ses: 56970.0, re: 0.757, dt: 157, bounce: 38.9, pcb: 7.5, male: 0.888, age: [0.0, 0.0, 0.0, 1.0, 20.5, 53.7, 13.0, 6.3, 5.4]},
-    eps: [['/', .3], ['/transfer-market', .3], ['/squad', .2], ['/news', .2]] },
-  { id: 'dnf', name: 'DUNGEON &amp; FIGHTER', ko: '던전앤파이터', col: 0xff5a4e, ang: 4.45, R: 26, daily: 10480000,
-    stat: {visit: 170040.0, sn: 131330.0, pv: 517730.0, ses: 228550.0, re: 0.805, dt: 82, bounce: 49.0, pcb: 7.6, male: 0.838, age: [0.0, 0.0, 0.3, 8.8, 37.3, 39.7, 1.9, 8.4, 3.6]},
-    eps: [['/', .3], ['/news', .2], ['/guide', .2], ['/community', .15], ['/login', .15]] },
-  { id: 'mabi', name: 'MABINOGI', ko: '마비노기', col: 0xc49bff, ang: 1.5, R: 22, daily: 3420000,
-    stat: {visit: 32630.0, sn: 18790.0, pv: 168830.0, ses: 55610.0, re: 0.849, dt: 223, bounce: 42.4, pcb: 1.9, male: 0.565, age: [0.0, 0.0, 0.0, 1.1, 13.9, 61.5, 9.4, 5.5, 8.6]},
-    eps: [['/', .3], ['/news', .2], ['/guide', .15], ['/community', .2], ['/event', .15]] },
-  { id: 'els', name: 'ELSWORD', ko: '엘소드', col: 0x46d0ff, ang: 3.5, R: 20, daily: 700000,
-    stat: {visit: 4820.0, sn: 3990.0, pv: 34800.0, ses: 6840.0, re: 0.669, dt: 257, bounce: 31.9, pcb: 8.4, male: 0.607, age: [0.0, 0.0, 0.2, 16.4, 40.8, 13.2, 4.4, 18.7, 6.4]},
-    eps: [['/', .3], ['/news', .2], ['/guide', .2], ['/ranking', .15], ['/community', .15]] },
-  { id: 'heroes', name: 'MABINOGI HEROES', ko: '마비노기 영웅전', col: 0xb8c6dc, ang: 5.4, R: 20, daily: 470000,
-    stat: {visit: 4100.0, sn: 2400.0, pv: 23400.0, ses: 5510.0, re: 0.715, dt: 167, bounce: 41.1, pcb: 5.2, male: 0.848, age: [0.0, 0.0, 0.0, 0.4, 9.5, 47.5, 24.0, 11.2, 7.5]},
+  { id: 'crowd', name: 'CROWDED REACH', ko: '붐비는 별무리', col: 0xffb36b, ang: .45, R: 28, daily: 52000000,
+    stat: {visit: 520000.0, sn: 230000.0, pv: 2900000.0, ses: 700000.0, re: 0.70, dt: 240, bounce: 46.5, pcb: 20.5, male: 0.82, age: [0.0, 0.1, 1.2, 9.8, 26.0, 36.4, 10.8, 11.0, 4.7]},
+    eps: [['/', .25], ['/news', .2], ['/event', .2], ['/login', .2], ['/ranking', .15]] },
+  { id: 'deep', name: 'DEEP REACH', ko: '깊은 별무리', col: 0x8fa8ff, ang: 1.7, R: 24, daily: 25000000,
+    stat: {visit: 210000.0, sn: 110000.0, pv: 1500000.0, ses: 290000.0, re: 0.82, dt: 280, bounce: 36.8, pcb: 12.0, male: 0.78, age: [0.0, 0.0, 0.4, 6.1, 22.4, 45.2, 14.0, 8.3, 3.6]},
+    eps: [['/', .25], ['/guide', .25], ['/community', .25], ['/ranking', .25]] },
+  { id: 'drift', name: 'DRIFTING REACH', ko: '흩어지는 별무리', col: 0xd6b4ff, ang: 2.95, R: 22, daily: 16000000,
+    stat: {visit: 160000.0, sn: 120000.0, pv: 380000.0, ses: 210000.0, re: 0.55, dt: 70, bounce: 55.2, pcb: 9.0, male: 0.80, age: [0.0, 0.2, 2.1, 14.2, 31.0, 30.5, 8.4, 9.6, 4.0]},
+    eps: [['/', .4], ['/event', .3], ['/login', .3]] },
+  { id: 'calm', name: 'QUIET REACH', ko: '고요한 별무리', col: 0x7fe3d0, ang: 4.2, R: 22, daily: 10000000,
+    stat: {visit: 90000.0, sn: 50000.0, pv: 420000.0, ses: 120000.0, re: 0.80, dt: 210, bounce: 39.5, pcb: 6.0, male: 0.70, age: [0.0, 0.0, 0.3, 4.0, 15.8, 52.0, 13.5, 8.2, 6.2]},
     eps: [['/', .3], ['/news', .25], ['/guide', .2], ['/community', .25]] },
+  { id: 'frontier', name: 'FAR REACH', ko: '외곽 별무리', col: 0xb8c6dc, ang: 5.45, R: 20, daily: 5000000,
+    stat: {visit: 40000.0, sn: 30000.0, pv: 170000.0, ses: 55000.0, re: 0.62, dt: 190, bounce: 42.0, pcb: 4.0, male: 0.74, age: [0.0, 0.0, 0.2, 8.0, 28.5, 38.0, 12.1, 9.0, 4.2]},
+    eps: [['/', .4], ['/archive', .3], ['/guide', .3]] },
 ];
 const EX_NEW = [
   { g: 0, path: '/event/anniversary', share: .12, day: 1.1 },
   { g: 1, path: '/update/new-world', share: .2, day: 2.4 },
-  { g: 3, path: '/update/new-raid', share: .15, day: 3.6 },
-  { g: 2, path: '/event/toty', share: .15, day: 5.2 },
+  { g: 3, path: '/event/return', share: .15, day: 3.6 },
+  { g: 2, path: '/guide/deep-dive', share: .15, day: 5.2 },
   { g: 4, path: '/event/festival', share: .15, day: 6.4 },
-  { g: 5, path: '/update/new-episode', share: .15, day: 7.5 },
-  { g: 6, path: '/update/raid', share: .15, day: 8.6 },
+  { g: 5, path: '/archive/first-log', share: .15, day: 7.5 },
+  { g: 1, path: '/update/season', share: .15, day: 8.6 },
 ];
 const exDiurnal = h => .3 + .7 * Math.min(1, .45 * lwGb(h, 12.5, 2.5) + lwGb(h, 21, 2.2));
 const EX_DMEAN = (() => { let t = 0; for (let h = 0; h < 24; h += .1) t += exDiurnal(h); return t / 240; })();
@@ -2960,10 +2958,19 @@ const exGal = EX_GAMES.map((G, gi) => {
   let spiral = null;
   if (!G.hub) {
     const n = 2200, pos = new Float32Array(n * 3), cols = new Float32Array(n * 3), c = new THREE.Color();
+    const clumps = Array.from({ length: 7 }, () => { const a = rand(0, Math.PI * 2), r = rand(40, 165); return [Math.cos(a) * r, rand(-14, 14), Math.sin(a) * r, rand(16, 34)]; });
+    const g3 = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
     for (let k = 0; k < n; k++) {
-      const t = Math.pow(Math.random(), .6), arm = k % 2;
-      const r = 36 + t * 170, th = arm * Math.PI + t * 5.4 + rand(-.38, .38);
-      pos.set([Math.cos(th) * r + rand(-6, 6), rand(-1, 1) * 7 * (1 - t * .6), Math.sin(th) * r + rand(-6, 6)], k * 3);
+      let x, y, z;
+      if (k % 10 < 7) {   // 별무리: 몇 개의 뭉치
+        const c = clumps[k % clumps.length];
+        x = c[0] + g3() * c[3]; y = c[1] + g3() * c[3] * .4; z = c[2] + g3() * c[3];
+      } else {            // 성긴 헤일로
+        const a = rand(0, Math.PI * 2), r = 30 + Math.pow(Math.random(), .7) * 180;
+        x = Math.cos(a) * r; y = rand(-12, 12); z = Math.sin(a) * r;
+      }
+      const t = Math.min(1, Math.hypot(x, z) / 200);
+      pos.set([x, y, z], k * 3);
       c.copy(col).lerp(new THREE.Color(0xffffff), Math.random() * .6).multiplyScalar(.4 + (1 - t) * .6);
       cols.set([c.r, c.g, c.b], k * 3);
     }
@@ -2976,7 +2983,7 @@ const exGal = EX_GAMES.map((G, gi) => {
     grp.add(spiral);
   }
   const gal = { G, gi, grp, dir, star, glow, spiral, planets: [],
-    label: exLabel('cc', `<b>${G.name}</b><span>${G.ko}${G.hub ? ' · 허브 항성' : ' 은하'}</span>`) };
+    label: exLabel('cc', `<b>${G.name}</b><span>${G.ko}${G.hub ? ' · 허브 항성' : ' · 별 구역'}</span>`) };
   G.eps.forEach(([path, share], k) => exMakePlanet(gal, path, share, k, true));
   return gal;
 });
@@ -3123,7 +3130,7 @@ const exBotNebula = new THREE.Sprite(new THREE.SpriteMaterial({
 exBotNebula.scale.setScalar(360);
 exBotNebula.visible = false;
 exWorld.add(exBotNebula);
-function exMarketPlanet() { return exGal[2].planets.find(p => p.path === '/transfer-market'); }
+function exMarketPlanet() { return exGal[2].planets.find(p => p.path === '/community') || exGal[2].planets[0]; }
 function exSpawnPirate() {
   const g = buildEnemy();
   g.position.copy(exBotNebula.position).add(randomDir().multiplyScalar(rand(10, 60)));
@@ -3261,10 +3268,10 @@ function showExBrief() {
     <p>넥슨의 모든 게임 세계에서 일어난 일은 기록으로 남고, 그 <b>잔향(Echo)</b>이 흘러들어 이 우주가 되었습니다.
     항해사의 일은 잔향을 <b>인양</b>해 기록으로 되돌리는 것. 기록이 쌓이는 만큼 우주는 팽창합니다.</p>
     <ol class="brief">
-      <li>은하 외곽의 <b style="color:#bff8ff">흐린 잔향</b>을 가까이 지나가며 실으세요. 실을수록 <b>무거워져 둔해집니다</b>. 화물칸: <b>${cargoCap()}칸</b> (${shipDef.name})</li>
+      <li>별무리 외곽의 <b style="color:#bff8ff">흐린 잔향</b>을 가까이 지나가며 실으세요. 실을수록 <b>무거워져 둔해집니다</b>. 화물칸: <b>${cargoCap()}칸</b> (${shipDef.name})</li>
       <li>넥슨닷컴 곁 <b style="color:#ffb23e">인양 정거장(SALVAGE)</b>에 내려야 기록이 됩니다. 기록이 쌓이면 새 장비가 열립니다.</li>
-      <li>은하를 감싸는 <b style="color:#7ff1ff">중력 흐름</b>(빛의 강)을 타면 빨라집니다. 흐름 방향으로 들어가세요.</li>
-      <li>로그가 폭증한 은하엔 <b>태어나지 못한 별</b>이 생깁니다. 깊은 곳엔 <b style="color:#ffd27a">희귀 잔향 핵</b>이 있지만, 별이 점화되면 <b>붕괴</b>가 시작됩니다.</li>
+      <li>별무리를 감싸는 <b style="color:#7ff1ff">중력 흐름</b>(빛의 강)을 타면 빨라집니다. 흐름 방향으로 들어가세요.</li>
+      <li>로그가 폭증한 별무리엔 <b>태어나지 못한 별</b>이 생깁니다. 깊은 곳엔 <b style="color:#ffd27a">희귀 잔향 핵</b>이 있지만, 별이 점화되면 <b>붕괴</b>가 시작됩니다.</li>
       <li>위기엔 <b>X</b>(DROP)로 화물을 버리고 급가속. 막히면 <b>H</b>(?) — AI가 지금 할 일을 자세히 알려 줍니다.</li>
     </ol>
     <p style="margin:12px 0 4px"><b>출항 장비</b> · 2개 선택 (${n}/2) · 보유 기록 ${REC.total}</p>
@@ -3300,14 +3307,14 @@ function exEraCard(n) {
         <li><b>45초</b> 동안 서버 부하가 100%를 넘지 않게 버티세요. 드론은 레이저로도 떨어집니다.</li>
       </ol>`
     : n === 1 ? `<h1>ERA 1</h1><h2>인플레이션 · 누적 로그 2억 돌파</h2>
-      <p><b>메이플스토리</b> 대규모 업데이트가 열리자 접속이 폭주합니다.<br>로그인 대기열이 감당하지 못하고 <b style="color:#ffb23e">블랙홀</b>로 붕괴하고 있습니다.</p>
+      <p><b>붐비는 별무리</b>에 대규모 업데이트가 열리자 접속이 폭주합니다.<br>로그인 대기열이 감당하지 못하고 <b style="color:#ffb23e">블랙홀</b>로 붕괴하고 있습니다.</p>
       <ol class="brief">
-        <li>메이플스토리 은하의 블랙홀로 가서 주변 <b>링 3개</b>를 통과해 <b>대기열 위성</b>을 배치하세요.</li>
+        <li>붐비는 별무리의 블랙홀로 가서 주변 <b>링 3개</b>를 통과해 <b>대기열 위성</b>을 배치하세요.</li>
         <li>위성마다 처리량이 늘고, 3개를 모두 배치하면 대기열이 빠르게 줄어듭니다.</li>
         <li>대기열이 <b>40만 명</b>을 넘으면 실패. 블랙홀에 너무 가까이 가면 중력에 끌려갑니다.</li>
       </ol>`
     : `<h1>ERA 2</h1><h2>항성 형성 · 누적 로그 8억 돌파</h2>
-      <p><b>FC온라인 이적시장</b>에 매크로 봇 <b style="color:#ff6a78">해적단</b>이 몰려옵니다.<br>정상 유저 호송선(청록)도 같은 항로로 들어오고 있습니다.</p>
+      <p><b>깊은 별무리 거래소</b>에 매크로 봇 <b style="color:#ff6a78">해적단</b>이 몰려옵니다.<br>정상 유저 호송선(청록)도 같은 항로로 들어오고 있습니다.</p>
       <ol class="brief">
         <li>빨간 해적선을 <b>12척</b> 격추하세요. 해적이 이적시장 행성에 <b>5척</b> 닿으면 실패입니다.</li>
         <li>청록색 호송선은 정상 유저입니다. 맞히면 <b>오탐</b>으로 기록됩니다.</li>
@@ -3366,7 +3373,7 @@ function exMissionDone() {
   if (m === 'bh') {
     showCard(`<h1>STABILIZED</h1><h2>ERA 1 완료 · 로그인 대기열 안정화</h2>
       <div class="stats"><div>최대 대기열<b>${exFmtBig(ex.qMax)}명</b></div><div>소요<b>${ex.mT.toFixed(0)}초</b></div><div>데이터 결정<b>+${reward}</b></div></div>
-      <p>블랙홀이 증발하며 메이플스토리 은하가 다시 밝아집니다. 우주 팽창이 재개됩니다.</p>
+      <p>블랙홀이 증발하며 붐비는 별무리가 다시 밝아집니다. 우주 팽창이 재개됩니다.</p>
       <button data-act="ex-cont">계속 관측</button>`, true);
   } else if (m === 'bots') {
     const kills = state.kills - ex.pk0;
@@ -3741,7 +3748,7 @@ const SIG_EVENT = {
 };
 function exGalLabel(g) {
   const ev = g.sig && SIG_EVENT[g.sig.kind];
-  g.label.innerHTML = `<b>${g.G.name}</b><span>${g.G.ko}${g.G.hub ? ' · 허브 항성' : ' 은하'}</span>` +
+  g.label.innerHTML = `<b>${g.G.name}</b><span>${g.G.ko}${g.G.hub ? ' · 허브 항성' : ' · 별 구역'}</span>` +
     (g.starName ? `<em class="sig" style="color:#7ff1ff">✦ ${g.starName}</em>` : '') +
     (ev && !(g.ignited && ev === SIG_EVENT.spike) ? `<em class="sig" style="color:${ev.col}">⚠ ${ev.name}</em>` : '');
 }
@@ -4109,12 +4116,11 @@ function salvageQuest() {
 // =====================================================================
 const EV_LIMIT = 300, EV_START = 30, EV_PER = 7, EV_DECAY = .06, EV_RING = 160, EV_DECAY_MAX = 15, EV_HIT_MAX = 10, ESC_R = 650, ESC_T = 45;
 const STAR_NAMES = {
-  maple: ['단풍의 심장', '첫 모험의 등불', '헤네시스의 아침', '버섯 언덕의 별'],
-  fc: ['결승골의 섬광', '그라운드의 별', '열한 번째 빛', '이적시장의 등대'],
-  dnf: ['아라드의 새벽', '모험가의 횃불', '균열 너머의 별', '검은 성전의 불씨'],
-  mabi: ['에린의 모닥불', '음유시인의 노래', '티르코네일의 빛', '세 번째 달'],
-  els: ['엘의 조각', '수호자의 별', '엘리오스의 아침', '빛나는 결정'],
-  heroes: ['콜헨의 등불', '용사의 맹세', '은빛 방패', '아침의 흉터'],
+  crowd: ['천 개의 등불', '모이는 목소리', '아침 광장의 별', '첫 발걸음의 별'],
+  deep: ['오래 머문 빛', '깊은 숨의 별', '끝까지 읽힌 별', '잔잔한 심장'],
+  drift: ['돌아온 발자국', '머무른 잔향', '되찾은 목소리', '두 번째 기회'],
+  calm: ['고요의 등불', '조용한 약속', '밤의 쉼표', '은은한 별'],
+  frontier: ['먼 곳의 신호', '지평선의 불씨', '처음 닿은 별', '외곽의 등대'],
 };
 const relayGeo = new THREE.CylinderGeometry(2.6, 3.8, 10, 6);
 const routes = [];
@@ -4134,8 +4140,8 @@ function evSignal(gal, sig) {
   ex.ev = { phase: 'call', gal, t: 0, sig };
   if (ex.godEra === 'ancient' && !GOD.on) godManifest([`${gal.G.ko}의 별이 숨을 고르지 못한다.`, '흩어진 목소리를 모아, 별에게 돌려주라.'], { delay: 900, hold: 1 });
   aiSay(ex.godEra === 'ancient'
-    ? `${gal.G.ko}의 별이 너무 많은 목소리를 품었어요. 은하로 가면 할 일을 하나씩 알려 줄게요.`
-    : `${gal.G.ko} 쪽에서 이상 신호예요. 별이 불안정해요. 상단 안내를 따라 은하로 가 볼래요? 도착하면 할 일을 알려 줄게요.`, { hold: 8 });
+    ? `${gal.G.ko}의 별이 너무 많은 목소리를 품었어요. 그쪽으로 가면 할 일을 하나씩 알려 줄게요.`
+    : `${gal.G.ko} 쪽에서 이상 신호예요. 별이 불안정해요. 상단 안내를 따라 가 볼래요? 도착하면 할 일을 알려 줄게요.`, { hold: 8 });
 }
 function evBriefCard() {
   const e = ex.ev;
@@ -4351,7 +4357,7 @@ function evNamed(name) {
   ex.chron.push({ day: ex.day, kind: 'born', gal: gal.G.ko, name, role, time: e.t });
   showCard(`<h1>CHRONICLE</h1><h2>우주 연대기에 기록되었습니다</h2>
     <div class="chron">${ex.chron.slice(-5).reverse().map(c => c.kind === 'born'
-      ? `DAY ${Math.floor(c.day)} · <b>${c.name}</b> 탄생 — ${c.gal} 은하 · 항해사(${c.role}) · 보조선 A · 보조선 B`
+      ? `DAY ${Math.floor(c.day)} · <b>${c.name}</b> 탄생 — ${c.gal} · 항해사(${c.role}) · 보조선 A · 보조선 B`
       : c.kind === 'salvage' ? `DAY ${Math.floor(c.day)} · <b>${c.name}</b> — ${c.gal}`
       : `DAY ${Math.floor(c.day)} · <b>${c.name}</b> — 조각 ${c.got}개 회수`).join('<br>')}</div>
     <p style="color:#8ea3c6;font-size:13px">보상 · 결정 +120 · 연료 +20%${cargoCores() ? ` · 실은 희귀 핵 ${cargoCores()}개는 인양 정거장에 내려야 기록이 됩니다` : ''}</p>
@@ -4508,9 +4514,9 @@ function aiHint() {
     else how = '하늘색 반짝이는 조각이 흐린 잔향이에요. 상단 화살표를 따라가 가까이 지나가면 자동으로 실려요. 주황 고리(파동)는 피하세요.';
   } else if (e && e.phase === 'sync') how = '청록 고리 위에서 S 키(또는 −)로 속도를 120 m/s 아래로 낮추고 3초 버티면 돼요.';
   else if (e && e.phase === 'collapse') how = '별 반대 방향으로 전속(W, Shift 워프)! 화물이 무거우면 X로 버려 급가속하세요. 중력 흐름이 바깥으로 향하면 올라타요.';
-  else if (e && e.phase === 'call') how = '상단 안내가 가리키는 은하로 가요. 가까이 가면 사건 안내 카드가 떠요. 멀면 Shift로 워프하세요.';
+  else if (e && e.phase === 'call') how = '상단 안내가 가리키는 별무리로 가요. 가까이 가면 사건 안내 카드가 떠요. 멀면 Shift로 워프하세요.';
   else if (ex.cargo.length) how = '넥슨닷컴 곁 주황 고리가 인양 정거장이에요. 근처를 지나가면 화물이 자동으로 내려지고 기록이 돼요. 금빛 귀환 흐름을 타면 빨라요.';
-  else how = '은하 외곽의 하늘색 잔향을 실어 정거장에 내려 보세요. 기록이 쌓이면 새 장비가 열려요. 이상 신호가 오면 바로 알려 줄게요.';
+  else how = '별무리 외곽의 하늘색 잔향을 실어 정거장에 내려 보세요. 기록이 쌓이면 새 장비가 열려요. 이상 신호가 오면 바로 알려 줄게요.';
   aiSay(`${q ? `지금 할 일: ${q.text}${dist}. ` : ''}${how}`, { hold: 9 });
 }
 
@@ -4761,7 +4767,7 @@ function holoFrame(dt) {
   const feed = (ex.signals || []).slice(-3).reverse().map(sg => {
     const G = EX_GAMES.find(x => x.id === sg.game), ev = SIG_EVENT[sg.kind];
     const h = (sg.t % 1) * 24;
-    return `<div>D${Math.floor(sg.t)} ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')} · ${G ? G.ko : '여러 은하'} ${Echo.KIND_KO[sg.kind]}${sg.state === 'end' ? ' 해소' : ''} → ${ev ? ev.name : '해석 대기'}</div>`;
+    return `<div>D${Math.floor(sg.t)} ${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')} · ${G ? G.ko : '여러 구역'} ${Echo.KIND_KO[sg.kind]}${sg.state === 'end' ? ' 해소' : ''} → ${ev ? ev.name : '해석 대기'}</div>`;
   }).join('') || '<div>감지된 신호 없음</div>';
   body.innerHTML = `<div class="hb-g">${rows}</div><div class="hb-feed">${feed}<div style="color:#ffd27a">화물 ${cargoLoad()}/${cargoCap()} · 희귀 핵 ${cargoCores()} · 보유 기록 ${REC.total}</div></div>`;
 }
@@ -5609,12 +5615,12 @@ function exHud() {
   exGalHud();
   const mis = $('exMis');
   if (ex.mission === 'bh') {
-    mis.innerHTML = `<div class="mt">오픈런 블랙홀 · 메이플스토리</div>
+    mis.innerHTML = `<div class="mt">오픈런 블랙홀 · 붐비는 별무리</div>
       <div class="exrow"><span>로그인 대기열</span><b>${Math.round(ex.q).toLocaleString('en-US')}명</b></div>
       <div class="exbar"><i style="width:${Math.min(100, ex.q / 4000)}%"></i></div>
       <div class="exrow"><span>대기열 위성</span><b>${ex.sats}/3</b></div>`;
   } else if (ex.mission === 'bots') {
-    mis.innerHTML = `<div class="mt">봇 해적단 · FC온라인 이적시장</div>
+    mis.innerHTML = `<div class="mt">봇 해적단 · 깊은 별무리 거래소</div>
       <div class="exrow"><span>격추</span><b>${state.kills - ex.pk0}/12</b></div>
       <div class="exrow"><span>침투 허용</span><b style="color:${ex.reached >= 3 ? 'var(--red)' : ''}">${ex.reached}/5</b></div>
       <div class="exrow"><span>오탐 · 정상 통과</span><b>${ex.falsePos} · ${ex.served}</b></div>`;
@@ -5918,7 +5924,7 @@ function questInfo() {
       if (beacons[0]) return { text: `블랙홀 주변 위성 배치 지점 ${ex.sats + 1}/3 통과`, pos: beacons[0].mesh.position, col: Q_TEAL };
       return { text: '위성 배치 완료 — 대기열이 줄어드는 중', pos: exBH.grp.getWorldPosition(new THREE.Vector3()), col: Q_VIOLET };
     }
-    if (ex.mission === 'bots') return { text: `FC온라인 이적시장 방어 · 해적선 격추 ${state.kills - ex.pk0}/12`, pos: exMarketPlanet().world, col: Q_AMBER };
+    if (ex.mission === 'bots') return { text: `깊은 별무리 거래소 방어 · 해적선 격추 ${state.kills - ex.pk0}/12`, pos: exMarketPlanet().world, col: Q_AMBER };
     if (ex.mission === 'ddos') return { text: `넥슨닷컴 메인 근처에서 FIELD로 드론 제거 · ${Math.max(0, 45 - ex.mT).toFixed(0)}초`, pos: exGal[0].planets[0].world, col: '#ff8a5a' };
     if (ex.mission === 'stealth') return { text: `/login 주변 침투조 추적 · 401 섬광 순간 사격 ${ex.stKills}/6`, pos: exGal[0].planets[1].world, col: Q_AMBER };
     const eq = evQuest();
@@ -5933,7 +5939,7 @@ function questInfo() {
       const d = pl.world.distanceTo(ship.position);
       if (d < bd) { bd = d; best = pl; }
     }
-    if (best) return { text: `미해석 잔향 관측 · ${best.gal.G.hub ? '넥슨닷컴' : best.gal.G.ko + ' 은하'}`, pos: best.world, col: Q_BLUE };
+    if (best) return { text: `미해석 잔향 관측 · ${best.gal.G.hub ? '넥슨닷컴' : best.gal.G.ko}`, pos: best.world, col: Q_BLUE };
     return { text: '모든 잔향 관측 · 이상 신호를 기다리는 중', pos: null, col: Q_VIOLET };
   }
   if (beacons[0]) return { text: `항법 비컨 ${state.beaconsPassed + state.beaconsMissed + 1}/${BEACON_N} 통과`, pos: beacons[0].mesh.position, col: Q_TEAL };
@@ -6503,7 +6509,7 @@ function showHelp() {
 const LORE_LINES = [
   `안녕하세요, 항해사님! 저는 이 함선의 항법 AI, <b>로기(LOGI)</b>예요. 출항 전에 이 우주를 잠깐 소개해 드릴게요.`,
   `넥슨의 모든 게임 세계에서 일어난 일은 기록으로 남아요. 그 기록의 <em>잔향(Echo)</em>이 흘러들어 응결된 곳이 바로 이 우주예요.`,
-  `한가운데엔 <em>넥슨닷컴</em> 항성, 그 주위로 <b>메이플스토리 · FC온라인 · 던전앤파이터 · 마비노기 · 엘소드 · 마비노기 영웅전</b> 은하가 떠 있어요. 기록이 쌓이는 만큼 우주는 <b>팽창</b>해요.`,
+  `한가운데엔 <em>넥슨닷컴</em> 항성, 그 주위로 이름 없는 <b>별무리</b>들이 떠 있어요. 붐비는 곳, 깊은 곳, 흩어지는 곳, 고요한 곳, 먼 외곽… 잔향이 머무는 성질에 따라 모양이 달라요. 기록이 쌓이는 만큼 우주는 <b>팽창</b>해요.`,
   `가끔 잔향이 크게 흔들려요. 기록이 폭증하면 별이 <b>불안정</b>해지고, 기록이 끊기면 <b>일식</b>이 찾아와요. 그런 이상 신호를 찾아 해결하는 게 <em>항해사</em>의 일이에요.`,
   `혼자가 아니에요. 사건이 생기면 <b>역할을 나눠</b> 함께 해결해요. 지금은 <b>보조선 두 척</b>이 항해사님 곁을 지킬 거예요.`,
   `연료는 <b>FUEL 연료소</b>, 선체는 <b>REPAIR 정비 도크</b>에서 채우세요. 그리고… 이 우주엔 <em>기록을 읽는 누군가</em>가 있다는 소문이 있어요. 저도 아직 만나 본 적은 없지만요.`,

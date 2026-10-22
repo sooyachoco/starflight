@@ -4,21 +4,20 @@
 // 신호 형식 (실제 NXLog 집계가 같은 형식으로 들어오면 그대로 교체):
 //   { t, game, kind, strength, state }
 //     t        우주 시각 (일, 소수점은 하루 중 시각)
-//     game     은하 id (nexon, maple, ...)
+//     game     구역 id (nexon, crowd, ...)
 //     kind     spike 급증 | silence 정적 | decline 감소 | sync 동조
-//     strength 평소 대비 배율 (sync는 동조한 은하 수)
+//     strength 평소 대비 배율 (sync는 동조한 구역 수)
 //     state    start | end
 // 모든 수치는 가상 데이터이며 실제 서비스 지표와 무관하다.
 // =====================================================================
 (function (root) {
   const ROSTER = [
     { id: 'nexon', ko: '넥슨닷컴', col: '#ffc861', daily: 2840000, hub: true },
-    { id: 'maple', ko: '메이플스토리', col: '#ff9a3d', daily: 88780000 },
-    { id: 'fc', ko: 'FC온라인', col: '#4fe08a', daily: 5310000 },
-    { id: 'dnf', ko: '던전앤파이터', col: '#ff5a4e', daily: 10480000 },
-    { id: 'mabi', ko: '마비노기', col: '#c49bff', daily: 3420000 },
-    { id: 'els', ko: '엘소드', col: '#46d0ff', daily: 700000 },
-    { id: 'heroes', ko: '마비노기 영웅전', col: '#b8c6dc', daily: 470000 },
+    { id: 'crowd', ko: '붐비는 별무리', col: '#ffb36b', daily: 52000000 },
+    { id: 'deep', ko: '깊은 별무리', col: '#8fa8ff', daily: 25000000 },
+    { id: 'drift', ko: '흩어지는 별무리', col: '#d6b4ff', daily: 16000000 },
+    { id: 'calm', ko: '고요한 별무리', col: '#7fe3d0', daily: 10000000 },
+    { id: 'frontier', ko: '외곽 별무리', col: '#b8c6dc', daily: 5000000 },
   ];
   const GROWTH = 1.04;   // 하루마다 로그가 4%씩 늘어남
   const gb = (h, m, s) => { let d = Math.abs(h - m); d = Math.min(d, 24 - d); return Math.exp(-d * d / (2 * s * s)); };
@@ -35,10 +34,10 @@
   // 이상 현상 일정 (모의 로그의 '정답지'). 첫 열흘은 시연용으로 고정, 이후는 시드로 생성
   function buildPlan(seed, n) {
     const R = mulberry32(seed), plan = [
-      { kind: 'spike', gis: [1], t0: 1.0, t1: 3.8, amp: 2.6 },          // 대규모 업데이트 → 메이플 급증
-      { kind: 'silence', gis: [3], t0: 5.0, t1: 6.6, amp: .03 },        // 정기 점검 → 던파 정적
-      { kind: 'sync', gis: [2, 4, 5], t0: 8.2, t1: 10, amp: 1.42 },      // 여러 게임 동시 상승
-      { kind: 'decline', gis: [6], t0: 11, t1: 15, amp: .45 },          // 서서히 식어 감
+      { kind: 'spike', gis: [1], t0: 1.0, t1: 3.8, amp: 2.6 },          // 대규모 업데이트 → 붐비는 별무리 급증
+      { kind: 'silence', gis: [3], t0: 5.0, t1: 6.6, amp: .03 },        // 정기 점검 → 흩어지는 별무리 정적
+      { kind: 'sync', gis: [2, 4, 5], t0: 8.2, t1: 10, amp: 1.42 },      // 여러 구역 동시 상승
+      { kind: 'decline', gis: [5], t0: 11, t1: 15, amp: .45 },          // 서서히 식어 감
     ];
     let t = 16;
     while (t < 400) {
