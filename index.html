@@ -501,7 +501,7 @@
   #bDrop { display: none; right: calc(max(18px, env(safe-area-inset-right)) + 162px); top: calc(var(--win-h) - 72px);
     color: #fff1d6; border-color: rgba(255, 178, 62, .8); background: rgba(70, 40, 8, .55); font-size: 12px; }
   body.touch.cargo-on #bDrop { display: grid; }
-  .cm-box .cm-next { display: block; margin-top: 4px; font-size: 12px; color: #ffd27a; }
+  .cm-box .cm-next { display: block; margin-top: 5px; font-size: 14px; color: #ffd27a; }
   .card .gear { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 6px; text-align: left; }
   .card .gear button { margin: 0; padding: 10px 12px; line-height: 1.45; font-size: 12px; text-align: left; }
   .card .gear button b { display: block; font-size: 14px; color: #fff; }
@@ -638,20 +638,20 @@
   .hb-ev .hint { margin-top: 6px; font: 500 12px "Noto Sans KR", sans-serif; color: #fff2c8; }
   /* 함선 AI 통신창 */
   /* 통신창은 홀로그램(가운데 최대 460px) 왼쪽에 겹치지 않게, 좁은 화면에선 홀로그램 위로 */
-  #comm { position: fixed; left: max(9vw, 24px); bottom: calc(var(--dash-h) + 18px); width: min(380px, 40vw); z-index: 7; pointer-events: none;
-    display: flex; gap: 10px; align-items: flex-end; transition: opacity .35s, transform .35s; }
+  #comm { position: fixed; left: max(9vw, 24px); bottom: calc(var(--dash-h) + 18px); width: clamp(380px, calc(41vw - 246px), 520px); z-index: 7; pointer-events: none;
+    display: flex; gap: 12px; align-items: flex-end; transition: opacity .35s, transform .35s; }
   #comm.hidden { opacity: 0; transform: translateY(10px); }
-  .cm-face { width: 64px; height: 64px; flex: none; border-radius: 50%; border: 2px solid #3ee6ff88;
+  .cm-face { width: 80px; height: 80px; flex: none; border-radius: 50%; border: 2px solid #3ee6ff88;
     background: #06121e url(assets/npc-logi.webp?v=1) 50% 8% / 150% auto no-repeat; box-shadow: 0 0 16px #3ee6ff44; }
   #comm.talk .cm-face { animation: cmTalk .3s ease-in-out infinite alternate; }
   #comm.mute .cm-face { filter: grayscale(.4) brightness(.8); }
   @keyframes cmTalk { to { transform: translateY(-2px) scale(1.03); } }
-  .cm-box { position: relative; padding: 9px 13px 10px; border-radius: 10px; background: #071624e6; border: 1px solid #3ee6ff55;
+  .cm-box { position: relative; padding: 11px 16px 13px; border-radius: 10px; background: #071624e6; border: 1px solid #3ee6ff55;
     box-shadow: 0 8px 24px #000a; font-family: "Noto Sans KR", sans-serif; }
-  .cm-box b { font: 700 12px Rajdhani, sans-serif; letter-spacing: .14em; color: #3ee6ff; }
+  .cm-box b { font: 700 14px Rajdhani, sans-serif; letter-spacing: .14em; color: #3ee6ff; }
   #comm.logos .cm-box b { color: #ffd27a; }
   #comm.logos .cm-face { border-color: #ffd27a; box-shadow: 0 0 20px #ffb23e66; }
-  .cm-box p { margin: 3px 0 0; font-size: 14px; line-height: 1.6; color: #e6f2ff; }
+  .cm-box p { margin: 4px 0 0; font-size: 17px; line-height: 1.6; color: #e6f2ff; }
   .card .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0 8px; }
   .card .roles button { margin: 0; padding: 12px 10px; text-align: left; line-height: 1.5; font-size: 13px; }
   .card .roles button b { display: block; font-size: 15px; color: #fff; }
@@ -659,18 +659,19 @@
   .card .names { display: grid; gap: 8px; margin: 14px 0 6px; }
   .card .chron { text-align: left; margin: 12px auto; max-width: 420px; font-size: 13px; line-height: 1.7; color: #c9d6ea; }
   .card .chron b { color: #7ff1ff; }
-  @media (max-width: 1240px) { #comm { bottom: calc(var(--dash-h) + 250px); width: min(380px, 62vw); } }
+  @media (max-width: 1240px) { #comm { bottom: calc(var(--dash-h) + 250px); width: min(440px, 62vw); } }
   @media (max-width: 640px) and (orientation: portrait) {
     #holo { left: 12px; right: 12px; width: auto; transform: none; bottom: auto; top: 104px; perspective: none; }
     .hb-panel { transform: none; } #holo.min .hb-panel { transform: scaleY(.04); }
     .hb-beam, .hb-emit { display: none; }
     .hb-feed { display: none; }
     #comm { left: 12px; right: 12px; width: auto; top: 262px; bottom: auto; }   /* 홀로그램(104~250px) 바로 아래 */
+    .cm-face { width: 60px; height: 60px; } .cm-box p { font-size: 15px; }
     .card .roles { grid-template-columns: 1fr; }
   }
   @media (max-height: 520px) {
     #holo { width: 46vw; } .hb-feed { display: none; } .hb-g { font-size: 11px; gap: 1px 6px; }
-    #comm { top: 92px; bottom: auto; left: 16px; width: 40vw; } .cm-face { width: 44px; height: 44px; } .cm-box p { font-size: 12px; }
+    #comm { top: 92px; bottom: auto; left: 16px; width: 40vw; } .cm-face { width: 48px; height: 48px; } .cm-box p { font-size: 14px; }
   }
 
   /* 신의 현현: 창 밖 우주에 거대한 얼굴이 떠올라 말을 전한다 */
