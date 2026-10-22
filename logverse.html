@@ -8,6 +8,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* 스크롤바: 어두운 우주 톤에 맞춘 얇은 청록 막대 */
+  * { scrollbar-width: thin; scrollbar-color: #3ee6c166 transparent; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3ee6c14d; border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background-color: #3ee6c199; }
+  ::-webkit-scrollbar-button, ::-webkit-scrollbar-corner { display: none; background: transparent; }
+
   :root {
     --bg: #04070f; --panel: #0a1424; --panel2: #0d1b30; --line: #1e3150; --text: #e1ebfa; --dim: #8ea3c6; --mute: #8a9cbc;
     --teal: #3ee6c1; --amber: #ffb23e; --blue: #4aa8ff; --red: #ff6a78; --violet: #a98bff; --steel: #9fb4d6;
