@@ -666,7 +666,7 @@
   .gp-wrap { position: absolute; left: 50%; top: 46%; height: min(122%, 112vw); aspect-ratio: 1200 / 1054; transform: translate(-50%, -50%) scale(1.06);
     transition: transform 6s cubic-bezier(.2, .7, .2, 1); }
   #godP.on .gp-wrap { transform: translate(-50%, -50%) scale(1); }
-  .gp-wrap img { width: 100%; height: 100%; mix-blend-mode: screen; opacity: .62; filter: contrast(1.12) saturate(.85);
+  .gp-wrap img { width: 100%; height: 100%; opacity: .72;   /* 알파 이미지라 합성 모드 없이 투명 */ filter: contrast(1.12) saturate(.85);
     animation: gpBreath 7s ease-in-out infinite, gpWarp 9s ease-in-out infinite; }
   @keyframes gpBreath { 50% { opacity: .48; filter: contrast(1.2) saturate(.8) blur(.6px); } }
   @keyframes gpWarp { 0%, 100% { transform: none; } 33% { transform: skewX(.6deg) scale(1.01, .995); } 66% { transform: skewX(-.5deg) scale(.995, 1.01); } }
@@ -838,7 +838,7 @@
   <div id="lwLabels" hidden></div>
   <div id="godP" aria-live="assertive">
     <div class="gp-dim"></div>
-    <div class="gp-wrap"><img src="assets/god-face.webp?v=1" alt="" width="1200" height="1054"><i class="gp-eye l"></i><i class="gp-eye r"></i></div>
+    <div class="gp-wrap"><img src="assets/god-face-a.webp?v=1" alt="" width="1200" height="1054"><i class="gp-eye l"></i><i class="gp-eye r"></i></div>
     <p class="gp-text" id="gpText"></p>
   </div>
   <svg id="frame" viewBox="0 0 1000 1000" preserveAspectRatio="none">
