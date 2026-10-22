@@ -249,16 +249,10 @@
   #titleScr { position: fixed; inset: 0; z-index: 25; overflow: hidden; background: #02040a; cursor: pointer;
     font-family: "Noto Sans KR", sans-serif; user-select: none; }
   #titleScr.hidden { display: none; }
-  /* 첫화면 3층: 바깥 우주(정지 이미지 위에 반복 영상) → 효과 → 조종석(배경에서 잘라낸 투명 이미지, 고정) */
-  .t-bg { position: absolute; inset: 0; background: url(assets/title-space-a.webp?v=1) center 40% / cover;
-    animation: tDrift 60s ease-in-out infinite alternate; transform-origin: 50% 35%; }
-  @keyframes tDrift { from { transform: scale(1.04); } to { transform: scale(1.1) translate(-.8%, .5%); } }
-  .t-bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%;
-    opacity: 0; transition: opacity 1s linear; }
-  .t-bg video.on { opacity: 1; }
+  /* 첫화면 2층: 바깥 우주(캔버스: 끝없이 천천히 다가가는 우주 + 스쳐 가는 별) → 조종석(배경에서 잘라낸 투명 이미지, 고정) */
+  .t-bg { position: absolute; inset: 0; isolation: isolate; background: url(assets/title-space-a.webp?v=1) center 40% / cover; }
   .t-cockpit { position: absolute; inset: 0; background: url(assets/title-cockpit.webp?v=1) center 42% / cover; pointer-events: none; }
-  /* 하늘을 튕겨 다니는 표류 잔향 (배경과 함께 움직이도록 .t-bg 안에) */
-  .t-drift { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+  .t-space { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
   .t-bg::after { content: ""; position: absolute; inset: 0;
     background: radial-gradient(ellipse 46% 34% at 50% 40%, #02060fa8, transparent 70%); }
   .t-main { position: absolute; left: 0; right: 0; top: 20%; display: flex; flex-direction: column; align-items: center;
@@ -315,7 +309,7 @@
     .t-tag { letter-spacing: .16em; margin-right: -.16em; }
     .t-hint { font-size: 13px; letter-spacing: .14em; }
   }
-  @media (prefers-reduced-motion: reduce) { .t-bg, .t-main { animation: none; } .t-bg video { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .t-main { animation: none; } }
   /* 세계관: 관측 보조 AI 로기가 등장해 설명 */
   #lore { position: fixed; inset: 0; z-index: 28; overflow: hidden; font-family: "Noto Sans KR", sans-serif; cursor: pointer;
     background: radial-gradient(ellipse 80% 70% at 28% 60%, #0a2a3acc, #02050ce6 70%); user-select: none; }
@@ -1026,10 +1020,7 @@
   </div>
 </div>
 <div id="titleScr" class="hidden">
-  <div class="t-bg" id="tBg">
-    <video muted playsinline preload="auto" src="assets/title-space-a.mp4?v=1"></video><video muted playsinline preload="auto" src="assets/title-space-a.mp4?v=1"></video>
-    <canvas class="t-drift" id="tDrift"></canvas>
-  </div>
+  <div class="t-bg" id="tBg"><canvas class="t-space" id="tSpace"></canvas></div>
   <div class="t-cockpit"></div>
   <div class="t-main">
     <h1><img src="assets/title-logo2.webp?v=1" alt="별의 잔향 · Echoes Among the Stars" width="1939" height="533"></h1>
@@ -6716,59 +6707,58 @@ function showTitle() {
   $('titleScr').classList.remove('hidden');
   titleFx.start();
 }
-// ---------- 첫화면: 하늘을 튕겨 다니는 표류 잔향 ----------
+// ---------- 첫화면: 우주가 아주 천천히 다가오며 앞으로 나아가는 느낌 ----------
+// 우주 이미지를 90초 동안 1 → 1.3배로 확대하고, 끝 7초 동안만 처음 크기의 새 장이 덮어 끝없이 전진한다
 const titleFx = (() => {
-  let raf = 0, tick = 0, dots = [];
+  const T = 90, K = 1.3, F = 7 / 90, FX = .5, FY = .4;   // 주기, 최대 배율, 겹치는 구간, 초점(화면 가운데 약간 위)
+  const img = new Image(); img.src = 'assets/title-space-a.webp?v=1';
+  let raf = 0, t0 = 0, last = 0, W = 0, H = 0, stars = [];
   const on = () => !$('titleScr').classList.contains('hidden');
+  const sstep = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  const star = z => ({ x: rand(-1.2, 1.2), y: rand(-.9, .9), z: z ?? rand(.15, 1), r: rand(.5, 1.3), lav: Math.random() < .3 });
   function layout() {
-    const bg = $('tBg'), W = bg.clientWidth, H = bg.clientHeight;
-    const cv = $('tDrift'), d = Math.min(2, devicePixelRatio || 1);
+    const bg = $('tBg'); W = bg.clientWidth; H = bg.clientHeight;
+    const cv = $('tSpace'), d = Math.min(2, devicePixelRatio || 1);
     cv.width = W * d; cv.height = H * d;
-    dots = Array.from({ length: Math.round(W * H / 42000) }, () => ({ x: Math.random() * W, y: Math.random() * H * .62,
-      vx: rand(-6, 6), vy: rand(-3, 3), r: rand(.8, 2), t: rand(1, 9), trail: 0, px: 0, py: 0, lav: Math.random() < .6 }));
+    stars = Array.from({ length: Math.round(W * H / 9000) }, () => star());
   }
-  const vids = [...document.querySelectorAll('#tBg video')];
-  function swap(from) {
-    const to = vids.find(v => v !== from);
-    if (!to.paused) return;
-    to.currentTime = 0; to.play().catch(() => {}); to.classList.add('on'); from.classList.remove('on');
-    setTimeout(() => from.pause(), 1100);
+  function drawSpace(g, p, alpha) {
+    if (!img.complete || !img.naturalWidth) return;
+    const c = Math.max(W / img.naturalWidth, H / img.naturalHeight) * (1 + (K - 1) * p);
+    const w = img.naturalWidth * c, h = img.naturalHeight * c;
+    g.globalAlpha = alpha;
+    g.drawImage(img, W * FX - w * FX, H * FY - h * FY, w, h);
   }
-  vids.forEach(v => {
-    v.addEventListener('timeupdate', () => { if (v.classList.contains('on') && v.duration && v.currentTime > v.duration - 1.05) swap(v); });
-    v.addEventListener('ended', () => swap(v));
-  });
-  function frame(now) {
-    if (!on()) { raf = 0; vids.forEach(v => v.pause()); return; }
-    raf = requestAnimationFrame(frame);
-    const dt = Math.min(.05, (now - (tick || now)) / 1000); tick = now;
-    const cv = $('tDrift'), g = cv.getContext('2d'), d = cv.width / ($('tBg').clientWidth || 1);
-    g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, cv.width, cv.height);
-    for (const p of dots) {
-      p.x += p.vx * dt; p.y += p.vy * dt;
-      if ((p.t -= dt) <= 0) {   // 튕겨 나감: 짧은 꼬리를 남기고 도약
-        p.px = p.x; p.py = p.y; p.trail = 1;
-        const a = rand(0, Math.PI * 2), L = rand(50, 140);
-        p.x += Math.cos(a) * L; p.y += Math.sin(a) * L * .6; p.t = rand(4, 11);
-      }
-      const c = p.lav ? '227,200,255' : '159,234,255';
-      if (p.trail > 0) {
-        g.strokeStyle = `rgba(${c},${.5 * p.trail})`; g.lineWidth = p.r * .8;
-        g.beginPath(); g.moveTo(p.px, p.py); g.lineTo(p.x, p.y); g.stroke(); p.trail -= dt * 2.2;
-      }
-      g.fillStyle = `rgba(${c},${.55 + .35 * Math.sin(now / 400 + p.r * 9)})`;
-      g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
+  function draw(now, dt) {
+    const cv = $('tSpace'), g = cv.getContext('2d'), d = cv.width / (W || 1);
+    g.setTransform(d, 0, 0, d, 0, 0);
+    const p = ((now - t0) / 1000 / T) % 1;
+    if (p < F) { drawSpace(g, 1 + p, 1); drawSpace(g, p, sstep(0, F, p)); }   // 다 커진 옛 장 위로 새 장이 짧게 겹쳐 들어옴
+    else drawSpace(g, p, 1);
+    // 스쳐 가는 별: 초점에서 바깥으로 아주 천천히 (선 없이 점만)
+    g.globalAlpha = 1;
+    for (const s of stars) {
+      s.z -= dt * .018;
+      const x = W * FX + s.x / s.z * W * .5, y = H * FY + s.y / s.z * W * .5;
+      if (s.z < .06 || x < -20 || x > W + 20 || y < -20 || y > H + 20) { Object.assign(s, star(1)); continue; }
+      const k = 1 - s.z, a = Math.min(1, k * 1.6) * .8;
+      g.fillStyle = s.lav ? `rgba(227,210,255,${a})` : `rgba(235,242,255,${a})`;
+      g.beginPath(); g.arc(x, y, s.r * (.4 + k * 1.4), 0, Math.PI * 2); g.fill();
     }
+  }
+  function frame(now) {
+    if (!on()) { raf = 0; return; }
+    raf = requestAnimationFrame(frame);
+    const dt = Math.min(.05, (now - (last || now)) / 1000); last = now;
+    draw(now, dt);
   }
   addEventListener('resize', () => { if (on()) layout(); });
   return {
     start() {
       layout();
-      if (!raf && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        tick = 0; raf = requestAnimationFrame(frame);
-        const v = vids.find(x => x.classList.contains('on')) || vids[0];
-        v.classList.add('on'); v.play().catch(() => {});   // 음소거 영상이라 자동 재생 허용 (첫 프레임 전까지는 아래 정지 이미지가 보임)
-      }
+      if (!t0) t0 = performance.now() - F * T * 1000;   // 겹치는 구간을 지난 뒤부터 시작
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) { img.decode().then(() => draw(t0, 0)).catch(() => {}); return; }   // 정지 화면
+      if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
     },
   };
 })();
