@@ -447,7 +447,7 @@
   .sx-stat b small { font-size: .7em; color: #9fb3d2; }
   .sx-bars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
   .sx-bars i { height: 6px; background: #2a3a55; }
-  .sx-bars i.on { background: #3ee6ff; box-shadow: 0 0 6px #3ee6ff88; }
+  .sx-bars i.on { background: #3ee6ff; box-shadow: 0 0 6px #3ee6ff88; transform-origin: 0 50%; }
   .sx-stat .pl { color: #8ea3c6; font-size: 16px; text-align: center; }
   .sx-perks { margin: 0; padding: clamp(10px, 2vh, 18px) 0 0; list-style: none; display: grid; gap: 8px; font-size: clamp(13px, 1vw, 15px); color: #7ff1ff; }
   .sx-perks li { display: flex; align-items: center; gap: 10px; }
@@ -465,6 +465,19 @@
     cursor: pointer; font: 600 15px "Noto Sans KR", sans-serif; color: #dfe8fa; letter-spacing: .06em; white-space: nowrap; }
   #selBack kbd { padding: 5px 12px; border: 1px solid #ffffff55; border-radius: 4px; font: 600 12px Rajdhani, sans-serif; letter-spacing: .1em; color: #fff; }
   #select .sx-swap { animation: sxIn .35s ease-out; }
+  /* 정산 카드: 기록 숫자와 두 게이지 */
+  .st-big { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin: 6px 0 14px; }
+  .st-big b { font: 700 clamp(44px, 5vw, 64px) Rajdhani, sans-serif; color: #ffd27a; line-height: 1; text-shadow: 0 0 22px #ffb23e66; font-variant-numeric: tabular-nums; }
+  .st-big span { font-size: 15px; color: #c9d6ea; }
+  .st-meters { display: grid; gap: 12px; margin: 0 0 14px; text-align: left; }
+  .st-m { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: baseline; font-size: 13px; color: #c9d6ea; }
+  .st-m b { font: 700 18px Rajdhani, sans-serif; color: #fff; font-variant-numeric: tabular-nums; }
+  .st-m em { font-style: normal; color: #8ea3c6; }
+  .st-bar { grid-column: 1 / -1; height: 8px; border-radius: 6px; background: #ffffff14; overflow: hidden; }
+  .st-bar i { display: block; height: 100%; width: 0; border-radius: 6px; }
+  .st-m.mine .st-bar i { background: linear-gradient(90deg, #3ee6ff, #9ff4ff); box-shadow: 0 0 10px #3ee6ff88; }
+  .st-m.route .st-bar i { background: linear-gradient(90deg, #ffb23e, #ffe6a8); box-shadow: 0 0 10px #ffb23e88; }
+  .card .gear button:disabled.picked { opacity: 1; border-color: #ffd27a; background: #ffb23e26; }
   @keyframes sxIn { from { opacity: 0; transform: translateY(10px); } }
   /* 세로 폰: 위 제목 · 오른쪽으로 크게 선 인물 · 왼쪽 아래 썸네일 · 아래는 반투명 검은 패널 (인물은 자르지 않고 패널 뒤로) */
   @media (max-width: 760px) and (orientation: portrait) {
@@ -1070,6 +1083,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.0.2/lib/anime.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
@@ -1899,6 +1913,16 @@ function primaryAction() {
 // =====================================================================
 // 기체 선택 화면
 // =====================================================================
+// Anime.js 연출 (라이브러리를 못 불러왔거나 동작 줄이기 설정이면 바로 결과만 보여 줌)
+const ANI = () => window.anime && !matchMedia('(prefers-reduced-motion: reduce)').matches ? window.anime : null;
+function countTo(el, from, to, opt = {}) {
+  const fmt = opt.fmt || (v => Math.round(v)), A = ANI();
+  if (!el) return;
+  if (!A) { el.textContent = fmt(to); return; }
+  const o = { v: from };
+  el.textContent = fmt(from);
+  A.animate(o, { v: to, duration: opt.duration ?? 700, delay: opt.delay || 0, ease: 'outCubic', onUpdate: () => { el.textContent = fmt(o.v); } });
+}
 let selIdx = 1, selKind = 'pilot';
 const IC = {
   pilot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.2 6.3L21 12l-6.8 2.7L12 21l-2.2-6.3L3 12l6.8-2.7z"/></svg>',
@@ -1933,6 +1957,12 @@ function buildSelect(kind = selKind) {
     const i = +c.dataset.i;
     if (i !== selIdx) { selIdx = i; renderSelect(); sfx('blip', 500); }
   }));
+  // 화면이 바뀔 때: 제목과 썸네일이 차례로 들어옴
+  const A = ANI();
+  if (A) {
+    A.animate('.sx-head', { opacity: [0, 1], translateX: [-18, 0], duration: 500, ease: 'outCubic' });
+    A.animate('.sx-thumb', { opacity: [0, 1], translateX: [-24, 0], delay: A.stagger(70, { start: 120 }), duration: 480, ease: 'outCubic' });
+  }
 }
 function renderSelect() {
   const it = SEL[selKind].items[selIdx];
@@ -1945,15 +1975,31 @@ function renderSelect() {
   $('selTag').textContent = it.tag;
   if (selKind === 'pilot') {
     $('selStats').innerHTML = ['PILOTING', 'NAVIGATION', 'ENGINEERING'].map((l, k) => `
-      <div class="sx-stat"><i>+</i><span>${l}</span><b>${String(it.stats[k]).padStart(2, '0')}</b>${bars(it.stats[k])}<i class="pl">+</i></div>`).join('');
+      <div class="sx-stat"><i>+</i><span>${l}</span><b class="n" data-v="${it.stats[k]}" data-pad="2">${String(it.stats[k]).padStart(2, '0')}</b>${bars(it.stats[k])}<i class="pl">+</i></div>`).join('');
     $('selPerks').innerHTML = `<li>${IC.bolt}${it.spec}</li><li><em style="margin:0">${it.perk}</em></li>`;
   } else {
     $('selStats').innerHTML = [['기동성', IC.pilot], ['적재량', IC.cargo], ['안정성', IC.shield]].map(([l, ic], k) => `
-      <div class="sx-stat"><i>${ic}</i><span>${l}</span><b>${it.sx[k]}<small>/5</small></b>${bars(it.sx[k])}<i></i></div>`).join('');
+      <div class="sx-stat"><i>${ic}</i><span>${l}</span><b><span class="n" data-v="${it.sx[k]}">${it.sx[k]}</span><small>/5</small></b>${bars(it.sx[k])}<i></i></div>`).join('');
     $('selPerks').innerHTML = `<li>${IC.sail}특수 장비<em>${it.special}</em></li><li>${IC.bolt}특성<em>${it.trait}</em></li><li class="warn">${IC.box}${it.weak}</li>`;
   }
-  // 바뀐 부분만 살짝 떠오르게
-  [hero, $('selPanel')].forEach(el => { el.classList.remove('sx-swap'); void el.offsetWidth; el.classList.add('sx-swap'); });
+  selAnim(hero);
+}
+// 인물·기체가 바뀔 때: 그림이 들어오고, 패널 줄이 차례로 떠오르고, 능력치 막대가 0에서 차오르고 숫자가 올라감
+function selAnim(hero) {
+  const A = ANI(), panel = $('selPanel');
+  if (!A) { [hero, panel].forEach(el => { el.classList.remove('sx-swap'); void el.offsetWidth; el.classList.add('sx-swap'); }); return; }
+  const rows = [panel.querySelector('.sx-name'), panel.querySelector('.sx-tag'), ...panel.querySelectorAll('.sx-stat'), ...panel.querySelectorAll('.sx-perks li'), $('selGo')];
+  const barsOn = panel.querySelectorAll('.sx-bars i.on');
+  A.utils.remove([hero, ...rows, ...barsOn]);
+  A.animate(hero, selKind === 'ship'
+    ? { opacity: [0, 1], scale: [.94, 1], translateY: [10, 0], duration: 650, ease: 'outCubic' }
+    : { opacity: [0, 1], translateX: [36, 0], duration: 650, ease: 'outCubic' });
+  A.animate(rows, { opacity: [0, 1], translateY: [14, 0], delay: A.stagger(55), duration: 420, ease: 'outCubic' });
+  A.animate(barsOn, { scaleX: [0, 1], delay: A.stagger(30, { start: 220 }), duration: 300, ease: 'outQuad' });
+  panel.querySelectorAll('.sx-stat .n').forEach((el, k) => {
+    const v = +el.dataset.v, pad = +el.dataset.pad || 0;
+    countTo(el, 0, v, { duration: 520, delay: 200 + k * 55, fmt: x => String(Math.round(x)).padStart(pad, '0') });
+  });
 }
 function openSelect() {
   hideCard();
@@ -4341,26 +4387,63 @@ function sortieQuestSuffix() {
 }
 
 // ---------- 정산: 내 장비를 만들까, 모두의 항로를 고칠까 ----------
+const nextGear = total => Object.values(GEAR).find(g => g.unlock > total);
+const routePct = total => (Math.floor(total / ROUTE_STEP) >= 3 ? 100 : (total % ROUTE_STEP) / ROUTE_STEP * 100);
+const mineLabel = total => { const g = nextGear(total); return g ? `다음 해금 ${g.name} · ${total}/${g.unlock}` : '모든 장비 해금'; };
+const minePct = total => { const g = nextGear(total); return g ? Math.min(100, total / g.unlock * 100) : 100; };
+const routeLabel = total => `${Math.min(3, Math.floor(total / ROUTE_STEP))}/3단계 · ${total}${Math.floor(total / ROUTE_STEP) >= 3 ? '' : '/' + (Math.floor(total / ROUTE_STEP) + 1) * ROUTE_STEP}`;
 function settleCard(rec, summary) {
   state.mode = 'settle';
-  const lv = routeLv(), next = (lv + 1) * ROUTE_STEP;
-  showCard(`<h1>SETTLE</h1><h2>인양 정산 · 기록 ${rec}개</h2>
+  showCard(`<h1>SETTLE</h1><h2>인양 정산</h2>
+    <div class="st-big"><b id="stRec">0</b><span>기록</span></div>
     <p>${summary}</p>
-    <ol class="brief">
-      <li><b>장비 제작</b>: 내 기록(${REC.total})에 더해 새 장비를 엽니다. 다음 해금: ${(Object.values(GEAR).find(g => g.unlock > REC.total) || { name: '모두 열림', unlock: REC.total }).name} (기록 ${(Object.values(GEAR).find(g => g.unlock > REC.total) || {}).unlock ?? '—'})</li>
-      <li><b>공동 항로 복구</b>: 모든 항해자가 쓰는 금빛 귀환로를 고칩니다. ${routeTotal()}/${lv >= 3 ? '완전 복구' : next} · 단계마다 귀환 흐름 +20%, 1단계부터는 항로 변화 때도 끊기지 않아요.</li>
-    </ol>
+    <div class="st-meters">
+      <div class="st-m mine"><span>내 기록 <b id="stMine">${REC.total}</b></span><em id="stMineL">${mineLabel(REC.total)}</em><div class="st-bar"><i id="stMineBar"></i></div></div>
+      <div class="st-m route"><span>금빛 귀환로 (공동)</span><em id="stRouteL">${routeLabel(routeTotal())}</em><div class="st-bar"><i id="stRouteBar"></i></div></div>
+    </div>
     <div class="gear">
-      <button data-act="settle" data-s="craft"><b>장비 제작</b>내 기록 +${rec}</button>
-      <button data-act="settle" data-s="donate"><b>항로 복구에 기부</b>공동 항로 +${rec}</button>
+      <button data-act="settle" data-s="craft"><b>장비 제작</b>내 기록 +${rec} · 새 장비 해금</button>
+      <button data-act="settle" data-s="donate"><b>항로 복구에 기부</b>공동 귀환로 +${rec} · 1단계부터 항로 변화 때도 유지</button>
     </div>
     <button data-act="settle" data-s="split">반씩 나누기</button>
     <p style="color:#8ea3c6">※ 다른 항해자의 기부는 모의 데이터예요.</p>`, true);
-  settleCard.rec = rec;
+  settleCard.rec = rec; settleCard.busy = false;
+  // 들어올 때: 기록 숫자가 올라가고 두 게이지가 지금 값까지 차오름
+  countTo($('stRec'), 0, rec, { duration: 800 });
+  const A = ANI(), mb = $('stMineBar'), rb = $('stRouteBar');
+  if (A) {
+    A.animate(mb, { width: ['0%', minePct(REC.total) + '%'], duration: 700, delay: 250, ease: 'outCubic' });
+    A.animate(rb, { width: ['0%', routePct(routeTotal()) + '%'], duration: 700, delay: 370, ease: 'outCubic' });
+    A.animate('.card .st-meters .st-m, .card .gear button, .card > button[data-s]', { opacity: [0, 1], translateY: [10, 0], delay: A.stagger(60, { start: 150 }), duration: 380, ease: 'outCubic' });
+  } else { mb.style.width = minePct(REC.total) + '%'; rb.style.width = routePct(routeTotal()) + '%'; }
 }
 function settleApply(how) {
+  if (settleCard.busy) return;
+  settleCard.busy = true;
   const rec = settleCard.rec || 0, craft = how === 'craft' ? rec : how === 'donate' ? 0 : Math.ceil(rec / 2), give = rec - craft;
-  const before = REC.total, lv0 = routeLv();
+  const before = REC.total, r0 = routeTotal(), lv0 = routeLv();
+  // 고른 버튼만 강조하고 나머지는 잠금
+  document.querySelectorAll('.card [data-act="settle"]').forEach(b => { b.disabled = true; b.classList.toggle('picked', b.dataset.s === how); });
+  // 기록이 내 칸과 공동 칸으로 옮겨 가는 연출
+  const A = ANI(), dur = 900;
+  countTo($('stRec'), rec, 0, { duration: dur });
+  if (craft) { countTo($('stMine'), before, before + craft, { duration: dur }); $('stMineL').textContent = mineLabel(before + craft); }
+  if (give) $('stRouteL').textContent = routeLabel(r0 + give);
+  if (A) {
+    if (craft) A.animate('#stMineBar', { width: minePct(before + craft) + '%', duration: dur, ease: 'outCubic' });
+    if (give) {
+      const up = Math.floor((r0 + give) / ROUTE_STEP) > Math.floor(r0 / ROUTE_STEP) && lv0 < 3;
+      if (up) {   // 단계가 오르면 끝까지 찼다가 번쩍이고 남은 만큼 다시 참
+        const tl = A.createTimeline();
+        tl.add('#stRouteBar', { width: '100%', duration: dur * .55, ease: 'inQuad' })
+          .add('#stRouteBar', { opacity: [1, .3, 1], duration: 220 })
+          .add('#stRouteBar', { width: ['0%', routePct(r0 + give) + '%'], duration: dur * .45, ease: 'outCubic' });
+      } else A.animate('#stRouteBar', { width: routePct(r0 + give) + '%', duration: dur, ease: 'outCubic' });
+    }
+  }
+  setTimeout(() => settleFinish(craft, give, before, lv0), A ? dur + 450 : 0);
+}
+function settleFinish(craft, give, before, lv0) {
   REC.total += craft; ROUTE.mine += give;
   try { localStorage.setItem('nxlog-records', String(REC.total)); } catch (e) {}
   routeSave();
