@@ -220,6 +220,8 @@
   #overlay { position: fixed; left: 0; right: 0; top: 0; height: var(--win-h); display: flex; align-items: center;
     justify-content: center; background: radial-gradient(#0009, #000a); cursor: pointer; pointer-events: auto; }
   #overlay.hidden { display: none; }
+  #overlay { z-index: 12; }   /* 카드가 홀로그램·통신창보다 위 */
+  body.card-on #holo, body.card-on #comm { opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
   #overlay.over-title { z-index: 30; height: 100%; background: radial-gradient(#000a, #000d); }
   .card { touch-action: pan-y; text-align: center; padding: 26px 34px; max-width: 560px; max-height: calc(var(--win-h) - 40px); overflow: auto;
     box-sizing: border-box; font-family: "Noto Sans KR", sans-serif; }
@@ -1827,10 +1829,11 @@ function openSettings() {
 }
 function showCard(html, settings) {
   $('card').innerHTML = html;
+  document.body.classList.add('card-on');
   $('overlay').classList.remove('hidden');
   $('overlay').dataset.settings = settings ? '1' : '';
 }
-function hideCard() { $('overlay').classList.add('hidden'); $('overlay').classList.remove('over-title'); }
+function hideCard() { $('overlay').classList.add('hidden'); $('overlay').classList.remove('over-title'); document.body.classList.remove('card-on'); }
 function toast(text, color = '#3ee6c1') {
   const t = $('toast');
   t.textContent = text;
