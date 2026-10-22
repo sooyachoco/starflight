@@ -508,6 +508,19 @@
   .card .gear button.on { border-color: #3ee6c1; background: #3ee6c126; }
   .card .gear button:disabled { opacity: .45; cursor: not-allowed; }
   .card .gear button em { font-style: normal; color: #ffb23e; }
+  /* PC: 카드를 넓게 펼쳐 세로 스크롤 없이 */
+  @media (min-width: 1000px) and (min-height: 560px) {
+    #overlay { height: 100vh; }   /* 카드는 계기판 위까지 써서 스크롤을 없앤다 */
+    .card { max-width: min(980px, 88vw); max-height: calc(100vh - 40px); padding: 18px 44px 20px; }
+    .card h1 { font-size: 34px; }
+    .card h2 { margin: 2px 0 10px; }
+    .card p { margin: 6px 0; line-height: 1.6; }
+    .card ol.brief { line-height: 1.6; margin: 6px 0; }
+    .card .gear { margin: 6px 0 4px; }
+    .card .gear { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card ol.brief { columns: 2; column-gap: 32px; }
+    .card ol.brief li { break-inside: avoid; }
+  }
   .hb-ev .steps { margin-top: 8px; display: grid; gap: 2px; font: 500 12px "Noto Sans KR", sans-serif; }
   .hb-ev .steps .on { color: #fff; font-weight: 700; } .hb-ev .steps .done { opacity: .5; text-decoration: line-through; }
   @media (max-width: 640px) and (orientation: portrait) { #bDrop { top: calc(var(--win-h) - 60px); right: calc(max(18px, env(safe-area-inset-right)) + 140px); } }
