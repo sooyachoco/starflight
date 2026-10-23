@@ -2948,6 +2948,8 @@ const streaks = new THREE.LineSegments(streakGeo, streakMat);
 streaks.frustumCulled = false;
 camera.add(streaks);
 const dustMat = scene.children.find(o => o.isPoints && o.geometry === dustGeo).material;
+// 우주 먼지: 텍스처 없는 점은 카메라 가까이에서 커다란 네모로 보이므로 둥글고 흐린 점으로
+Object.assign(dustMat, { map: dotTex, size: .22, blending: THREE.AdditiveBlending, depthWrite: false }); dustMat.needsUpdate = true;
 
 function updateWarpFx(dt) {
   if (state.mode === 'docked' || state.mode === 'over') state.warp = Math.max(0, state.warp - dt * 1.8);
