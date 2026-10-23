@@ -3076,17 +3076,18 @@ const NX_WEEK = { tr: [.84, .87, .95, 1.06, 1.13, 1.1, 1.05], pcb: [.93, .89, .9
 const NX_WD = ['월', '화', '수', '목', '금', '토', '일'];
 const NX_DATE0 = new Date(2026, 9, 23);   // 가상 달력 첫날
 // 급증일 서명 (로그의 급증일을 따름): 유입 ×1.45 · 회원 비율 −30% · 체류 +28% · PV/세션 +17% · PC방 −35% · 이탈 그대로
-// 페이지(뷰): 넥슨닷컴 하위 구역 구성과 비중은 뷰 로그 구조를 따르고 수치는 가상. [구역, PV 비중, 회원 비율, PV/세션, [하위 페이지, 비중]…]
+// 페이지(뷰): 넥슨닷컴 하위 구역 구성과 비중은 뷰 로그 구조를 따르고 수치는 가상. [구역, PV 비중, 회원 비율, PV/세션, [하위 페이지, 비중]…, 전일 대비 추세(1 증가 · -1 감소 · 0 보합)]
 const NX_PAGES = [
-  ['넥슨닷컴 메인', .9, .78, 2.12, [['메인', 1]]],
-  ['쪽지', .054, 1.05, 1.6, [['받은쪽지함 · 넥슨쪽지', .9], ['보관함 · 넥슨쪽지', .05], ['받은쪽지함 · 친구쪽지', .035], ['보관함 · 친구쪽지', .008], ['수신 설정', .007]]],
-  ['공지', .021, .4, 1.5, [['리스트', .77], ['상세페이지', .23]]],
-  ['이벤트', .0155, .7, 1.9, [['진행중', .82], ['종료', .05], ['다크웹 노출계정 안내', .13]]],
-  ['이상패턴', .0032, .6, 1.8, [['이상패턴', 1]]],
-  ['넥슨플레이', .0021, .35, 1.6, [['Mobile버전', .72], ['PC버전 · 일회용로그인', .18], ['PC버전', .1]]],
-  ['전체서비스', .0011, .44, 1.2, [['사이트맵', 1]]],
-  ['보안 안내', .0009, .3, 1.5, [['보안취약성 안내', .9], ['TLS 이슈 안내', .1]]],
-  ['넥슨실험실', .0008, .06, 1.04, [['넥슨실험실', 1]]],
+  ['넥슨닷컴 메인', .9, .78, 2.12, [['메인', 1]], 1],
+  ['쪽지', .054, 1.07, 1.62, [['받은쪽지함 · 넥슨쪽지', .9], ['보관함 · 넥슨쪽지', .05], ['받은쪽지함 · 친구쪽지', .035], ['보관함 · 친구쪽지', .008], ['수신 설정', .007]], 1],
+  ['공지', .021, .4, 1.49, [['리스트', .77], ['상세페이지', .23]], 0],
+  ['이벤트', .0155, .73, 1.72, [['진행중', .83], ['종료', .05], ['다크웹 노출계정 안내', .12]], 0],
+  ['이상패턴', .0032, .59, 1.79, [['이상패턴', 1]], 0],
+  ['넥슨플레이', .0021, .35, 1.51, [['Mobile버전', .75], ['PC버전 · 일회용로그인', .18], ['PC버전', .07]], -1],
+  ['전체서비스', .0011, .44, 1.22, [['사이트맵', 1]], 0],
+  ['보안 안내', .00009, .4, 3.2, [['보안취약성 안내', .9], ['TLS 이슈 안내', .1]], -1],
+  ['넥슨실험실', .00085, .064, 1.04, [['넥슨실험실', 1]], 0],
+  ['던BTI', .000014, 1, 3, [['던BTI', 1]], 0],
 ];
 // 유입 관문 (유입도메인 비중을 따름): [이름, 설명, 세션 비중, 색, 급증일 배율, 주말 배율]
 const NX_GATES = [
@@ -3330,8 +3331,8 @@ const nxCore = (() => {
 const nxStars = [], nxSecs = [];
 {
   const wsum = NX_PAGES.reduce((t, p) => t + Math.sqrt(p[1]), 0);
-  NX_PAGES.forEach(([name, share, mem, depth, subs], si) => {
-    const n = Math.max(4, Math.round(330 * Math.sqrt(share) / wsum)), sec = { name, si, t: .3 + .6 * si / NX_PAGES.length, stars: [], L: new THREE.Vector3(), label: si ? exLabel('nxg', name) : null };
+  NX_PAGES.forEach(([name, share, mem, depth, subs, trend], si) => {
+    const n = Math.max(4, Math.round(330 * Math.sqrt(share) / wsum)), sec = { name, si, trend, t: .3 + .6 * si / NX_PAGES.length, stars: [], L: new THREE.Vector3(), label: si ? exLabel('nxg', name) : null };
     nxSecs.push(sec);
     for (let k = 0; k < n; k++) {
       let r = NR() * subs.reduce((t, x) => t + x[1], 0), sub = subs[0]; for (const x of subs) { r -= x[1]; if (r <= 0) { sub = x; break; } }
@@ -3715,7 +3716,9 @@ const nxeGateWorld = g => g.P.clone().applyMatrix4(nxG.matrixWorld);
 // ---------- 1. 이상 현상 추적 ----------
 function nxeStartAnomaly() {
   const cand = nxStars.filter(nd => { const d = nd.pos.distanceTo(ship.position); return d > 350 && d < 2600; });
-  const nd = nxePick(cand.length ? cand : nxStars);
+  const pool = cand.length ? cand : nxStars, wt = pool.map(nd => nd.sec.trend > 0 ? 2.5 : nd.sec.trend < 0 ? 1.6 : 1);   // 전일 대비 늘거나 준 구역에서 이상이 잦음
+  let pk = Math.random() * wt.reduce((a, b) => a + b, 0), nd = pool[0];
+  for (let i = 0; i < pool.length; i++) { pk -= wt[i]; if (pk <= 0) { nd = pool[i]; break; } }
   const key = nxePick(Object.keys(NXE_CAUSES)), C = NXE_CAUSES[key], dev = {};
   for (const [k] of NXE_ROWS) { const r = C.sig[k]; dev[k] = r ? rand(r[0], r[1]) : rand(-6, 6); }   // 서명 밖 지표는 작은 잡음
   const wrong = Object.keys(NXE_CAUSES).filter(k => k !== key).sort(() => Math.random() - .5).slice(0, 2);
