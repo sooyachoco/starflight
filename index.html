@@ -34,6 +34,7 @@
     font-family: Rajdhani, "Noto Sans KR", system-ui, sans-serif; user-select: none; }
   canvas#gl { display: block; position: fixed; inset: 0; }
   #hud { position: fixed; inset: 0; pointer-events: none; }
+  #hud, #holo, #holoL, #cmBot, #comm { translate: var(--shk, 0 0); }   /* 워프 중 기체 진동 */
   .glass { background: var(--glass); border: 1px solid #2a4064; border-radius: 10px;
     backdrop-filter: blur(6px); box-shadow: inset 0 1px 0 #ffffff12, 0 8px 24px #0006; }
 
@@ -610,10 +611,10 @@
 
   /* 이미지 계기판 (PC: dash-pc, 모바일 가로: dash-mob) — 화면 위치는 이미지 좌표에서 생성 */
   body[data-dash] #frame, body[data-dash] #dash .lip, body[data-dash] #dash::before { display: none; }
-  body[data-dash] #dash { background: linear-gradient(transparent 0 34%, #05070b 52%); box-shadow: none; }   /* 계기판 아트 윗선의 빈 곳으로는 바깥 우주가 보이게 */
+  body[data-dash] #dash { background: linear-gradient(transparent 0 9%, #05070b 14%); box-shadow: none; }   /* 아트 윗선의 빈 곳(높이의 8.5%까지)만 우주가 보이고, 그 아래 화면 구멍(25%~) 둘레는 어둡게 */
   body[data-dash] .dgrid { display: block; top: auto; right: auto; bottom: 0 !important; left: 50%; width: var(--art-w);
     transform: translateX(-50%); isolation: isolate; pointer-events: none; }
-  body[data-dash] .dgrid::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  body[data-dash] .dgrid::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; filter: brightness(var(--dash-b, 1));
     background: center / 100% 100% no-repeat; }
   body[data-dash] .gauges { display: contents; }
   body[data-dash] .scr { position: absolute; z-index: 1; box-sizing: border-box; border: 0; border-radius: 4px;
@@ -671,6 +672,12 @@
   .hb-star .mem { margin-top: 8px; padding-top: 7px; border-top: 1px solid #7ff1ff33; color: #c9d6ea; font: 500 12.5px/1.6 "Noto Sans KR", sans-serif; }
   .hb-star .mem em { color: #e3c8ff; font-style: normal; font-weight: 700; }
   #hbTitle { letter-spacing: .14em; }
+  /* 사건 카드: 평소 대비 지표 표 + 원인 고르기 */
+  .card .nxe-t { width: 100%; max-width: 420px; margin: 10px auto 12px; border-collapse: collapse; font-size: 14px; }
+  .card .nxe-t td { padding: 5px 8px; border-top: 1px solid #ffffff14; text-align: left; color: #c9d6ea; }
+  .card .nxe-t td:last-child { text-align: right; } .card .nxe-t b { color: #fff; } .card .nxe-t b.up { color: #ffb23e; } .card .nxe-t b.dn { color: #7fb4ff; }
+  .card .nxe-c { display: grid; gap: 8px; max-width: 420px; margin: 0 auto; }
+  .lwl.nxe b { color: #ff8a96; letter-spacing: .14em; } .lwl.nxe span { color: #ffd0d6; }
   /* 우측 관측 패널: 유입 관문 · 광고 · 시스템 환경 탭 */
   .nxr h3 { margin: 8px 0 3px; font: 700 12px Rajdhani, "Noto Sans KR", sans-serif; letter-spacing: .14em; color: #ffc861; }
   .nxr h3:first-child { margin-top: 2px; } .nxr h3 small { margin-left: 6px; color: #6f82a3; font-weight: 500; letter-spacing: 0; }
@@ -2266,6 +2273,7 @@ $('overlay').addEventListener('click', e => {
   if (act === 'music') { setMusic(!BGM.on); actEl.textContent = `음악: ${BGM.on ? 'ON' : 'OFF'}`; return; }
   if (act === 'restart') { startGame(); return; }
   if (act === 'title') { showTitle(); return; }
+  if (act === 'nxe') { nxeAnswer(actEl.dataset.k); return; }
   if (act === 'close') { if (state.mode === 'title') { showTitle(); return; } if (state.mode === 'paused') state.mode = 'flying'; hideCard(); return; }
   if ($('overlay').dataset.settings) return;
   primaryAction();
@@ -2626,6 +2634,7 @@ function updateBolts(dt) {
           break;
         }
       }
+      if (!hit && exWorld.visible) hit = nxeBoltHit(_p0, p1);
       if (!hit && !exWorld.visible) for (const a of asteroids) {
         if (segDist(_p0, p1, a.mesh.position) < a.r * 0.9) { hit = true; hitAsteroid(a, p1); break; }
       }
@@ -2907,6 +2916,7 @@ function updateDocking() {
   } else state.warnedFast = false;
 }
 
+const SHK = { on: false, kick: 0 };
 function updateCamera(dt) {
   camera.position.copy(ship.position);
   camera.quaternion.copy(ship.quaternion);
@@ -2916,6 +2926,18 @@ function updateCamera(dt) {
   }
   const w = state.warp;
   if (w > 0.01) camera.position.add(randomDir().multiplyScalar(w * 0.12));
+  // 워프 중 기체 진동: 여러 진동이 겹친 미세한 떨림 + 가끔 툭 튀는 충격 (조종석 화면과 시야가 함께)
+  if (w > .02 && state.mode === 'flying') {
+    const t = performance.now() / 1000;
+    if (Math.random() < dt * 2.5 * w) SHK.kick = rand(.6, 1);
+    SHK.kick *= Math.exp(-dt * 9);
+    const nx = Math.sin(t * 37.1) * .5 + Math.sin(t * 23.7 + 1.3) * .35 + Math.sin(t * 61.3 + .7) * .15;
+    const ny = Math.sin(t * 31.3 + 2.1) * .5 + Math.sin(t * 19.9 + .4) * .35 + Math.sin(t * 57.7 + 1.9) * .15;
+    const a = w * (1 + 2.6 * SHK.kick);
+    document.documentElement.style.setProperty('--shk', `${(nx * 1.6 * a).toFixed(2)}px ${(ny * 1.6 * a).toFixed(2)}px`);
+    camera.rotateX(ny * .0011 * a); camera.rotateZ(nx * .0015 * a);
+    SHK.on = true;
+  } else if (SHK.on) { document.documentElement.style.removeProperty('--shk'); SHK.on = false; SHK.kick = 0; }
   aimZoom += ((aimPrec ? 1 : 0) - aimZoom) * (1 - Math.exp(-dt * 6));
   const fov = 62 + w * w * 30 - aimZoom * 16;
   if (Math.abs(camera.fov - fov) > 0.05) {
@@ -2929,11 +2951,13 @@ function updateCamera(dt) {
 // 워프 연출 — 별빛 스트릭, 화면 효과, 사운드
 // =====================================================================
 scene.add(camera);
-const STREAKS = 600, STREAK_DEPTH = 420;
+const STREAKS = 760, STREAK_DEPTH = 420;
 const streakPos = new Float32Array(STREAKS * 6), streakCol = new Float32Array(STREAKS * 6);
 const streakXY = [];
 function resetStreak(i, z) {
-  const a = Math.random() * Math.PI * 2, r = 5 + Math.pow(Math.random(), 0.7) * 70;
+  // 넷 중 하나는 아래쪽 바깥으로: 계기판 윗선 틈(창 아래)으로도 별빛 줄기가 이어지게
+  const low = Math.random() < .25, a = low ? -Math.PI * rand(.08, .92) : Math.random() * Math.PI * 2;
+  const r = low ? 45 + Math.random() * 95 : 5 + Math.pow(Math.random(), 0.7) * 70;
   streakXY[i] = [Math.cos(a) * r, Math.sin(a) * r, z];
   const c = new THREE.Color().setHSL(rand(0.55, 0.72), rand(0.5, 1), rand(0.7, 0.92));
   streakCol.set([c.r, c.g, c.b, c.r * 0.05, c.g * 0.1, c.b * 0.35], i * 6);
@@ -3170,19 +3194,19 @@ function nxAds(day) {   // 지금 켜진 광고와 시간당 노출·클릭·유
   return NX_ADS.map(a => { const on = a.on(wd, h, surge), imp = on ? a.imp / 24 * hk * 1.6 : 0, clk = imp * a.ctr / 100; return { a, on, imp, clk, ses: clk * .82 }; });
 }
 function nxLiveLog(day) {
-  const B = NX_BASE, h = (day % 1) * 24, ev = NX.ev, wd = nxWd(day);
+  const B = NX_BASE, h = (day % 1) * 24, ev = NX.ev, wd = nxWd(day), bot = NXE.ev && NXE.ev.type === 'bots' ? 1 : 0;
   const nz = k => Math.sin(day * 5.3 + k * 1.7) * .6 + Math.sin(day * 13.1 + k * 4.1) * .4;
   const night = nxBump(h, 2, 2.5), eve = nxBump(h, 20.5, 3), after = nxBump(h, 18, 2.5), morn = nxBump(h, 8.5, 2);
   const ads = nxAds(day), adSes = ads.reduce((t, x) => t + x.ses, 0) * 24;
   const tr = (.2 + .35 * nxBump(h, 12.5, 2) + .25 * after + .85 * eve) * (1 + .06 * nz(1)) * NX_WEEK.tr[wd] * (1 + .45 * ev) * (1 + adSes / B.ses);
   const pc = B.pc * tr, ses = pc * B.ses / B.pc * (1 + .1 * night + .04 * nz(2));
-  const depth = B.pv / B.ses * (1 + .3 * night + .1 * eve + .17 * ev + .05 * nz(3));
+  const depth = B.pv / B.ses * (1 + .3 * night + .1 * eve + .17 * ev + .3 * bot + .05 * nz(3));
   const sn = pc * B.sn / B.pc * (1 + .12 * eve + .08 * night - .3 * ev + .05 * nz(4));
   const reSn = sn * B.reSn / B.sn * (1 + .35 * night + .2 * morn + .06 * nz(5));
   const age = B.age.map((v, i) => v * (1 + (i >= 1 && i <= 3 ? 1.6 * after : 0) + (i === 4 || i === 5 ? .3 * eve : 0) + (i >= 6 ? .6 * morn : 0) + .1 * nz(10 + i)));
   return { h, tr, pc, ses, sn, reSn, pv: ses * depth, age, ads, adSes, wd,
-    dt: B.dt * (1 + .4 * night + .28 * ev + .06 * nz(6)),
-    bounce: Math.min(85, Math.max(15, B.bounce * (1 - .12 * night + .05 * nz(7)))),
+    dt: B.dt * (1 + .4 * night + .28 * ev - .25 * bot + .06 * nz(6)),
+    bounce: Math.min(85, Math.max(15, B.bounce * (1 - .12 * night + .15 * bot + .05 * nz(7)))),
     pcbang: B.pcbang * (.35 + 1.1 * after + .5 * eve) * NX_WEEK.pcb[wd] * (1 - .35 * ev) * (1 + .06 * nz(8)),
     male: B.male * (1 + .05 * nz(9)), female: B.female * (1 + .25 * eve + .06 * nz(10)) };
 }
@@ -3190,6 +3214,7 @@ function nxGateShares(L) {   // 유입 관문별 지금 비중 (급증일 · 주
   const surge = NX.ev, wk = L.wd >= 5 ? 1 : 0;
   const w = NX_GATES.map(([, , sh, , ks, kw]) => sh * (1 + (ks - 1) * surge) * (1 + (kw - 1) * wk));
   w[w.length - 1] = L.adSes / NX_BASE.ses * .9;
+  if (NXE.ev && NXE.ev.type === 'bots') w[nxGates.indexOf(NXE.ev.gate)] *= 3.5;
   const t = w.reduce((a, b) => a + b, 0); return w.map(v => v / t);
 }
 const NX_HOUR = { 3: '새벽 · 깊게 머무는 이용자 · 팔이 늘고 막대가 굵어짐', 18: '하교 시간 · 10대·PC방 유입 · 뭉치가 늘어남', 21: '저녁 정점 · 원반이 가장 밝음' };
@@ -3421,7 +3446,8 @@ const nxGates = NX_GATES.map(([name, desc, share, col], gi) => {
 // ---------- 시작 · 매 프레임 ----------
 function setupNexus() {
   applyWorld('expansion');
-  clearBeacons();   // 옛 궤도 모드의 항법 비컨 제거
+  clearBeacons();
+  nxeReset();   // 옛 궤도 모드의 항법 비컨 제거
   $('brand').querySelector('span').textContent = 'NEXON HUB';
   Object.assign(NX, { day: .3, cur: 1e9, uiAcc: 9, ev: 0, lastH: -1, target: null, coreNear: false, adsOn: null });
   NX.seen.clear();
@@ -3440,6 +3466,7 @@ function nxUpdate(dt) {
   if (NX.coreNear && !NX.logos && state.mode === 'flying') nxAwaken();
   // 별 관측: 가까이 지나가면 기록됨
   for (const nd of nxStars) if (!NX.seen.has(nd) && nd.pos.distanceToSquared(ship.position) < 90 * 90) { NX.seen.add(nd); sfx('blip', 300); }
+  if (state.mode === 'flying') nxeUpdate(dt, performance.now() / 1000);   // 사건: 이상 현상 · 봇 침입
 }
 function nxFrame(dt, now) {
   nxUni.uTime.value = now;
@@ -3477,6 +3504,7 @@ function nxFrame(dt, now) {
   if (best !== NX.target) { NX.target = best; nxUni.uFocus.value = best ? best.idx : -1; nxHolo(); if (best) holoPop(); }
   // 라벨
   tmpW.set(0, nxCore.rIn * 1.6, 0).applyMatrix4(nxG.matrixWorld); placeLabel(nxCoreLabel, tmpW, 4);
+  nxeFrame(dt, now);
   const gs = nxGateShares(NX.L);
   nxGates.forEach((g, i) => {
     g.share = gs[i];
@@ -3569,7 +3597,9 @@ function nxHud() {
       <dt>모양</dt><dd class="${hot('shape')}">팔 ${S.arms}개 · 뭉치 ${S.nClump}개</dd>
       <dt>블랙홀</dt><dd>이탈 ${m.bounce.toFixed(1)}%</dd>
       <dt>유입 1위</dt><dd class="${hot('gate')}">${NX_GATES[top][0]} ${(gs[top] * 100).toFixed(1)}%</dd>
-      <dt>광고</dt><dd class="${hot('ads')}">${adsOn ? `${adsOn}개 켜짐 · 광고 관문 ${(gs[gs.length - 1] * 100).toFixed(1)}%` : '모두 꺼짐'}</dd></dl>`;
+      <dt>광고</dt><dd class="${hot('ads')}">${adsOn ? `${adsOn}개 켜짐 · 광고 관문 ${(gs[gs.length - 1] * 100).toFixed(1)}%` : '모두 꺼짐'}</dd>
+      <dt>사건 기록</dt><dd>${NXE.cases.length}건 · 해결 ${NXE.cases.filter(c => c.ok).length}${NXE.ev ? ` · <span style="color:#ff8a96">${NXE.ev.type === 'bots' ? '봇 침입 중' : '이상 현상 중'}</span>` : ''}</dd></dl>
+      ${NXE.cases.length ? `<h3>최근 사건</h3>${NXE.cases.slice(-3).reverse().map(c => `<div class="ad ${c.ok ? 'on' : ''}"><span>${c.ok ? '✓' : '✕'} ${c.date} ${String(c.h).padStart(2, '0')}시 · ${c.title}</span><em>${c.cause} · ${c.note}</em></div>`).join('')}` : ''}`;
   } else {
     if (NX.panel === 1) {
       const rows = [
@@ -3633,6 +3663,7 @@ function nxMarkers() {
   }
 }
 function nxQuest() {
+  const eq = nxeQuest(); if (eq) return eq;
   if (!NX.logos) return { text: '넥슨닷컴 별무리의 중심 · 블랙홀로 접근', pos: tmpW.set(0, 0, 0).applyMatrix4(nxG.matrixWorld).clone(), col: Q_VIOLET, size: nxCore.rIn * 2 };
   let best = null, bd = Infinity;
   for (const nd of nxStars) { if (NX.seen.has(nd)) continue; const d = nd.pos.distanceTo(ship.position); if (d < bd) { bd = d; best = nd; } }
@@ -3642,6 +3673,237 @@ function nxQuest() {
 function nxHint() {
   const q = questInfo();
   aiSay(q ? `지금 할 일: ${q.text}${q.pos ? ` (${fmtDist(q.pos.distanceTo(ship.position))})` : ''}. 별에 다가가면 홀로그램에 그 별의 기록이 떠요. 오른쪽 위 패널은 지금 별무리의 모양을 만드는 수치예요.` : '별무리를 자유롭게 둘러보세요.', { hold: 9 });
+}
+
+
+// =====================================================================
+// 사건: 이상 현상 추적 · 봇 침입 방어 (로그 지표가 함께 움직이는 패턴으로 원인을 추리)
+// =====================================================================
+// 원인마다 '함께 움직이는 지표' 서명 (평소 대비 %). 사건마다 정답을 쓰지 않고 서명에서 수치를 만든다
+const NXE_CAUSES = {
+  notice: { name: '대형 공지 · 업데이트', sig: { pv: [180, 320], member: [-32, -20], dwell: [20, 35], pcbang: [-40, -25] }, gate: ['직접 접속', 1.6] },
+  ad: { name: '광고 유입', sig: { pv: [120, 250], member: [-28, -15], bounce: [12, 25], dwell: [-20, -10] }, gate: ['광고', 4] },
+  viral: { name: '외부 바이럴', sig: { pv: [150, 300], member: [-40, -25], bounce: [8, 18] }, gate: ['기타 외부', 3] },
+  back: { name: '복귀 흐름', sig: { revisit: [25, 45], dwell: [15, 30], pv: [40, 80], member: [10, 18] }, gate: ['직접 접속', 1.3] },
+  outage: { name: '장애 · 오류', sig: { bounce: [40, 70], dwell: [-55, -35], pv: [-40, -20] }, env: 'Edge' },
+  pcbang: { name: 'PC방 시간대', sig: { pcbang: [60, 110], teen: [80, 140], pv: [50, 90] }, gate: ['게임 사이트', 1.5] },
+};
+const NXE_ROWS = [['pv', '관측 (PV)'], ['member', '회원 비율'], ['revisit', '재방문율'], ['dwell', '평균 체류'], ['bounce', '이탈률'], ['pcbang', 'PC방'], ['teen', '10대 비중']];
+const NXE = { ev: null, cool: 35, cases: [], score: 0, seq: 0 };
+const nxeRingTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.strokeStyle = '#fff'; g.lineWidth = 6; g.beginPath(); g.arc(64, 64, 52, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = 3; g.setLineDash([10, 10]); g.beginPath(); g.arc(64, 64, 60, 0, Math.PI * 2); g.stroke();
+  return new THREE.CanvasTexture(c);
+})();
+const nxeMark = (() => {   // 이상이 생긴 별: 붉게 맥동하는 고리 + 빛
+  const grp = new THREE.Group();
+  const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: nxeRingTex, color: 0xff5a6e, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, fog: false }));
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: nxGlowTex, color: 0xff3a4e, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  grp.add(glow, ring); grp.visible = false; scene.add(grp);
+  return { grp, ring, glow, label: exLabel('nxe', '<b></b><span></span>') };
+})();
+const nxeBotMat = new THREE.MeshStandardMaterial({ color: 0x3ee6c1, emissive: 0x0e5a4a, metalness: .4, roughness: .4 });
+function nxeReset() {
+  if (NXE.ev && NXE.ev.type === 'bots') nxeClearBots();
+  Object.assign(NXE, { ev: null, cool: 35, cases: [], score: 0 });
+  nxeMark.grp.visible = false; nxeMark.label.style.display = 'none';
+}
+const nxePick = arr => arr[Math.floor(Math.random() * arr.length)];
+const nxeGateWorld = g => g.P.clone().applyMatrix4(nxG.matrixWorld);
+
+// ---------- 1. 이상 현상 추적 ----------
+function nxeStartAnomaly() {
+  const cand = nxStars.filter(nd => { const d = nd.pos.distanceTo(ship.position); return d > 350 && d < 2600; });
+  const nd = nxePick(cand.length ? cand : nxStars);
+  const key = nxePick(Object.keys(NXE_CAUSES)), C = NXE_CAUSES[key], dev = {};
+  for (const [k] of NXE_ROWS) { const r = C.sig[k]; dev[k] = r ? rand(r[0], r[1]) : rand(-6, 6); }   // 서명 밖 지표는 작은 잡음
+  const wrong = Object.keys(NXE_CAUSES).filter(k => k !== key).sort(() => Math.random() - .5).slice(0, 2);
+  NXE.ev = { type: 'anomaly', nd, key, dev, gate: C.gate, env: C.env, choices: [key, ...wrong].sort(() => Math.random() - .5), t: 60, scan: 0, id: ++NXE.seq };
+  nxeMark.grp.visible = true;
+  toast(`이상 현상 · ${nd.sec.name} 구역 STAR ${nd.id} · PV ${dev.pv > 0 ? '+' : ''}${Math.round(dev.pv)}%`, '#ff5a6e');
+  sfx('alarm');
+  aiSay(`이상 현상이에요! ${nd.sec.name} 구역의 별 하나가 평소와 다르게 움직여요. 60초 안에 가까이 가서 스캔해 주세요. 무엇 때문인지 함께 알아내요.`, { name: '항법 AI', hold: 8 });
+}
+function nxeUpdateAnomaly(dt) {
+  const e = NXE.ev, d = e.nd.pos.distanceTo(ship.position);
+  e.t -= dt;
+  e.near = d < 150;
+  if (e.near) e.scan = Math.min(1, e.scan + dt / 3); else e.scan = Math.max(0, e.scan - dt * .25);   // 3초 머물면 스캔 완료
+  if (e.scan >= 1) { nxeCaseCard(); return; }
+  if (e.t <= 0) {   // 늦으면 이상이 번져 사건이 놓침으로 기록됨
+    nxeRecord({ type: 'anomaly', title: `${e.nd.sec.name} · STAR ${e.nd.id}`, cause: NXE_CAUSES[e.key].name, ok: false, note: '시간 초과 · 이상이 주변으로 번짐' });
+    toast(`이상 현상 놓침 · 원인은 ${NXE_CAUSES[e.key].name}였어요`, '#ff6a6a');
+    nxeEnd();
+  }
+}
+function nxeCaseCard() {
+  const e = NXE.ev, pct = v => `<b class="${v > 4 ? 'up' : v < -4 ? 'dn' : ''}">${v > 0 ? '+' : ''}${Math.round(v)}%</b>`;
+  state.mode = 'case';
+  const gateRow = e.gate ? `<tr><td>유입 관문</td><td><b class="up">${e.gate[0]} ▲ ×${e.gate[1].toFixed(1)}</b></td></tr>` : `<tr><td>유입 관문</td><td>변화 없음</td></tr>`;
+  const envRow = e.env ? `<tr><td>시스템 환경</td><td><b class="dn">${e.env} 브라우저에서만 이탈 급증</b></td></tr>` : `<tr><td>시스템 환경</td><td>고르게 분포</td></tr>`;
+  showCard(`<h1>ANOMALY</h1><h2>${e.nd.sec.name} › ${e.nd.page} · STAR ${e.nd.id}</h2>
+    <p>평소(지난 같은 요일 · 시간대)와 비교한 값이에요. <b>함께 움직인 지표</b>를 보고 원인을 골라 주세요.</p>
+    <table class="nxe-t">${NXE_ROWS.map(([k, n]) => `<tr><td>${n}</td><td>${pct(e.dev[k])}</td></tr>`).join('')}${gateRow}${envRow}</table>
+    <div class="nxe-c">${e.choices.map(k => `<button data-act="nxe" data-k="${k}">${NXE_CAUSES[k].name}</button>`).join('')}</div>`, true);
+  sfx('blip', 500);
+}
+function nxeAnswer(k) {
+  const e = NXE.ev; if (!e || e.type !== 'anomaly') return;
+  const ok = k === e.key, C = NXE_CAUSES[e.key];
+  hideCard(); state.mode = 'flying';
+  nxeRecord({ type: 'anomaly', title: `${e.nd.sec.name} · STAR ${e.nd.id}`, cause: C.name, ok, note: ok ? `스캔 · 남은 ${Math.ceil(e.t)}초` : `오판 · ${NXE_CAUSES[k].name}로 판정` });
+  if (ok) { NXE.score += 300 + Math.round(e.t * 5); state.score += 300; toast(`사건 해결 · ${C.name} · 사건 기록 +1`, '#3ee6c1'); sfx('warpOut'); }
+  else { toast(`오판 · 실제 원인은 ${C.name}`, '#ffb23e'); sfx('hit'); }
+  aiSay(ok ? `맞아요, ${C.name}였어요. ${nxeWhy(e.key)} 사건 기록에 남겼어요.` : `아쉬워요. 실제로는 ${C.name}였어요. ${nxeWhy(e.key)}`, { name: '항법 AI', hold: 8 });
+  nxeEnd();
+}
+function nxeWhy(k) {
+  return { notice: '유입이 크게 늘었는데 회원 비율과 PC방은 줄고 체류는 길어졌죠. 공지를 읽으러 온 사람이 많을 때의 모양이에요.',
+    ad: '광고 관문 유입이 몇 배로 늘고 이탈도 같이 올랐어요.', viral: '바깥 사이트에서 처음 온 사람이 몰려 회원 비율이 크게 떨어졌어요.',
+    back: '재방문과 체류가 함께 올랐어요. 오랜만에 돌아온 사람들이에요.', outage: '한 브라우저에서만 이탈이 치솟고 체류가 짧아졌어요. 그 환경에서만 문제가 있는 거예요.',
+    pcbang: 'PC방 비중과 10대가 함께 늘었어요. 하교 뒤 PC방 시간이에요.' }[k];
+}
+
+// ---------- 2. 봇 침입 방어 ----------
+function nxeStartBots() {
+  const pool = nxGates.filter(g => ['검색 · 구글', '검색 · 네이버', '기타 외부', '게임 사이트'].includes(g.name));
+  const gate = nxePick(pool), G = nxeGateWorld(gate);
+  const T = G.clone().lerp(tmpW.set(0, 0, 0).applyMatrix4(nxG.matrixWorld), .45);
+  NXE.ev = { type: 'bots', gate, G, T, kills: 0, need: 8, reached: 0, max: 5, fp: 0, served: 0, spawned: 0, cap: 14, sT: 1, cT: 2, kills0: state.kills, convoys: [], id: ++NXE.seq, t: 0 };
+  toast(`비정상 트래픽 · ${gate.name} 관문 · 봇 침입`, '#ff5a6e');
+  sfx('alarm');
+  aiSay(`${gate.name} 관문으로 비정상 트래픽이 몰려와요! 붉은 봇만 격추하고, 청록색 정상 유입은 쏘지 마세요. 봇이 ${5}척 들어오면 서버가 버티지 못해요.`, { name: '항법 AI', hold: 9 });
+}
+function nxeSpawnBot() {
+  const e = NXE.ev, g = buildEnemy();
+  g.position.copy(e.G).add(randomDir().multiplyScalar(rand(20, 120)));
+  _m4.lookAt(g.position, e.T, new THREE.Vector3(0, 1, 0)); g.quaternion.setFromRotationMatrix(_m4);
+  scene.add(g);
+  const el = document.createElement('div');
+  el.className = 'emk';
+  el.innerHTML = '<i class="c c1"></i><i class="c c2"></i><i class="c c3"></i><i class="c c4"></i><span class="d"></span><span class="hp"><i></i></span>';
+  $('emarks').appendChild(el);
+  enemies.push({ g, el, hp: 50, bot: true, speed: rand(24, 30), fireCd: rand(1.5, 3), vel: new THREE.Vector3(), weave: rand(0, 6) });
+  e.spawned++;
+}
+function nxeSpawnConvoy() {
+  const e = NXE.ev, g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 9, 12), nxeBotMat); body.rotation.x = Math.PI / 2; g.add(body);
+  const lamp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: 0x3ee6c1, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
+  lamp.scale.setScalar(16); lamp.position.z = 5; g.add(lamp);
+  g.position.copy(e.G).add(randomDir().multiplyScalar(rand(20, 120)));
+  scene.add(g);
+  e.convoys.push({ g, speed: rand(18, 22) });
+}
+function nxeClearBots() {
+  for (let j = enemies.length - 1; j >= 0; j--) if (enemies[j].bot) { scene.remove(enemies[j].g); enemies[j].el.remove(); enemies.splice(j, 1); }
+  if (NXE.ev && NXE.ev.convoys) NXE.ev.convoys.forEach(c => scene.remove(c.g));
+}
+function nxeBoltHit(p0, p1) {   // 내 레이저가 정상 유입(청록)을 맞히면 오탐
+  const e = NXE.ev; if (!e || e.type !== 'bots') return false;
+  for (let j = e.convoys.length - 1; j >= 0; j--) {
+    const c = e.convoys[j];
+    if (segDist(p0, p1, c.g.position) < 6) {
+      burst(c.g.position, 0x3ee6c1, 50, 18, 1); scene.remove(c.g); e.convoys.splice(j, 1);
+      e.fp++; flash(); sfx('hit'); toast(`오탐 · 정상 유입을 막았어요 (${e.fp})`, '#ff6a6a');
+      return true;
+    }
+  }
+  return false;
+}
+function nxeUpdateBots(dt, now) {
+  const e = NXE.ev;
+  e.t += dt;
+  e.kills = state.kills - e.kills0;
+  e.G.copy(nxeGateWorld(e.gate));
+  e.sT -= dt; e.cT -= dt;
+  if (e.sT <= 0 && e.spawned < e.cap) { nxeSpawnBot(); e.sT = rand(2.8, 4.2); }
+  if (e.cT <= 0) { nxeSpawnConvoy(); e.cT = rand(2, 3.2); }
+  const ef = new THREE.Vector3(), eu = new THREE.Vector3(), toShip = new THREE.Vector3(), aim = new THREE.Vector3();
+  for (let j = enemies.length - 1; j >= 0; j--) {
+    const b = enemies[j]; if (!b.bot) continue;
+    const p = b.g.position;
+    aim.copy(e.T).add(tmpW.set(Math.sin(now * .9 + b.weave) * 40, Math.cos(now * .7 + b.weave) * 25, 0));
+    eu.set(0, 1, 0).applyQuaternion(b.g.quaternion);
+    _m4.lookAt(p, aim, eu); _q.setFromRotationMatrix(_m4); b.g.quaternion.rotateTowards(_q, 1.1 * dt);
+    ef.set(0, 0, -1).applyQuaternion(b.g.quaternion);
+    b.vel.copy(ef).multiplyScalar(b.speed); p.addScaledVector(b.vel, dt);
+    toShip.copy(ship.position).sub(p); const ds = toShip.length(); toShip.divideScalar(ds || 1);
+    b.fireCd -= dt;
+    if (ds < 320 && ef.dot(toShip) > .9 && b.fireCd <= 0) {   // 가까이 오면 반격
+      const muzzle = p.clone().addScaledVector(ef, 6);
+      fireBolt(muzzle, ship.position.clone().add(randomDir().multiplyScalar(ds * .03)).sub(muzzle).normalize(), true, b.vel);
+      b.fireCd = rand(1.4, 2.4); sfx('elaser', ds);
+    }
+    if (ds < 8) { killEnemy(j, false); if (damagePlayer(25, 'COLLISION')) return true; continue; }
+    if (p.distanceTo(e.T) < 120) {   // 침투
+      burst(p, 0xff4a5a, 60, 20, 1.2); scene.remove(b.g); b.el.remove(); enemies.splice(j, 1);
+      e.reached++; toast(`봇 침투 ${e.reached}/${e.max} · 서버 부하 증가`, '#ff6a6a');
+    }
+  }
+  for (let j = e.convoys.length - 1; j >= 0; j--) {   // 정상 유입: 원반 안으로 들어가면 '정상 통과'
+    const c = e.convoys[j], p = c.g.position;
+    tmpV.copy(e.T).sub(p); const d = tmpV.length(); c.g.lookAt(e.T); p.addScaledVector(tmpV.normalize(), c.speed * dt);
+    if (d < 120) { scene.remove(c.g); e.convoys.splice(j, 1); e.served++; }
+  }
+  const left = e.cap - e.spawned + enemies.filter(b => b.bot).length;
+  if (e.reached >= e.max) nxeEndBots(false, `봇 ${e.max}척 침투 · 서버 부하 한계`);
+  else if (e.kills >= e.need || (left === 0 && e.spawned >= e.cap)) nxeEndBots(e.kills >= e.need, e.kills >= e.need ? '' : '봇을 충분히 막지 못함');
+  return false;
+}
+function nxeEndBots(ok, why) {
+  const e = NXE.ev;
+  nxeRecord({ type: 'bots', title: `${e.gate.name} 관문 · 봇 침입`, cause: '비정상 트래픽', ok, note: `격추 ${e.kills} · 침투 ${e.reached} · 오탐 ${e.fp} · 정상 통과 ${e.served}` });
+  if (ok) { NXE.score += 400 - e.fp * 60; state.score += 400; toast(`방어 성공 · 격추 ${e.kills} · 오탐 ${e.fp}`, '#3ee6c1'); sfx('warpOut'); }
+  else { toast(`방어 실패 · ${why}`, '#ff6a6a'); sfx('boom'); }
+  aiSay(ok ? (e.fp ? `막아냈어요! 다만 정상 유입을 ${e.fp}번 막았어요. 다음엔 청록색은 피해 주세요.` : '완벽해요! 봇만 정확히 막아냈어요.') : `${why}… 괜찮아요, 다음 침입은 더 빨리 가요.`, { name: '항법 AI', hold: 7 });
+  nxeClearBots();
+  nxeEnd();
+}
+
+// ---------- 공통: 일정 · 기록 · 화면 ----------
+function nxeEnd() {
+  NXE.ev = null;
+  NXE.cool = (NX.ev > .3 ? .6 : 1) * rand(35, 55);   // 급증일엔 사건이 더 자주
+  nxeMark.grp.visible = false; nxeMark.label.style.display = 'none';
+}
+function nxeRecord(c) {
+  NXE.cases.push(Object.assign({ date: nxDateLabel(NX.day), h: Math.floor((NX.day % 1) * 24) }, c));
+}
+function nxeUpdate(dt, now) {
+  if (!NXE.ev) {
+    NXE.cool -= dt;
+    if (NXE.cool <= 0) { (NXE.seq % 2 ? nxeStartBots : nxeStartAnomaly)(); }
+    return false;
+  }
+  if (NXE.ev.type === 'anomaly') { nxeUpdateAnomaly(dt); return false; }
+  return nxeUpdateBots(dt, now);
+}
+function nxeFrame(dt, now) {
+  const e = NXE.ev;
+  if (!e || e.type !== 'anomaly') { nxeMark.grp.visible = false; nxeMark.label.style.display = 'none'; return; }
+  const m = nxeMark, k = .5 + .5 * Math.sin(now * 5);
+  m.grp.visible = true; m.grp.position.copy(e.nd.pos);
+  m.ring.scale.setScalar(70 + 30 * k + (e.near ? 40 * e.scan : 0)); m.ring.material.rotation = now * .8;
+  m.glow.scale.setScalar(160 + 60 * k); m.glow.material.opacity = .5 + .4 * k;
+  m.ring.material.color.setHex(e.near ? 0xffd27a : 0xff5a6e);
+  tmpW.copy(e.nd.pos); tmpW.y += 60;
+  if (placeLabel(m.label, tmpW, 4)) {
+    m.label.querySelector('b').textContent = e.near ? `스캔 ${Math.round(e.scan * 100)}%` : 'ANOMALY';
+    m.label.querySelector('span').textContent = `PV ${e.dev.pv > 0 ? '+' : ''}${Math.round(e.dev.pv)}% · ${Math.ceil(e.t)}초`;
+  }
+}
+function nxeQuest() {
+  const e = NXE.ev; if (!e) return null;
+  if (e.type === 'anomaly') return { text: e.near ? `스캔 중 ${Math.round(e.scan * 100)}% · 별 가까이 머무르기` : `이상 현상 · ${e.nd.sec.name} STAR ${e.nd.id} 가까이 가서 스캔 · ${Math.ceil(e.t)}초`, pos: e.nd.pos, col: Q_RED, size: 60 };
+  let best = null, bd = Infinity;
+  for (const b of enemies) { if (!b.bot) continue; const d = b.g.position.distanceTo(ship.position); if (d < bd) { bd = d; best = b; } }
+  return { text: `봇 침입 · ${e.gate.name} · 격추 ${e.kills}/${e.need} · 침투 ${e.reached}/${e.max}${e.fp ? ` · 오탐 ${e.fp}` : ''}`, pos: best ? best.g.position : e.G, col: Q_RED, size: 40 };
+}
+function nxeStatus() {
+  const e = NXE.ev; if (!e) return null;
+  return e.type === 'anomaly' ? (e.near ? ['SCANNING', '#ffd27a'] : ['ANOMALY', '#ff5a6e']) : ['INTRUSION', '#ff5a6e'];
 }
 
 
@@ -4074,6 +4336,7 @@ function statusInfo() {
   if (state.mode !== 'flying') return ['STANDBY', '#8ea3c6'];
   if (state.hitT > 0) return ['DAMAGE', '#ff5a5a'];
   if (state.warp > 0.3) return ['WARP', '#a98bff'];
+  if (exWorld.visible) { const es = nxeStatus(); if (es) return es; }
   if (exWorld.visible && NX.coreNear) return ['CORE', '#ffc861'];
   if (state.prox) return ['PROXIMITY', '#ffb23e'];
   if (enemies.some(e => e.g.position.distanceTo(ship.position) < 600)) return ['COMBAT', '#ff5a5a'];
@@ -4336,6 +4599,38 @@ function updateEnemyMarkers() {
 }
 
 const modeEls = [...document.querySelectorAll('.modes li')];
+// 워프 중엔 동력을 끌어다 쓰느라 홀로그램 · 계기판 불빛이 불규칙하게 깜빡임 (워프가 셀수록 자주 · 깊게)
+const HFL = { next: 0, on: false, panels: null, scr: null, grid: null };
+function holoFlicker() {
+  const P = HFL.panels || (HFL.panels = [...document.querySelectorAll('#holo .hb-panel, #holoL .hb-panel')]);
+  const w = state.mode === 'flying' ? state.warp : 0, now = performance.now();
+  const D = HFL.scr || (HFL.scr = [...document.querySelectorAll('.dgrid .scr')]), grid = HFL.grid || (HFL.grid = document.querySelector('.dgrid'));
+  if (w < .2) {
+    if (HFL.on) {
+      P.forEach(el => { el.style.opacity = ''; el.style.filter = ''; el.style.translate = ''; el.style.transition = ''; });
+      D.forEach(el => { el.style.filter = ''; }); grid.style.removeProperty('--dash-b');
+      HFL.on = false;
+    }
+    return;
+  }
+  if (now < HFL.next) return;
+  HFL.on = true;
+  P.forEach(el => {
+    if (el.closest('.min')) { el.style.opacity = ''; el.style.translate = ''; el.style.transition = ''; return; }   // 접혀 있는 홀로그램은 그대로 숨김 (깜빡임이 투명도를 덮어 가는 줄로 보이지 않게)
+    const r = Math.random(), drop = r < .18 * w ? .04 : r < .45 * w ? .3 + Math.random() * .3 : .85 + Math.random() * .15;   // 가끔 거의 꺼졌다 켜짐
+    el.style.transition = 'none';   // 부드럽게 바뀌지 않고 탁탁 끊기게
+    el.style.opacity = drop.toFixed(2);
+    el.style.filter = `brightness(${(.7 + Math.random() * .7).toFixed(2)})`;
+    el.style.translate = Math.random() < .25 * w ? `${(Math.random() * 6 - 3).toFixed(1)}px 0` : '';
+  });
+  D.forEach(el => {   // 계기판 화면: 화면마다 따로 어두워졌다 번쩍임
+    const r = Math.random(), b = r < .12 * w ? .25 : r < .4 * w ? .55 + Math.random() * .25 : .9 + Math.random() * .35;
+    el.style.filter = `brightness(${b.toFixed(2)})`;
+  });
+  const rb = Math.random();   // 계기판 그림의 주황 불빛 (금속도 함께 살짝)
+  grid.style.setProperty('--dash-b', (rb < .15 * w ? .62 : rb < .45 * w ? .8 + Math.random() * .1 : .95 + Math.random() * .2).toFixed(2));
+  HFL.next = now + 30 + Math.random() * (160 - 110 * w);   // 불규칙한 간격
+}
 function updateHud() {
   shipBasis();
   const spd = Math.round(state.speed * 10);
@@ -4368,6 +4663,7 @@ function updateHud() {
   $('wpnS').textContent = state.overheat ? 'OVERHEAT' : 'READY';
   $('wpnS').style.color = state.overheat ? 'var(--red)' : 'var(--teal)';
   updateQuest();
+  holoFlicker();
   updateAimUI();
   drawNav();
   drawAtt(attitude(), statusInfo());
