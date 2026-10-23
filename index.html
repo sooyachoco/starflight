@@ -43,7 +43,7 @@
   #frame .strut { fill: url(#strutTex); }
   #frame .shade { fill: url(#strutShade); }
   #frame .edge { fill: none; stroke: #6b7891; stroke-opacity: .55; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  #canopy { position: absolute; left: 0; right: 0; top: 0; height: var(--win-h); pointer-events: none;
+  #canopy { position: absolute; left: 0; right: 0; top: 0; height: 100%; pointer-events: none;   /* 계기판 뒤까지 이어져 창 경계에서 끊기지 않게 */
     background:
       linear-gradient(to top, rgba(255, 170, 70, .07), transparent 11%),
       linear-gradient(162deg, rgba(200, 220, 255, .07) 0%, transparent 26%),
@@ -135,12 +135,13 @@
   #toast.show { animation: pop 1.3s ease-out forwards; }
   @keyframes pop { 0% { opacity: 0; transform: translate(-50%, -30%); } 12% { opacity: 1; transform: translate(-50%, -50%); }
     75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -70%); } }
-  #warpfx { position: absolute; left: 0; right: 0; top: 0; height: var(--win-h); opacity: 0; mix-blend-mode: screen;
+  /* 워프 효과: 화면 끝까지 덮어 계기판 틈으로 보이는 우주에도 이어지게 (중심 · 크기는 창 영역 기준 그대로) */
+  #warpfx { position: absolute; left: 0; right: 0; top: 0; height: 100%; opacity: 0; mix-blend-mode: screen;
     background:
-      radial-gradient(circle at 50% 50%, rgba(190, 225, 255, .45) 0%, rgba(120, 180, 255, .12) 9%, transparent 22%),
-      radial-gradient(ellipse 75% 85% at 50% 50%, transparent 45%, rgba(40, 120, 255, .28) 75%, rgba(130, 70, 255, .55) 100%); }
-  #warpflash { position: absolute; left: 0; right: 0; top: 0; height: var(--win-h); opacity: 0;
-    background: radial-gradient(circle at 50% 50%, #ffffff 0%, #9fd0ff 30%, rgba(80, 120, 255, .4) 60%, transparent 85%); }
+      radial-gradient(circle var(--warp-r, 60vw) at 50% calc(var(--win-h) / 2), rgba(190, 225, 255, .45) 0%, rgba(120, 180, 255, .12) 9%, transparent 22%),
+      radial-gradient(ellipse 75% calc(var(--win-h) * .85) at 50% calc(var(--win-h) / 2), transparent 45%, rgba(40, 120, 255, .28) 75%, rgba(130, 70, 255, .55) 100%); }
+  #warpflash { position: absolute; left: 0; right: 0; top: 0; height: 100%; opacity: 0;
+    background: radial-gradient(circle var(--warp-r, 60vw) at 50% calc(var(--win-h) / 2), #ffffff 0%, #9fd0ff 30%, rgba(80, 120, 255, .4) 60%, transparent 85%); }
   #flash { position: absolute; inset: 0; background: radial-gradient(transparent 45%, #ff2040aa); opacity: 0; }
 
   /* 대시보드 */
@@ -324,9 +325,10 @@
   #titleScr.lore-on .t-main, #titleScr.lore-on .t-set, #titleScr.lore-on .t-sndhint { visibility: hidden; }
   .lore-npc { position: absolute; left: max(2vw, calc(50% - 720px)); bottom: 4vh; height: min(70vh, 640px); aspect-ratio: 767 / 900;
     animation: loreIn .7s cubic-bezier(.2, .8, .2, 1.1) both; }
-  .lore-npc img { width: 100%; height: 100%; object-fit: contain; animation: loreBob 3.2s ease-in-out infinite;
+  .lore-fig { position: relative; width: 100%; height: 100%; animation: loreBob 3.2s ease-in-out infinite;
     filter: drop-shadow(0 0 28px #3ee6ff40) drop-shadow(0 18px 30px #000a); }
-  #lore.talking .lore-npc img { animation: loreBob 3.2s ease-in-out infinite, loreTalk .32s ease-in-out infinite alternate; }
+  .lore-fig img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  #lore.talking .lore-fig { animation: loreBob 3.2s ease-in-out infinite, loreTalk .32s ease-in-out infinite alternate; }
   @keyframes loreIn { from { opacity: 0; transform: translate(-60px, 40px) scale(.92); } }
   @keyframes loreBob { 50% { translate: 0 -14px; } }
   @keyframes loreTalk { to { scale: 1.015 .99; } }
@@ -608,7 +610,7 @@
 
   /* 이미지 계기판 (PC: dash-pc, 모바일 가로: dash-mob) — 화면 위치는 이미지 좌표에서 생성 */
   body[data-dash] #frame, body[data-dash] #dash .lip, body[data-dash] #dash::before { display: none; }
-  body[data-dash] #dash { background: #05070b; box-shadow: none; }
+  body[data-dash] #dash { background: linear-gradient(transparent 0 34%, #05070b 52%); box-shadow: none; }   /* 계기판 아트 윗선의 빈 곳으로는 바깥 우주가 보이게 */
   body[data-dash] .dgrid { display: block; top: auto; right: auto; bottom: 0 !important; left: 50%; width: var(--art-w);
     transform: translateX(-50%); isolation: isolate; pointer-events: none; }
   body[data-dash] .dgrid::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
@@ -669,6 +671,26 @@
   .hb-star .mem { margin-top: 8px; padding-top: 7px; border-top: 1px solid #7ff1ff33; color: #c9d6ea; font: 500 12.5px/1.6 "Noto Sans KR", sans-serif; }
   .hb-star .mem em { color: #e3c8ff; font-style: normal; font-weight: 700; }
   #hbTitle { letter-spacing: .14em; }
+  /* 우측 관측 패널: 유입 관문 · 광고 · 시스템 환경 탭 */
+  .nxr h3 { margin: 8px 0 3px; font: 700 12px Rajdhani, "Noto Sans KR", sans-serif; letter-spacing: .14em; color: #ffc861; }
+  .nxr h3:first-child { margin-top: 2px; } .nxr h3 small { margin-left: 6px; color: #6f82a3; font-weight: 500; letter-spacing: 0; }
+  .nxr .gr, .nxr .sy { display: grid; grid-template-columns: 82px 1fr 46px; gap: 8px; align-items: center; margin: 3px 0; font: 500 12px "Noto Sans KR", sans-serif; }
+  .nxr .gr span, .nxr .sy span { color: #9fb8d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nxr .gr i, .nxr .sy i { display: flex; height: 6px; border-radius: 3px; background: #ffffff12; overflow: hidden; }
+  .nxr .gr b, .nxr .sy b { display: block; height: 100%; }
+  .nxr .gr em, .nxr .sy em { font: 600 12px Rajdhani, sans-serif; color: #fff; font-style: normal; text-align: right; white-space: nowrap; }
+  .nxr .sy { grid-template-columns: 56px 1fr 100px; }
+  .nxr .ad { display: grid; gap: 1px; margin: 4px 0; color: #6f82a3; font: 500 12px "Noto Sans KR", sans-serif; }
+  .nxr .ad.on { color: #ffb08a; } .nxr .ad em { font-style: normal; font-size: 11px; color: #c9d6ea; }
+  .nxr .sum { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font: 500 12.5px "Noto Sans KR", sans-serif; }
+  .nxr .sum dt { color: #8ea3c6; } .nxr .sum dd { margin: 0; text-align: right; color: #fff; font-weight: 600; transition: color .3s, background .3s; border-radius: 3px; padding: 0 4px; }
+  .nxr .sum dd.hot { color: #1a1206; background: #ffc861; }
+  .nxr .tabs { display: flex; gap: 4px; margin: 4px 0 8px; pointer-events: auto; }
+  .nxr .note kbd { padding: 0 4px; border: 1px solid #ffffff33; border-radius: 3px; font: 600 10px Rajdhani, sans-serif; color: #c9d6ea; }
+  .nxr .tabs button { flex: 1; padding: 4px 0; border-radius: 4px; border: 1px solid #ffc86144; background: #ffc86110; color: #c9b88f; font: 600 12px "Noto Sans KR", sans-serif; cursor: pointer; }
+  .nxr .tabs button.on { background: #ffc861; color: #1a1206; border-color: #ffc861; }
+  .nxr .hint { margin-top: 8px; color: #6f82a3; font: 500 11px "Noto Sans KR", sans-serif; } .nxr .hint kbd { padding: 0 4px; border: 1px solid #ffffff33; border-radius: 3px; font: 600 10px Rajdhani, sans-serif; color: #c9d6ea; }
+  body.ex-on #obj { pointer-events: auto; max-height: calc(var(--win-h) - 74px - 172px); overflow-y: auto; scrollbar-width: thin; }   /* 펼쳐도 아래 비행 홀로그램과 겹치지 않게 */
   /* 우측 상단: 실시간 형태 */
   body.ex-on #obj { width: 330px; padding: 14px 16px; border-color: #ffc86155; }
   .nxr h2 { margin: 0; font: 700 15px Rajdhani, "Noto Sans KR", sans-serif; letter-spacing: .14em; color: #ffc861; }
@@ -686,8 +708,29 @@
   .nxr .bars i { flex: 1; background: linear-gradient(#ffc861, #ffc86140); min-height: 1px; }
   .nxr .ax { display: flex; justify-content: space-between; margin-top: 3px; font-size: 11px; }
   .nxr .note { margin-top: 6px; color: #6f82a3; font: 500 11px "Noto Sans KR", sans-serif; }
+  .lwl.nxg { color: #7ff1ff; font: 600 12px "Noto Sans KR", sans-serif; letter-spacing: .04em; text-shadow: 0 1px 6px #000; }
   @media (max-height: 620px) { .nxr .age, .nxr .note { display: none; } }
   @media (max-width: 900px) { body.ex-on #obj { width: 290px; } .nxr td:nth-child(4) { font-size: 11.5px; } }
+  /* 비행 홀로그램: 오른쪽 계기판(ENGINES) 위에서 투사 — 속도 · 엔진 · 레이저 · 워프 */
+  #holoL { position: fixed; left: var(--hl-x, 80%); bottom: calc(var(--dash-h) + 4px); width: var(--hl-w, 290px); transform: translateX(-50%);
+    perspective: 800px; pointer-events: none; z-index: 6; font-family: Rajdhani, "Noto Sans KR", sans-serif; display: none; transition: opacity .8s; }
+  body.ex-on #holoL { display: block; }
+  body.card-on #holoL { opacity: 0; visibility: hidden; } body.god-on #holoL { opacity: .08; }
+  #holoL .hb-h span { letter-spacing: .16em; }
+  #holoL .hl { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 14px; align-items: stretch; }
+  #holoL .hl-spd { position: relative; padding-right: 16px; }
+  #holoL .lbl { display: block; font-size: 12px; letter-spacing: .14em; color: #c8fbff; }
+  #holoL #spd { display: block; font-size: 40px; line-height: 1; margin-top: 4px; color: #fff; text-shadow: 0 0 10px #3ee6ffaa; }
+  #holoL .hl-spd em { font-style: normal; font-size: 12px; color: #9fe9f5; }
+  #holoL .vbar { right: 0; top: 2px; bottom: 2px; width: 6px; background: #3ee6ff1a; border-color: #7ff1ff44; }
+  #holoL .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; letter-spacing: .1em; }
+  #holoL .row em { font-style: normal; font-weight: 700; color: #fff; letter-spacing: .04em; white-space: nowrap; }
+  #holoL .hbar { height: 5px; margin: 3px 0 6px; background: #3ee6ff1a; }
+  #hlThr { background: linear-gradient(90deg, #3ee6ff, #7ff7de); }
+  @media (max-width: 640px) and (orientation: portrait) {
+    #holoL { left: 12px; transform: scale(.82); transform-origin: 0 0; bottom: auto; top: 50px; width: 260px; }
+    #holoL .hb-beam, #holoL .hb-emit { display: none; } #holoL .hb-panel { transform: none; }
+  }
   /* 관측 홀로그램: 계기판에서 투사되는 반투명 화면 */
   #holo { position: fixed; left: 50%; bottom: calc(var(--dash-h) + 4px); width: min(460px, 44vw); transform: translateX(-50%);
     perspective: 800px; pointer-events: none; z-index: 6; font-family: Rajdhani, "Noto Sans KR", sans-serif; display: none; }
@@ -697,13 +740,15 @@
   .hb-beam { position: absolute; left: 50%; bottom: -4px; width: 100%; height: 100%; transform: translateX(-50%); opacity: .55;
     background: linear-gradient(to top, #3ee6ff55, #3ee6ff08 85%, transparent);
     clip-path: polygon(46% 100%, 54% 100%, 100% 0, 0 0); transform-origin: 50% 100%; transition: opacity .35s, transform .35s; }
-  .hb-panel { position: relative; transform-origin: 50% 100%; transform: rotateX(16deg); padding: 10px 14px 12px; border-radius: 10px;
-    background: linear-gradient(180deg, #3ee6ff12, #3ee6ff2a); border: 1px solid #7ff1ff66; color: #c8fbff;
-    text-shadow: 0 0 6px #3ee6ffaa; box-shadow: 0 0 26px #3ee6ff30, inset 0 0 30px #3ee6ff1a; overflow: hidden;
+  .hb-panel { position: relative; transform-origin: 50% 100%; transform: none; padding: 10px 14px 12px; border-radius: 10px;
+    background: linear-gradient(180deg, #3ee6ff14, #3ee6ff26), linear-gradient(#03101b99, #041624ad); border: 1px solid #7ff1ff77; color: #c8fbff;
+    -webkit-backdrop-filter: blur(5px) brightness(.7); backdrop-filter: blur(5px) brightness(.7);   /* 뒤의 밝은 입자를 눌러 글자가 늘 읽히게 */
+    text-shadow: 0 0 6px #3ee6ff88, 0 1px 2px #000c; box-shadow: 0 0 26px #3ee6ff30, inset 0 0 30px #3ee6ff1a; overflow: hidden;
     transition: opacity .35s, transform .35s; animation: hbFlick 6s steps(1) infinite; }
   .hb-panel::before { content: ""; position: absolute; inset: 0; pointer-events: none;
     background: repeating-linear-gradient(0deg, #bff8ff14 0 1px, transparent 1px 3px); animation: hbScan 4s linear infinite; }
-  #holo.min .hb-panel { opacity: 0; transform: rotateX(16deg) scaleY(.04); }
+  #holo.min .hb-panel { opacity: 0; transform: scaleY(.04); }
+  .hb-beam, .hb-emit { display: none; }   /* 아래로 비치는 빛 없이 평평한 직사각형 화면 */
   #holo.min .hb-beam { opacity: .18; transform: translateX(-50%) scaleY(.18); }
   @keyframes hbPulse { 50% { opacity: .55; } }
   @keyframes hbScan { to { background-position: 0 30px; } }
@@ -748,7 +793,26 @@
   .card .names { display: grid; gap: 8px; margin: 14px 0 6px; }
   .card .chron { text-align: left; margin: 12px auto; max-width: 420px; font-size: 13px; line-height: 1.7; color: #c9d6ea; }
   .card .chron b { color: #7ff1ff; }
-  @media (max-width: 1240px) { #comm { bottom: calc(var(--dash-h) + 250px); width: min(440px, 62vw); } }
+  /* 항법 AI: 왼쪽 아래에서 크게 몸을 내밀고, 말풍선은 머리 위 (꼬리가 아래로 머리를 가리킴) */
+  :root { --bot-h: min(72vh, 780px); }
+  #cmBot img { display: block; width: 100%; height: 100%; }
+  /* 입: 원본 미소(이미지 383~433, 293~322) 위에 덮어 그리는 작은 캔버스 · 말할 때만 보임 */
+  .bot-mouth { position: absolute; left: 48.24%; top: 31.11%; width: 9.91%; height: 6.22%; opacity: 0; transition: opacity .15s; pointer-events: none; }
+  .bot-mouth.on { opacity: 1; }
+  #cmBot { position: fixed; z-index: 8; pointer-events: none; height: var(--bot-h); width: calc(var(--bot-h) * 767 / 900);
+    left: calc(7vw - var(--bot-h) * .47); bottom: calc(var(--bot-h) * -.36);
+    filter: drop-shadow(0 12px 30px #000c); transition: transform .55s cubic-bezier(.2, .8, .2, 1), opacity .4s; }
+  #comm.hidden + #cmBot { transform: translateY(45%); opacity: 0; }
+  #comm.talk + #cmBot { animation: botBob .7s ease-in-out infinite alternate; }
+  #comm.logos + #cmBot, body.card-on #cmBot, body.god-on #cmBot { opacity: 0; transform: translateY(45%); }
+  @keyframes botBob { to { transform: translateY(-6px) rotate(-.8deg); } }
+  #comm { left: calc(7vw + var(--bot-h) * .12); bottom: calc(var(--bot-h) * .64 + 14px); width: clamp(320px, 30vw, 480px); z-index: 9; }
+  #comm .cm-face { display: none; }
+  #comm.logos { left: max(9vw, 24px); } #comm.logos .cm-face { display: block; }   /* 로고스는 로봇 없이 금빛 얼굴로 */
+  .cm-box::before { content: ""; position: absolute; left: 26px; bottom: -11px; border: 11px solid transparent; border-bottom: 0; border-top-color: #3ee6ff66; }
+  .cm-box::after { content: ""; position: absolute; left: 27px; bottom: -9px; border: 10px solid transparent; border-bottom: 0; border-top-color: #071624; }
+  #comm.logos .cm-box::before, #comm.logos .cm-box::after { display: none; }
+  @media (max-width: 1240px) { :root { --bot-h: min(56vh, 600px); } #comm { width: min(400px, 46vw); } }
   @media (max-width: 640px) and (orientation: portrait) {
     #holo { left: 12px; right: 12px; width: auto; transform: none; bottom: auto; top: 104px; perspective: none; }
     .hb-panel { transform: none; } #holo.min .hb-panel { transform: scaleY(.04); }
@@ -756,11 +820,13 @@
     .hb-feed { display: none; }
     #comm { left: 12px; right: 12px; width: auto; top: 262px; bottom: auto; }   /* 홀로그램(104~250px) 바로 아래 */
     .cm-face { width: 60px; height: 60px; } .cm-box p { font-size: 15px; }
+    #cmBot { display: none; } #comm .cm-face { display: block; } .cm-box::before, .cm-box::after { display: none; }
     .card .roles { grid-template-columns: 1fr; }
   }
   @media (max-height: 520px) {
     #holo { width: 46vw; } .hb-feed { display: none; } .hb-g { font-size: 11px; gap: 1px 6px; }
     #comm { top: 92px; bottom: auto; left: 16px; width: 40vw; } .cm-face { width: 48px; height: 48px; } .cm-box p { font-size: 14px; }
+    #cmBot { display: none; } #comm .cm-face { display: block; } .cm-box::before, .cm-box::after { display: none; }
   }
 
   /* 신의 현현: 창 밖 우주에 거대한 얼굴이 떠올라 말을 전한다 */
@@ -942,16 +1008,6 @@
     </svg>
     <span>ORBIT / <span id="orbitNo">07</span></span><i></i><span class="mode" id="modeLbl">FREE FLIGHT</span>
   </div>
-  <div id="speedBox" class="glass">
-    <div class="lbl">SPEED</div>
-    <div id="spd">0</div>
-    <div class="unit">m/s</div>
-    <div class="vbar"><i id="spdBar"></i></div>
-  </div>
-  <div id="wpn" class="glass">
-    <div class="row"><span class="lbl">LASER</span><span id="wpnS">READY</span></div>
-    <div class="hbar"><i id="heatBar"></i></div>
-  </div>
   <div id="btns">
     <button class="glass" id="bPause" title="일시정지 (P)">
       <svg viewBox="0 0 20 20" fill="#fff"><rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/></svg>
@@ -1047,6 +1103,7 @@
       <kbd>Space</kbd><span>FIRE</span><i></i>
       <kbd>C</kbd><span>AIM</span><i></i>
       <kbd>Shift</kbd><span>WARP</span><i></i>
+      <kbd>Tab</kbd><span>DATA</span><i></i>
       <kbd>H</kbd><span>HELP</span><i></i>
       <kbd>M</kbd><span>MAP</span>
     </div>
@@ -1056,10 +1113,23 @@
   <div class="hb-beam"></div><div class="hb-emit"></div>
   <div class="hb-panel"><div class="hb-h"><span id="hbTitle">NEXON HUB</span><b id="hbMood"></b></div><div id="hbBody"></div></div>
 </div>
+<div id="holoL" aria-hidden="true">
+  <div class="hb-beam"></div><div class="hb-emit"></div>
+  <div class="hb-panel"><div class="hb-h"><span>FLIGHT</span><b id="hlState">STABLE</b></div>
+    <div class="hl">
+      <div class="hl-spd"><span class="lbl">SPEED</span><b id="spd">0</b><em>m/s</em><div class="vbar"><i id="spdBar"></i></div></div>
+      <div class="hl-sys">
+        <div class="row"><span>ENGINE</span><em id="hlEng">CRUISE</em></div><div class="hbar"><i id="hlThr"></i></div>
+        <div class="row"><span>LASER</span><em id="wpnS">READY</em></div><div class="hbar"><i id="heatBar"></i></div>
+        <div class="row"><span>WARP</span><em id="hlWarp">READY</em></div>
+      </div>
+    </div></div>
+</div>
 <div id="comm" class="hidden"><div class="cm-face"></div><div class="cm-box"><b id="cmName">항법 AI</b><p id="cmText"></p></div></div>
+<div id="cmBot" aria-hidden="true"><img src="assets/npc-logi.webp?v=1" alt=""><canvas id="botMouth" class="bot-mouth" width="228" height="168"></canvas></div>
 <div id="overlay"><div class="card glass" id="card"></div></div>
 <div id="lore" class="hidden" role="dialog" aria-label="세계관 안내">
-  <div class="lore-npc"><img src="assets/npc-logi.webp?v=1" alt="관측 보조 AI 로기" width="767" height="900"></div>
+  <div class="lore-npc"><div class="lore-fig"><img src="assets/npc-logi.webp?v=1" alt="관측 보조 AI 로기" width="767" height="900"><canvas id="loreMouth" class="bot-mouth" width="228" height="168"></canvas></div></div>
   <div class="lore-box">
     <div class="lore-name"><b>LOGI</b><span>로기 · 함선 항법 AI</span></div>
     <p class="lore-text" id="loreText"></p>
@@ -1373,6 +1443,11 @@ function resize() {
   camera.setViewOffset(innerWidth, innerHeight + dashH, 0, dashH, innerWidth, innerHeight);
   fitCanvas($('nav'));
   fitCanvas($('att'));
+  const er = document.querySelector('.scr.eng').getBoundingClientRect(), rs = document.documentElement.style;
+  rs.setProperty('--warp-r', Math.hypot(innerWidth / 2, (innerHeight - dashH) / 2) + 'px');   // 창 영역의 가장 먼 모서리까지 (워프 그라데이션 크기)   // 비행 홀로그램은 오른쪽 엔진 화면 위에서 투사
+  const hw = 320;
+  rs.setProperty('--hl-w', hw + 'px');
+  rs.setProperty('--hl-x', Math.min(innerWidth - hw / 2 - 14, er.left + er.width / 2) + 'px');
 }
 addEventListener('resize', resize);
 
@@ -2173,6 +2248,7 @@ addEventListener('keydown', e => {
     toast(`NAV RANGE ${NAV_RANGES[state.navIdx] / 100} km`, '#4aa8ff');
   }
   if (e.code === 'KeyO') holoToggle();
+  if (e.code === 'Tab' && exWorld.visible && ['flying', 'paused'].includes(state.mode)) { e.preventDefault(); nxPanel((NX.panel + 1) % 4); }
   if (e.code === 'KeyH' && exWorld.visible && state.mode === 'flying') nxHint();
   if (e.code === 'KeyI') { state.invert = !state.invert; toast(state.invert ? '상하 반전 ON' : '상하 반전 OFF', '#4aa8ff'); }
   const lv = { Digit1: 0, Digit2: 0.33, Digit3: 0.66, Digit4: 1 }[e.code];
@@ -2966,9 +3042,50 @@ const exLabel = (cls, html) => { const d = document.createElement('div'); d.clas
 // 넥슨닷컴 별무리 — 우주는 하나의 거대한 기록 은하 (가상 데이터)
 // 별 하나 = 누군가 머문 페이지 · 은하의 모양 = 지금 흐르는 로그 · 중심 = 기록이 빠져나가는 블랙홀
 // =====================================================================
-// 하루 기준값: 실제 대시보드와 비율만 닮게 지어낸 가상 수치 (방문·회원·재방문·PV·세션·체류·이탈·PC방·성별·연령)
-const NX_BASE = { pc: 128400, sn: 61200, reSn: 16100, pv: 402500, ses: 151300, dt: 146, bounce: 44.1, pcbang: 13.8,
-  male: 33900, female: 8400, age: [0, 12, 310, 3600, 11200, 17900, 3900, 4400, 1800] };
+// 하루 기준값: 2주치 일간 로그의 평균 비율을 따라 지어낸 가상 수치 (실제 수치를 그대로 쓰지 않음)
+const NX_BASE = { pc: 93000, sn: 65000, reSn: 17500, pv: 263000, ses: 110500, dt: 124, bounce: 42.4, pcbang: 23.6,
+  male: 34000, female: 8100, age: [0, 18, 290, 3350, 11100, 17800, 3250, 4400, 1800] };
+// 요일 패턴 (월~일): 월·화에 줄고 금·토에 몰림, PC방 비중은 금·토에 높음
+const NX_WEEK = { tr: [.84, .87, .95, 1.06, 1.13, 1.1, 1.05], pcb: [.93, .89, .96, .91, 1.07, 1.18, 1.03] };
+const NX_WD = ['월', '화', '수', '목', '금', '토', '일'];
+const NX_DATE0 = new Date(2026, 9, 23);   // 가상 달력 첫날
+// 급증일 서명 (로그의 급증일을 따름): 유입 ×1.45 · 회원 비율 −30% · 체류 +28% · PV/세션 +17% · PC방 −35% · 이탈 그대로
+// 페이지(뷰): 넥슨닷컴 하위 구역 구성과 비중은 뷰 로그 구조를 따르고 수치는 가상. [구역, PV 비중, 회원 비율, PV/세션, [하위 페이지, 비중]…]
+const NX_PAGES = [
+  ['넥슨닷컴 메인', .9, .78, 2.12, [['메인', 1]]],
+  ['쪽지', .054, 1.05, 1.6, [['받은쪽지함 · 넥슨쪽지', .9], ['보관함 · 넥슨쪽지', .05], ['받은쪽지함 · 친구쪽지', .035], ['보관함 · 친구쪽지', .008], ['수신 설정', .007]]],
+  ['공지', .021, .4, 1.5, [['리스트', .77], ['상세페이지', .23]]],
+  ['이벤트', .0155, .7, 1.9, [['진행중', .82], ['종료', .05], ['다크웹 노출계정 안내', .13]]],
+  ['이상패턴', .0032, .6, 1.8, [['이상패턴', 1]]],
+  ['넥슨플레이', .0021, .35, 1.6, [['Mobile버전', .72], ['PC버전 · 일회용로그인', .18], ['PC버전', .1]]],
+  ['전체서비스', .0011, .44, 1.2, [['사이트맵', 1]]],
+  ['보안 안내', .0009, .3, 1.5, [['보안취약성 안내', .9], ['TLS 이슈 안내', .1]]],
+  ['넥슨실험실', .0008, .06, 1.04, [['넥슨실험실', 1]]],
+];
+// 유입 관문 (유입도메인 비중을 따름): [이름, 설명, 세션 비중, 색, 급증일 배율, 주말 배율]
+const NX_GATES = [
+  ['직접 접속', '북마크', .42, 0x9fd0ff, 1, 1],
+  ['넥슨닷컴 내부', '다른 페이지에서', .22, 0xffc861, 1.3, 1],
+  ['검색 · 구글', 'google', .073, 0x7ff1ff, 1.6, 1],
+  ['검색 · 네이버', 'naver', .033, 0x7fffb0, 1.6, 1.05],
+  ['게임 사이트', '게임 홈페이지들', .076, 0xc9b4ff, 1.1, 1.2],
+  ['로그인 관문', '로그인 페이지들', .056, 0xffd27a, 1, 1],
+  ['기타 외부', '그 밖의 사이트', .082, 0x8ea3c6, 1.2, 1],
+  ['광고', '가상 캠페인', 0, 0xff8a5a, 1, 1],
+];
+// 가상 광고 캠페인 (광고 로그 대신): 하루 노출 · 클릭률(%) · 켜지는 조건
+const NX_ADS = [
+  { name: '검색 키워드 광고', imp: 380000, ctr: .9, on: (wd, h, surge) => h >= 9 },
+  { name: '포털 배너', imp: 1100000, ctr: .18, on: (wd, h, surge) => wd >= 4 && h >= 11 },
+  { name: '영상 광고 · 업데이트', imp: 850000, ctr: .42, on: (wd, h, surge) => surge && h >= 7 },
+];
+// 시스템 환경 (시스템정보 비중을 따른 가상 값)
+const NX_SYS = {
+  OS: [['Windows', 92.6], ['Mac', 3.9], ['Android', 1.6], ['iOS', .9], ['기타', 1]],
+  브라우저: [['Chrome', 62.4], ['Edge', 22.1], ['Firefox', 3.4], ['Whale', 2.5], ['기타', 9.6]],
+  해상도: [['1920×1080', 57.7], ['2560×1440', 15.1], ['1536×864', 4.6], ['3440×1440', 1.9], ['기타', 20.7]],
+};
+const NX_SYSC = ['#7ff1ff', '#ffc861', '#c9b4ff', '#7fffb0', '#5d6f8c'];
 const NX_AGE = ['0~13', '14~16', '17~19', '20~24', '25~29', '30~39', '40~49', '50~59', '60+'];
 const NX_DAY_S = 40;                 // 별무리의 하루 (초)
 const NX_R = 2400, NXS = NX_R / 1350; // 은하 반지름 · 샘플(1350) 대비 배율
@@ -2998,7 +3115,7 @@ const nxGlowTex = (() => {
 //  이탈률 → 블랙홀 크기와 끊긴 팔 · 세션/방문 → 찌그러짐 · 성별 비 → 한쪽 쏠림 · 연령 분포 → 반지름별 밀도 · 유입 → 원반 밝기
 function nxShapeFromLog(L) {
   const depth = L.pv / L.ses, member = L.sn / L.pc, re = L.reSn / L.sn, spv = L.ses / L.pc, tilt = Math.abs(L.male - L.female) / (L.male + L.female);
-  const arms = Math.max(2, Math.min(5, Math.round((depth - 1.2) * 1.9)));
+  const arms = Math.max(2, Math.min(5, Math.round((depth - 1.55) * 3.2)));
   const pitch = Math.max(.18, Math.min(.6, .75 - L.dt / 400));
   const wArm = .2 + .6 * member, wClump = L.pcbang / 100 * 1.2, wBar = .25 * re, wDiff = Math.max(.1, 1 - wArm - wClump - wBar);
   const mx = Math.max(...L.age), w = L.age.map(v => v + mx * .04), tot = w.reduce((a, b) => a + b, 0);
@@ -3037,33 +3154,54 @@ function nxArms(S) {   // 팔 수·감김이 바뀌면 다시 계산 (팔마다 
 }
 nxArms(NXSH);
 
-// ---------- 실시간 가상 수치: 시각·이벤트에 따라 출렁이는 로그 ----------
-// 새벽엔 적지만 깊게 머물고, 하교 시간엔 10대·PC방이 늘고, 저녁 9시에 정점, 이벤트가 열리면 신규 유입이 몰림
+// ---------- 실시간 가상 수치: 시각 · 요일 · 급증일 · 광고에 따라 출렁이는 로그 ----------
+// 하루 안: 새벽엔 적지만 깊게 머물고, 하교 시간엔 10대·PC방이 늘고, 저녁 9시에 정점
 const nxBump = (h, m, w) => { const d = ((h - m) % 24 + 36) % 24 - 12; return Math.exp(-(d / w) * (d / w)); };
+const nxDate = day => new Date(NX_DATE0.getTime() + Math.floor(day) * 864e5);
+const nxWd = day => (nxDate(day).getDay() + 6) % 7;   // 월 = 0
+const nxDateLabel = day => { const d = nxDate(day); return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, '0')} (${NX_WD[nxWd(day)]})`; };
+const NX_SURGE = new Set();
+for (let d = 3; d < 2000; d += 5 + Math.floor(NR() * 4)) NX_SURGE.add(d);
+const nxSurge = day => NX_SURGE.has(Math.floor(day));
+function nxAds(day) {   // 지금 켜진 광고와 시간당 노출·클릭·유입
+  const h = (day % 1) * 24, wd = nxWd(day), surge = nxSurge(day), hk = .35 + .65 * nxBump(h, 20.5, 4);
+  return NX_ADS.map(a => { const on = a.on(wd, h, surge), imp = on ? a.imp / 24 * hk * 1.6 : 0, clk = imp * a.ctr / 100; return { a, on, imp, clk, ses: clk * .82 }; });
+}
 function nxLiveLog(day) {
-  const B = NX_BASE, h = (day % 1) * 24, ev = NX.ev;
+  const B = NX_BASE, h = (day % 1) * 24, ev = NX.ev, wd = nxWd(day);
   const nz = k => Math.sin(day * 5.3 + k * 1.7) * .6 + Math.sin(day * 13.1 + k * 4.1) * .4;
   const night = nxBump(h, 2, 2.5), eve = nxBump(h, 20.5, 3), after = nxBump(h, 18, 2.5), morn = nxBump(h, 8.5, 2);
-  const tr = (.2 + .35 * nxBump(h, 12.5, 2) + .25 * after + .85 * eve) * (1 + .06 * nz(1)) * (1 + .7 * ev);
+  const ads = nxAds(day), adSes = ads.reduce((t, x) => t + x.ses, 0) * 24;
+  const tr = (.2 + .35 * nxBump(h, 12.5, 2) + .25 * after + .85 * eve) * (1 + .06 * nz(1)) * NX_WEEK.tr[wd] * (1 + .45 * ev) * (1 + adSes / B.ses);
   const pc = B.pc * tr, ses = pc * B.ses / B.pc * (1 + .1 * night + .04 * nz(2));
-  const depth = B.pv / B.ses * (1 + .3 * night + .1 * eve - .22 * ev + .05 * nz(3));
-  const sn = pc * B.sn / B.pc * (1 + .18 * eve + .1 * night - .3 * ev + .05 * nz(4));
-  const reSn = sn * B.reSn / B.sn * (1 + .35 * night + .2 * morn - .35 * ev + .06 * nz(5));
+  const depth = B.pv / B.ses * (1 + .3 * night + .1 * eve + .17 * ev + .05 * nz(3));
+  const sn = pc * B.sn / B.pc * (1 + .12 * eve + .08 * night - .3 * ev + .05 * nz(4));
+  const reSn = sn * B.reSn / B.sn * (1 + .35 * night + .2 * morn + .06 * nz(5));
   const age = B.age.map((v, i) => v * (1 + (i >= 1 && i <= 3 ? 1.6 * after : 0) + (i === 4 || i === 5 ? .3 * eve : 0) + (i >= 6 ? .6 * morn : 0) + .1 * nz(10 + i)));
-  return { h, tr, pc, ses, sn, reSn, pv: ses * depth, age,
-    dt: B.dt * (1 + .4 * night - .2 * ev + .06 * nz(6)),
-    bounce: Math.min(85, Math.max(15, B.bounce * (1 + .35 * ev - .12 * night + .05 * nz(7)))),
-    pcbang: B.pcbang * (.35 + 1.1 * after + .5 * eve) * (1 + .06 * nz(8)),
+  return { h, tr, pc, ses, sn, reSn, pv: ses * depth, age, ads, adSes, wd,
+    dt: B.dt * (1 + .4 * night + .28 * ev + .06 * nz(6)),
+    bounce: Math.min(85, Math.max(15, B.bounce * (1 - .12 * night + .05 * nz(7)))),
+    pcbang: B.pcbang * (.35 + 1.1 * after + .5 * eve) * NX_WEEK.pcb[wd] * (1 - .35 * ev) * (1 + .06 * nz(8)),
     male: B.male * (1 + .05 * nz(9)), female: B.female * (1 + .25 * eve + .06 * nz(10)) };
 }
+function nxGateShares(L) {   // 유입 관문별 지금 비중 (급증일 · 주말 · 광고 반영)
+  const surge = NX.ev, wk = L.wd >= 5 ? 1 : 0;
+  const w = NX_GATES.map(([, , sh, , ks, kw]) => sh * (1 + (ks - 1) * surge) * (1 + (kw - 1) * wk));
+  w[w.length - 1] = L.adSes / NX_BASE.ses * .9;
+  const t = w.reduce((a, b) => a + b, 0); return w.map(v => v / t);
+}
 const NX_HOUR = { 3: '새벽 · 깊게 머무는 이용자 · 팔이 늘고 막대가 굵어짐', 18: '하교 시간 · 10대·PC방 유입 · 뭉치가 늘어남', 21: '저녁 정점 · 원반이 가장 밝음' };
-function nxStep(dt) {   // 하루가 흐르고, 하루 반에 한 번쯤 이벤트로 신규 유입이 몰림
+function nxStep(dt) {   // 하루가 흐르고, 급증일엔 하루 내내 유입이 몰림
+  const prev = Math.floor(NX.day);
   NX.day += dt / NX_DAY_S;
-  if (NX.day > NX.evNext && !NX.evOn) { NX.evOn = .25 + .15 * Math.random(); NX.evNext = NX.day + 1 + Math.random(); toast('실시간 · 이벤트 오픈 · 신규 유입 급증 · 팔이 풀리고 블랙홀이 커짐', '#ffc861'); }
-  else if (NX.evOn > 0) { NX.evOn = Math.max(0, NX.evOn - dt / NX_DAY_S); if (!NX.evOn) toast('실시간 · 이벤트 유입 진정', '#ffc861'); }
-  NX.ev += ((NX.evOn > 0 ? 1 : 0) - NX.ev) * Math.min(1, dt * .8);
+  const today = Math.floor(NX.day), surge = nxSurge(NX.day);
+  if (today !== prev) toast(surge ? `${nxDateLabel(NX.day)} · 급증일 · 대형 공지·업데이트 유입 · 체류가 길어지고 PC방 비중이 줄어듦` : `${nxDateLabel(NX.day)} · 새 날 · ${['월·화는 유입이 줄어요', '', '', '', '금·토는 유입과 PC방이 늘어요', '', ''][nxWd(NX.day)] || '평소의 흐름'}`, '#ffc861');
+  NX.ev += ((surge ? 1 : 0) - NX.ev) * Math.min(1, dt * .8);
   const hh = Math.floor((NX.day % 1) * 24);
   if (hh !== NX.lastH) { const first = NX.lastH < 0; NX.lastH = hh; if (!first && NX_HOUR[hh]) toast(`실시간 ${String(hh).padStart(2, '0')}:00 · ${NX_HOUR[hh]}`, '#ffc861'); }
+  const ads = nxAds(NX.day).map(x => x.on);
+  if (NX.adsOn) ads.forEach((on, i) => { if (on !== NX.adsOn[i]) toast(`광고 · ${NX_ADS[i].name} ${on ? '시작 · 광고 관문으로 유입' : '종료'}`, '#ff8a5a'); });
+  NX.adsOn = ads;
 }
 const nxMetrics = L => ({ depth: L.pv / L.ses, dt: L.dt, member: L.sn / L.pc, re: L.reSn / L.sn, pcbang: L.pcbang, bounce: L.bounce, spv: L.ses / L.pc,
   male: L.male / (L.male + L.female), tr: L.tr ?? 1 });
@@ -3071,6 +3209,7 @@ const NX_BM = nxMetrics(NX_BASE);
 
 // ---------- 은하 만들기 ----------
 const nxG = new THREE.Group(); nxG.rotation.copy(NX_TILT); exWorld.add(nxG);
+const _nxQ = new THREE.Quaternion(), _nxY = new THREE.Vector3(0, 1, 0);
 const nxUni = { uTime: { value: 0 }, uPx: { value: 1 }, uFocus: { value: -1 }, uMap: { value: nxGlowTex } };
 // 원반 입자: 입자마다 고정 난수 → 수치가 바뀌면 같은 별이 새 자리로 흘러감
 const NXP = (() => {
@@ -3160,19 +3299,35 @@ const nxCore = (() => {
   const swirl = new THREE.Points(g, mat); swirl.frustumCulled = false; nxG.add(swirl);
   return { uni, swirl, rIn };
 })();
-// 별(노드): 팔을 따라 흩어진 기록 (반지름 = 연령 분포, 크기 = 관측량). 페이지 구분은 서비스별 로그를 받으면 나눔
-const nxStars = [];
-for (let k = 0; k < 330; k++) {
-  nxStars.push({ id: `NEX-${String(1000 + k * 7 % 9000).padStart(4, '0')}`, views: NX_BASE.pv / 330 * Math.exp(ngauss() * .6),
-    dwell: NX_BASE.dt * nrand(.55, 1.45), bounce: Math.min(95, Math.max(5, NX_BASE.bounce + ngauss() * 7)),
-    revisit: Math.min(98, Math.max(5, NX_BASE.reSn / NX_BASE.sn * 100 + ngauss() * 6)), uA: NR(), uT: NR(), lr: [ngauss(), ngauss(), ngauss()],
-    links: [], idx: k, pos: new THREE.Vector3(), L: new THREE.Vector3(), LT: new THREE.Vector3() });
+// 별(노드) = 페이지: 구역마다 팔의 한 토막에 모임 (메인은 원반 전체에). 별 수는 PV 비중의 제곱근, 크기 = 관측량
+const nxStars = [], nxSecs = [];
+{
+  const wsum = NX_PAGES.reduce((t, p) => t + Math.sqrt(p[1]), 0);
+  NX_PAGES.forEach(([name, share, mem, depth, subs], si) => {
+    const n = Math.max(4, Math.round(330 * Math.sqrt(share) / wsum)), sec = { name, si, t: .3 + .6 * si / NX_PAGES.length, stars: [], L: new THREE.Vector3(), label: si ? exLabel('nxg', name) : null };
+    nxSecs.push(sec);
+    for (let k = 0; k < n; k++) {
+      let r = NR() * subs.reduce((t, x) => t + x[1], 0), sub = subs[0]; for (const x of subs) { r -= x[1]; if (r <= 0) { sub = x; break; } }
+      const views = NX_BASE.pv * share * sub[1] / Math.max(1, n * sub[1]) * Math.exp(ngauss() * .5), pc = views / depth / 1.02;
+      const nd = { id: `NEX-${String(1000 + nxStars.length * 7 % 9000).padStart(4, '0')}`, sec, page: sub[0], views, pc, sn: pc * mem * nrand(.9, 1.1), ses: pc * 1.02,
+        dwell: NX_BASE.dt * nrand(.55, 1.45), bounce: Math.min(95, Math.max(5, NX_BASE.bounce + ngauss() * 7)),
+        uA: NR(), uT: NR(), lr: [ngauss(), ngauss(), ngauss()], links: [], idx: nxStars.length, pos: new THREE.Vector3(), L: new THREE.Vector3(), LT: new THREE.Vector3() };
+      nxStars.push(nd); sec.stars.push(nd);
+    }
+  });
 }
-function nxNodeTargets() {   // 별도 지금 팔을 따라감
+function nxNearArm(S, phi) {   // 각도 phi에 가장 가까운 팔 (팔 수가 바뀌어도 이웃한 팔로만 옮겨 감)
+  let best = 0, bd = 9;
+  for (let j = 0; j < S.arms; j++) { const d = Math.abs(((phi - S.armPh[j]) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (d < bd) { bd = d; best = j; } }
+  return best;
+}
+function nxNodeTargets() {   // 별도 지금 팔을 따라감 (메인은 원반 전체, 다른 구역은 팔의 한 토막)
   const S = NXSH;
   nxStars.forEach(nd => {
-    const j = Math.min(S.arms - 1, Math.floor(nd.uA * S.arms)), t = Math.min(1, Math.max(.12, nxRadQ(S, nd.uT))), l = nd.lr;
-    const [nx, nz] = nxArmXZ(S, j, t, .8, l[0], l[1]), [px, py, pz] = nxDeform(S, nx, nz, l[2]);
+    const main = !nd.sec.si, l = nd.lr;
+    const j = nxNearArm(S, S.off + (main ? nd.uA * Math.PI * 2 : nd.sec.si * 2.4));
+    const t = main ? Math.min(1, Math.max(.12, nxRadQ(S, nd.uT))) : Math.min(1, Math.max(.1, nd.sec.t + (nd.uT - .5) * .12));
+    const [nx, nz] = nxArmXZ(S, j, t, main ? .8 : .5, l[0], l[1]), [px, py, pz] = nxDeform(S, nx, nz, l[2]);
     nd.LT.set(px * NX_R, py * NX_R + l[2] * 6, pz * NX_R);
   });
 }
@@ -3205,55 +3360,68 @@ const nxNode = (() => {
     fragmentShader: `uniform sampler2D uMap; varying vec3 vC; varying float vA; void main() { vec4 t = texture2D(uMap, gl_PointCoord); gl_FragColor = vec4(vC * t.a * vA, t.a); }` });
   const pts = new THREE.Points(g, m); pts.frustumCulled = false; nxG.add(pts); return pts;
 })();
-// 연결: 원반을 따라 휘는 점선 호 + 기록이 흘러가는 빛
-const nxLines = (() => {
-  const own = [], tt = [], sd = [], cr = [];
-  nxLinks.forEach(([a, b], k) => {
-    const m = Math.max(8, Math.min(60, Math.round(a.L.distanceTo(b.L) / (5 * NXS)))), seed = NR(), cross = nxLinks[k][2];
-    for (let q = 0; q < m; q++) { own.push(k); tt.push((q + .5) / m); sd.push(seed); cr.push(cross); }
-  });
-  const g = new THREE.BufferGeometry(), N = own.length;
-  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
-  g.setAttribute('aP0', new THREE.BufferAttribute(new Float32Array(N * 3), 3)); g.setAttribute('aP1', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
-  g.setAttribute('aT', new THREE.Float32BufferAttribute(tt, 1)); g.setAttribute('aSeed', new THREE.Float32BufferAttribute(sd, 1)); g.setAttribute('aCross', new THREE.Float32BufferAttribute(cr, 1));
-  const uni = { uTime: nxUni.uTime, uPx: nxUni.uPx, uCol: { value: new THREE.Color(.72, .85, 1).lerp(new THREE.Color(NX_COL), .3) }, uMap: { value: nxGlowTex } };
-  const pts = new THREE.Points(g, new THREE.ShaderMaterial({ uniforms: uni, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    vertexShader: `attribute vec3 aP0, aP1; attribute float aT, aSeed, aCross; uniform float uTime, uPx; varying float vA;
-      void main() {
-        vec3 d = aP1 - aP0; float L = length(d);
-        vec3 side = normalize(cross(d, vec3(0., 1., 0.)) + vec3(1e-4));
-        vec3 c = (aP0 + aP1) * .5 + side * L * (aCross > .5 ? .24 : .14) * (aSeed > .5 ? 1. : -1.);   // 궤도처럼 휜 호
-        float t = aT; vec3 p = mix(mix(aP0, c, t), mix(c, aP1, t), t);
-        float f = 1. - fract(t - uTime * (.06 + .08 * aSeed) + aSeed * 7.), head = pow(f, 8.);   // 한쪽으로 흘러가는 빛
-        float a = (.6 + 1.2 * head) * smoothstep(0., .14, t) * (1. - smoothstep(.86, 1., t)) * (aCross > .5 ? .6 : 1.);
-        a *= clamp(${(220 * NXS).toFixed(0)}. / max(L, 1.), .3, 1.);
-        vec4 mv = modelViewMatrix * vec4(p, 1.);
-        a *= 1. - smoothstep(${(900 * NXS).toFixed(0)}., ${(1500 * NXS).toFixed(0)}., -mv.z);   // 별에 다가가야 드러남
-        float ps = ${(2.4 * NXS).toFixed(2)} * uPx * 900. / -mv.z * (1. + .9 * head), cps = clamp(ps, 1., 7.);
-        a *= min(1., ps * ps / (cps * cps));
-        gl_PointSize = cps; gl_Position = projectionMatrix * mv; vA = a; }`,
-    fragmentShader: `uniform sampler2D uMap; uniform vec3 uCol; varying float vA;
-      void main() { float t = texture2D(uMap, gl_PointCoord).a; gl_FragColor = vec4(uCol * sqrt(t) * vA * 2.2, t); }` }));
-  pts.frustumCulled = false; pts.userData.own = own; nxG.add(pts); return pts;
-})();
-function nxApplyNodes() {   // 별 · 연결 · 갈래 라벨 위치 갱신 (은하 좌표)
+function nxApplyNodes() {   // 별 위치 갱신 (은하 좌표)
   const pa = nxNode.geometry.attributes.position;
   nxStars.forEach(nd => { pa.setXYZ(nd.idx, nd.L.x, nd.L.y, nd.L.z); });
   pa.needsUpdate = true;
-  const g = nxLines.geometry, a0 = g.attributes.aP0, a1 = g.attributes.aP1, own = nxLines.userData.own;
-  for (let i = 0; i < own.length; i++) { const [a, b] = nxLinks[own[i]]; a0.setXYZ(i, a.L.x, a.L.y, a.L.z); a1.setXYZ(i, b.L.x, b.L.y, b.L.z); }
-  a0.needsUpdate = true; a1.needsUpdate = true;
   nxG.updateMatrixWorld(true);
   nxStars.forEach(nd => nd.pos.copy(nd.L).applyMatrix4(nxG.matrixWorld));
 }
 nxApplyNodes();
 const nxCoreLabel = exLabel('cc', '<b>NEXON HUB</b><span>넥슨닷컴 · 중심 블랙홀</span>');
+// 유입 관문: 은하 가장자리의 문. 관문마다 지금 비중만큼 빛의 흐름이 원반 안으로 들어옴
+// 관문 = 은하 바깥의 작은 별무리: 뭉치 몇 개 + 흩어진 별 + 은하 쪽으로 늘어진 꼬리 (크기 = 평소 비중)
+function nxGateCloud(P, col, share) {
+  const N = 4200, R0 = 110 + 460 * Math.sqrt(share || .02), pos = new Float32Array(N * 3), cl = new Float32Array(N * 3), c = new THREE.Color(), base = new THREE.Color(col);
+  const clumps = Array.from({ length: 2 + Math.floor(NR() * 3) }, () => ({ o: new THREE.Vector3(ngauss(), ngauss() * .35, ngauss()).multiplyScalar(R0 * .45), s: R0 * nrand(.12, .3), ax: nrand(.4, 1.6) }));
+  const inw = P.clone().setY(0).normalize().negate(), side = new THREE.Vector3(-inw.z, 0, inw.x);
+  for (let i = 0; i < N; i++) {
+    const u = NR(); let v;
+    if (u < .62) { const k = clumps[Math.floor(NR() * clumps.length)]; v = new THREE.Vector3(ngauss() * k.s * k.ax, ngauss() * k.s * .35, ngauss() * k.s / k.ax).add(k.o); }   // 길쭉한 뭉치
+    else if (u < .85) { const r = R0 * Math.pow(NR(), .6) * 1.1, th = NR() * Math.PI * 2; v = new THREE.Vector3(Math.cos(th) * r, ngauss() * R0 * .08, Math.sin(th) * r * .7); }   // 흩어진 별
+    else { const t = Math.pow(NR(), .7); v = inw.clone().multiplyScalar(R0 * (.4 + 1.8 * t)).addScaledVector(side, Math.sin(t * 4 + R0) * R0 * .25 + ngauss() * R0 * .06 * (1 + t)); v.y += ngauss() * R0 * .04; }   // 은하 쪽 꼬리
+    pos.set([P.x + v.x, P.y + v.y, P.z + v.z], i * 3);
+    c.copy(base).lerp(new THREE.Color(0xffffff), nrand(.15, .6)).multiplyScalar(u < .62 ? nrand(1.1, 1.9) : nrand(.5, 1));
+    cl.set([c.r, c.g, c.b], i * 3);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(cl, 3));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ size: 8 * NXS, map: nxGlowTex, vertexColors: true, transparent: true, opacity: .8, depthWrite: false,
+    blending: THREE.AdditiveBlending, fog: false }));
+  pts.frustumCulled = false; return pts;
+}
+const nxGates = NX_GATES.map(([name, desc, share, col], gi) => {
+  const a = gi / NX_GATES.length * Math.PI * 2 + .3 + nrand(-.2, .2), rr = NX_R * nrand(1.28, 1.5), P = new THREE.Vector3(Math.cos(a) * rr, nrand(-.12, .12) * NX_R, Math.sin(a) * rr);
+  const ring = nxGateCloud(P, col, share); nxG.add(ring);
+  const N = 1600, aT = new Float32Array(N), aS = new Float32Array(N), aO = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { aT[i] = NR(); aS[i] = NR(); aO.set([ngauss(), ngauss() * .3, ngauss()], i * 3); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3)); g.setAttribute('aT', new THREE.BufferAttribute(aT, 1));
+  g.setAttribute('aS', new THREE.BufferAttribute(aS, 1)); g.setAttribute('aO', new THREE.BufferAttribute(aO, 3));
+  const uni = { uTime: nxUni.uTime, uPx: nxUni.uPx, uFlow: { value: 0 }, uP0: { value: P.clone() }, uCol: { value: new THREE.Color(col) }, uMap: { value: nxGlowTex } };
+  const pts = new THREE.Points(g, new THREE.ShaderMaterial({ uniforms: uni, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `attribute float aT, aS; attribute vec3 aO; uniform float uTime, uPx, uFlow; uniform vec3 uP0; varying float vA;
+      void main() {
+        float t = fract(aT + uTime * (.03 + .02 * aS));
+        vec3 end = aO * ${(NX_R * .1).toFixed(0)}.;                        // 원반 안쪽으로 모여 들어감
+        vec3 c = (uP0 + end) * .5 + vec3(-uP0.z, 0., uP0.x) * .18 + vec3(0., ${(NX_R * .08).toFixed(0)}., 0.);
+        vec3 p = mix(mix(uP0, c, t), mix(c, end, t), t) + aO * ${(NX_R * .012).toFixed(0)}. * sin(t * 3.14159);   // 가운데가 살짝 부푼 빛의 강
+        float a = step(aS, uFlow) * smoothstep(0., .08, t) * (1. - smoothstep(.75, 1., t));
+        vec4 mv = modelViewMatrix * vec4(p, 1.);
+        float ps = ${(5 * NXS).toFixed(2)} * uPx * 900. / -mv.z, cps = clamp(ps, 1.5, 10.);
+        a *= min(1., ps * ps / (cps * cps));
+        gl_PointSize = cps; gl_Position = projectionMatrix * mv; vA = a; }`,
+    fragmentShader: `uniform sampler2D uMap; uniform vec3 uCol; varying float vA;
+      void main() { float t = texture2D(uMap, gl_PointCoord).a; gl_FragColor = vec4(uCol * sqrt(t) * vA * 2.6, t); }` }));
+  pts.frustumCulled = false; nxG.add(pts);
+  return { name, desc, col, ring, uni, P, share: 0, label: exLabel('nxgate', `<b>${name}</b><span></span>`) };
+});
 
 // ---------- 시작 · 매 프레임 ----------
 function setupNexus() {
   applyWorld('expansion');
+  clearBeacons();   // 옛 궤도 모드의 항법 비컨 제거
   $('brand').querySelector('span').textContent = 'NEXON HUB';
-  Object.assign(NX, { day: .3, cur: 1e9, uiAcc: 9, ev: 0, evOn: 0, evNext: .9, lastH: -1, target: null, coreNear: false });
+  Object.assign(NX, { day: .3, cur: 1e9, uiAcc: 9, ev: 0, lastH: -1, target: null, coreNear: false, adsOn: null });
   NX.seen.clear();
   state.navIdx = 2;
   ship.position.set(0, 1000, 3000);
@@ -3282,10 +3450,13 @@ function nxFrame(dt, now) {
     nxCore.uni.uRin.value = NX_R * (.045 + .05 * NX.L.bounce / 55) * 1.02;   // 이탈률 → 블랙홀 크기
   }
   const to = Math.min(n, NX.cur + 12000); nxTargets(NX.cur, to); NX.cur = to;
-  const k = 1 - Math.exp(-dt * 1.4), geo = nxDisk.geometry, pa = geo.attributes.position.array, ca = geo.attributes.color.array, T = NXP.T, C = NXP.C;
+  const k = 1 - Math.exp(-dt * .7), geo = nxDisk.geometry, pa = geo.attributes.position.array, ca = geo.attributes.color.array, T = NXP.T, C = NXP.C;
   for (let i = 0; i < pa.length; i++) { pa[i] += (T[i] - pa[i]) * k; ca[i] += (C[i] - ca[i]) * k; }
   geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
-  nxStars.forEach(nd => nd.L.lerp(nd.LT, k));
+  const kn = 1 - Math.exp(-dt * .35), cap = 16 * dt;   // 별은 원반보다 느리게, 한 프레임에 너무 멀리 가지 않게
+  nxStars.forEach(nd => { tmpV.copy(nd.LT).sub(nd.L).multiplyScalar(kn); const m = tmpV.length(); if (m > cap) tmpV.multiplyScalar(cap / m); nd.L.add(tmpV); });
+  NX.spin = (NX.spin || 0) + dt * .003;   // 은하 전체가 아주 느리게 돎 (별 · 원반 · 관문이 함께)
+  nxG.quaternion.setFromEuler(NX_TILT).multiply(_nxQ.setFromAxisAngle(_nxY, NX.spin));
   nxApplyNodes();
   nxDisk.material.opacity = .5 + .5 * Math.min(1.2, NX.L.tr);   // 유입 → 원반 밝기
   const lvl = Math.min(2.2, NX.L.tr * 1.6);
@@ -3304,6 +3475,20 @@ function nxFrame(dt, now) {
   if (best !== NX.target) { NX.target = best; nxUni.uFocus.value = best ? best.idx : -1; nxHolo(); if (best) holoPop(); }
   // 라벨
   tmpW.set(0, nxCore.rIn * 1.6, 0).applyMatrix4(nxG.matrixWorld); placeLabel(nxCoreLabel, tmpW, 4);
+  const gs = nxGateShares(NX.L);
+  nxGates.forEach((g, i) => {
+    g.share = gs[i];
+    g.uni.uFlow.value += (Math.min(1, Math.sqrt(gs[i] * Math.min(1.6, NX.L.tr)) * 1.4) - g.uni.uFlow.value) * k;   // 비중 · 유입 → 흐르는 빛의 양
+    g.ring.material.opacity = gs[i] > .002 ? .55 + .25 * Math.min(1, gs[i] * 6) + .1 * Math.sin(now * .8 + i) : .18;   // 지금 비중만큼 밝음 (꺼진 광고는 희미)
+    tmpW.copy(g.P).applyMatrix4(nxG.matrixWorld); tmpW.y += 90;
+    if (placeLabel(g.label, tmpW, 4)) g.label.querySelector('span').textContent = `${g.desc} · ${(gs[i] * 100).toFixed(1)}%`;
+  });
+  nxSecs.forEach(sec => {
+    if (!sec.label) return;
+    sec.L.set(0, 0, 0); sec.stars.forEach(nd => sec.L.add(nd.pos)); sec.L.divideScalar(sec.stars.length);
+    if (sec.L.distanceTo(ship.position) > 1500) { sec.label.style.display = 'none'; return; }
+    placeLabel(sec.label, sec.L, 4);
+  });
   holoFrame(dt);
   NX.uiAcc += dt;
   if (NX.uiAcc > .5) { NX.uiAcc = 0; nxHud(); }
@@ -3343,41 +3528,71 @@ function nxHolo() {
   holoApply();
   if (!nd) { $('hbTitle').textContent = 'NEXON HUB'; $('hbMood').textContent = ''; $('hbBody').innerHTML = '<div class="hb-star"><div class="mem">별에 다가가면 그 별의 기록이 떠요.</div></div>'; return; }
   const memo = NX_MEM[nd.idx % NX_MEM.length];
+  const tr = NX.L ? NX.L.tr : 1, f = v => Math.round(v * tr).toLocaleString('ko-KR');
   $('hbTitle').textContent = `STAR ${nd.id}`;
-  $('hbMood').textContent = 'NEXON HUB';
+  $('hbMood').textContent = `${nd.sec.name} › ${nd.page}`;
   $('hbBody').innerHTML = `<div class="hb-star"><dl>
-    <dt>관측 (PV)</dt><dd>${Math.round(nd.views).toLocaleString('ko-KR')}</dd><dt>평균 체류</dt><dd>${nxMMSS(nd.dwell)}</dd>
-    <dt>이탈</dt><dd>${nd.bounce.toFixed(1)}%</dd><dt>재방문</dt><dd>${nd.revisit.toFixed(1)}%</dd>
+    <dt>관측 (PV)</dt><dd>${f(nd.views)}</dd><dt>방문 (PC)</dt><dd>${f(nd.pc)}</dd>
+    <dt>NexonSN</dt><dd>${f(nd.sn)}</dd><dt>세션</dt><dd>${f(nd.ses)}</dd>
+    <dt>평균 체류</dt><dd>${nxMMSS(nd.dwell)}</dd><dt>이탈</dt><dd>${nd.bounce.toFixed(1)}%</dd>
     <dt>연결</dt><dd>${nd.links.length}</dd><dt>이상 데이터</dt><dd>0</dd></dl>
     <div class="mem"><em>기억 조각</em> · ${memo}</div></div>`;
 }
 
 // ---------- 우측 상단: 실시간 형태 ----------
-const OBJ_EX_HTML = `<div class="nxr"><h2>NEXON HUB · 실시간 형태<em id="nxEv"></em></h2><div class="sub" id="nxSub"></div>
-  <table id="nxTbl"></table>
-  <div class="age">연령 분포 → 반지름별 별 밀도 (안쪽 → 바깥)<div class="bars" id="nxAge"></div>
-  <div class="ax"><span>${NX_AGE[0]}세</span><span>${NX_AGE[5]}</span><span>${NX_AGE[8]}</span></div></div>
-  <div class="note">가상 데이터 · 실제 서비스 지표와 무관</div></div>`;
+const OBJ_EX_HTML = `<div class="nxr"><h2>NEXON HUB · 관측<em id="nxEv"></em></h2><div class="sub" id="nxSub"></div><div id="nxBody"></div></div>`;
+// 패널 단계: 0 = 요약, 1 형태 · 2 유입 · 3 환경 (Tab 키로 차례로, 탭 클릭으로 바로)
+NX.panel = 0; NX.hot = {}; NX.prev = {};
+function nxPanel(n) { NX.panel = n; NX.uiAcc = 9; sfx('blip', 600); }
+$('obj').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b && exWorld.visible) nxPanel(+b.dataset.t); });
 function nxHud() {
-  if (!$('nxTbl')) return;
-  const L = NX.L || nxLiveLog(NX.day), S = NXSH, m = nxMetrics(L), mx = Math.max(...L.age), pct = v => (v * 100).toFixed(1) + '%';
+  if (!$('nxBody')) return;
+  const L = NX.L || nxLiveLog(NX.day), S = NXSH, m = nxMetrics(L), mx = Math.max(...L.age), pct = v => (v * 100).toFixed(1) + '%', now = performance.now() / 1000;
   const d = (a, b) => { const p = (a / b - 1) * 100; return Math.abs(p) < 2 ? '<s>·</s>' : `<s class="${p > 0 ? 'up' : 'dn'}">${p > 0 ? '▲' : '▼'}${Math.abs(p).toFixed(0)}%</s>`; };
-  const rows = [
-    ['유입', '×' + m.tr.toFixed(2), d(m.tr, 1), `원반 밝기 ${Math.round((.5 + .5 * Math.min(1.2, m.tr)) * 100)}%`],
-    ['PV / 세션', m.depth.toFixed(2), d(m.depth, NX_BM.depth), `팔 ${S.arms}개`],
-    ['평균 체류', nxMMSS(m.dt), d(m.dt, NX_BM.dt), `감김 ${(1 / S.pitch).toFixed(1)}`],
-    ['회원 비율', pct(m.member), d(m.member, NX_BM.member), `팔에 모인 별 ${Math.round(S.wArm * 100)}%`],
-    ['재방문율', pct(m.re), d(m.re, NX_BM.re), `중심 막대 ${Math.round(S.bar * 100)}`],
-    ['PC방', m.pcbang.toFixed(1) + '%', d(m.pcbang, NX_BM.pcbang), `뭉치 ${S.nClump}개`],
-    ['이탈률', m.bounce.toFixed(1) + '%', d(m.bounce, NX_BM.bounce), '블랙홀 크기 · 끊긴 팔'],
-    ['세션 / 방문', m.spv.toFixed(2), d(m.spv, NX_BM.spv), `찌그러짐 ${Math.round(S.ell * 100)}%`],
-    ['성별 비', `${Math.round(m.male * 100)} : ${100 - Math.round(m.male * 100)}`, d(m.male, NX_BM.male), `한쪽 쏠림 ${Math.round(S.lop * 100)}%`],
-  ];
-  $('nxEv').textContent = NX.ev > .3 ? '이벤트 유입' : '';
+  const gs = nxGateShares(L), top = gs.indexOf(Math.max(...gs)), adsOn = L.ads.filter(x => x.on).length;
+  const fK = v => v >= 1e4 ? (v / 1e4).toFixed(1) + '만' : Math.round(v).toLocaleString('ko-KR');
+  // 바뀐 값은 잠깐 강조
+  const cur = { shape: S.arms + ':' + S.nClump, surge: NX.ev > .3, ads: adsOn, gate: top };
+  for (const k in cur) { if (NX.prev[k] !== undefined && NX.prev[k] !== cur[k]) NX.hot[k] = now + 4; NX.prev[k] = cur[k]; }
+  const hot = k => NX.hot[k] > now ? 'hot' : '';
+  $('nxEv').textContent = NX.ev > .3 ? '급증일' : '';
   $('nxEv').style.display = NX.ev > .3 ? '' : 'none';
-  $('nxSub').textContent = `가상 실시간 ${String(Math.floor(L.h)).padStart(2, '0')}:${String(Math.floor(L.h % 1 * 60)).padStart(2, '0')} · 관측한 별 ${NX.seen.size}/${nxStars.length}`;
-  $('nxTbl').innerHTML = rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
-  $('nxAge').innerHTML = L.age.map(v => `<i style="height:${Math.max(2, v / mx * 100)}%"></i>`).join('');
+  $('nxSub').textContent = `${nxDateLabel(NX.day)} ${String(Math.floor(L.h)).padStart(2, '0')}:${String(Math.floor(L.h % 1 * 60)).padStart(2, '0')} · 관측한 별 ${NX.seen.size}/${nxStars.length}`;
+  // 탭 4개는 늘 맨 위에 고정 (요약 · 형태 · 유입 · 환경)
+  const tabs = `<div class="tabs">${['요약', '형태', '유입', '환경'].map((t, i) => `<button data-t="${i}" class="${NX.panel === i ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  let html;
+  if (!NX.panel) {
+    html = `<dl class="sum">
+      <dt>유입</dt><dd class="${hot('surge')}">×${m.tr.toFixed(2)} ${d(m.tr, 1)}${NX.ev > .3 ? ' · 급증일' : ''}</dd>
+      <dt>모양</dt><dd class="${hot('shape')}">팔 ${S.arms}개 · 뭉치 ${S.nClump}개</dd>
+      <dt>블랙홀</dt><dd>이탈 ${m.bounce.toFixed(1)}%</dd>
+      <dt>유입 1위</dt><dd class="${hot('gate')}">${NX_GATES[top][0]} ${(gs[top] * 100).toFixed(1)}%</dd>
+      <dt>광고</dt><dd class="${hot('ads')}">${adsOn ? `${adsOn}개 켜짐 · 광고 관문 ${(gs[gs.length - 1] * 100).toFixed(1)}%` : '모두 꺼짐'}</dd></dl>`;
+  } else {
+    if (NX.panel === 1) {
+      const rows = [
+        ['유입', '×' + m.tr.toFixed(2), d(m.tr, 1), `원반 밝기 ${Math.round((.5 + .5 * Math.min(1.2, m.tr)) * 100)}%`],
+        ['PV / 세션', m.depth.toFixed(2), d(m.depth, NX_BM.depth), `팔 ${S.arms}개`],
+        ['평균 체류', nxMMSS(m.dt), d(m.dt, NX_BM.dt), `감김 ${(1 / S.pitch).toFixed(1)}`],
+        ['회원 비율', pct(m.member), d(m.member, NX_BM.member), `팔에 모인 별 ${Math.round(S.wArm * 100)}%`],
+        ['재방문율', pct(m.re), d(m.re, NX_BM.re), `중심 막대 ${Math.round(S.bar * 100)}`],
+        ['PC방', m.pcbang.toFixed(1) + '%', d(m.pcbang, NX_BM.pcbang), `뭉치 ${S.nClump}개`],
+        ['이탈률', m.bounce.toFixed(1) + '%', d(m.bounce, NX_BM.bounce), '블랙홀 크기 · 끊긴 팔'],
+        ['세션 / 방문', m.spv.toFixed(2), d(m.spv, NX_BM.spv), `찌그러짐 ${Math.round(S.ell * 100)}%`],
+        ['성별 비', `${Math.round(m.male * 100)} : ${100 - Math.round(m.male * 100)}`, d(m.male, NX_BM.male), `한쪽 쏠림 ${Math.round(S.lop * 100)}%`],
+      ];
+      html = `<table>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>
+        <div class="age">연령 분포 → 반지름별 별 밀도 (안쪽 → 바깥)<div class="bars">${L.age.map(v => `<i style="height:${Math.max(2, v / mx * 100)}%"></i>`).join('')}</div>
+        <div class="ax"><span>${NX_AGE[0]}세</span><span>${NX_AGE[5]}</span><span>${NX_AGE[8]}</span></div></div>`;
+    } else if (NX.panel === 2) {
+      html = `<h3>유입 관문</h3>${NX_GATES.map(([n, , , c], i) => `<div class="gr"><span>${n}</span><i><b style="width:${Math.min(100, gs[i] / .45 * 100)}%;background:#${c.toString(16).padStart(6, '0')}"></b></i><em>${(gs[i] * 100).toFixed(1)}%</em></div>`).join('')}
+        <h3>광고 <small>가상 캠페인 · 시간당</small></h3>${L.ads.map(x => `<div class="ad ${x.on ? 'on' : ''}"><span>${x.on ? '●' : '○'} ${x.a.name}</span><em>${x.on ? `노출 ${fK(x.imp)} · 클릭 ${fK(x.clk)} · CTR ${x.a.ctr}%` : '꺼짐'}</em></div>`).join('')}`;
+    } else {
+      html = `<h3>시스템 환경</h3>${Object.entries(NX_SYS).map(([k, v]) => `<div class="sy"><span>${k}</span><i>${v.map(([n, p], j) => `<b title="${n} ${p}%" style="width:${p}%;background:${NX_SYSC[j]}"></b>`).join('')}</i><em>${v[0][0]} ${v[0][1]}%</em></div>`).join('')}
+        ${Object.entries(NX_SYS).map(([k, v]) => `<div class="ad"><span>${k}</span><em>${v.map(([n, p]) => `${n} ${p}%`).join(' · ')}</em></div>`).join('')}`;
+    }
+  }
+  $('nxBody').innerHTML = tabs + html + '<div class="note">가상 데이터 · 로그 구조와 비율만 따름 · <kbd>Tab</kbd> 넘기기</div>';
 }
 
 // ---------- 레이더 · 목표 표시 · 안내 ----------
@@ -3419,7 +3634,7 @@ function nxQuest() {
   if (!NX.logos) return { text: '넥슨닷컴 별무리의 중심 · 블랙홀로 접근', pos: tmpW.set(0, 0, 0).applyMatrix4(nxG.matrixWorld).clone(), col: Q_VIOLET, size: nxCore.rIn * 2 };
   let best = null, bd = Infinity;
   for (const nd of nxStars) { if (NX.seen.has(nd)) continue; const d = nd.pos.distanceTo(ship.position); if (d < bd) { bd = d; best = nd; } }
-  if (best) return { text: `별 관측 · ${best.id} 가까이 지나가기 (${NX.seen.size}/${nxStars.length})`, pos: best.pos, col: Q_BLUE, size: 40 };
+  if (best) return { text: `별 관측 · ${best.sec.name} ${best.id} 가까이 지나가기 (${NX.seen.size}/${nxStars.length})`, pos: best.pos, col: Q_BLUE, size: 40 };
   return { text: '모든 별을 관측했다', pos: null, col: Q_TEAL };
 }
 function nxHint() {
@@ -3623,6 +3838,49 @@ function godManifest(lines, opt = {}) {
 $('godP').addEventListener('click', () => { if ($('godP').classList.contains('block') && GOD.skip) GOD.skip(); });
 const GOD_REVEAL = ['…보았다.', '너희가 흩어진 목소리를 모아 별을 피워 냈다.', '나는 로고스. 모든 기록의 잔향을 읽는 자.', '이제, 고대가 열린다.'];
 
+// ---------- 항법 AI 입: 한 글자씩 말할 때 모음에 따라 입이 벌어짐 ----------
+function makeMouth(cv) {
+  const g = cv.getContext('2d'), S = { open: 0, target: 0, raf: 0, last: 0, closeT: 0 };
+  const openFor = ch => { const c = (ch || ' ').charCodeAt(0); if (c < 0xAC00 || c > 0xD7A3) return 0;
+    return [1, .9, 1, .9, .7, .65, .75, .7, .55, .9, .8, .6, .45, .4, .6, .55, .45, .4, .35, .4, .3][Math.floor(((c - 0xAC00) % 588) / 28)] ?? .5; };
+  function draw() {
+    g.clearRect(0, 0, 228, 168);
+    // 원본 미소를 바이저 색으로 덮음 (가장자리는 부드럽게 섞임)
+    const gr = g.createRadialGradient(114, 84, 30, 114, 84, 112);
+    gr.addColorStop(0, 'rgba(17,28,28,1)'); gr.addColorStop(.6, 'rgba(17,28,28,1)'); gr.addColorStop(1, 'rgba(17,28,28,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 228, 168);
+    g.save(); g.translate(108, 84); g.rotate(.38);   // 얼굴이 오른쪽으로 기운 만큼 (눈선 · 미소 각도)
+    g.strokeStyle = '#5ff4ff'; g.shadowColor = '#3ee6ff'; g.shadowBlur = 16; g.lineCap = 'round'; g.lineJoin = 'round';
+    const o = S.open;
+    g.beginPath();
+    if (o < .06) { g.lineWidth = 20; g.arc(0, -60, 85, Math.PI * .2, Math.PI * .8); g.stroke(); }   // 닫힘: 원래 미소
+    else {
+      const w = 62 - 10 * o, top = -8 - 4 * o, bot = top + 22 + 78 * o;   // 벌어질수록 아래 호가 깊어지고 폭은 살짝 좁아짐
+      g.lineWidth = 16;
+      g.moveTo(-w, top); g.quadraticCurveTo(0, top + 10, w, top); g.quadraticCurveTo(w * .7, bot, 0, bot); g.quadraticCurveTo(-w * .7, bot, -w, top); g.closePath();
+      g.fillStyle = '#05161a'; g.fill(); g.stroke();
+    }
+    g.restore();
+  }
+  function frame(now) {
+    const dt = Math.min(.05, (now - S.last) / 1000); S.last = now;
+    S.open += (S.target - S.open) * Math.min(1, dt * 22);
+    draw();
+    if (S.target > 0 || S.open > .02) S.raf = requestAnimationFrame(frame);
+    else { S.raf = 0; S.open = 0; draw(); cv.classList.remove('on'); }
+  }
+  return {
+    say(ch, next) {
+      clearTimeout(S.closeT);
+      S.target = openFor(ch) * rand(.8, 1.05);
+      if (S.target) { cv.classList.add('on'); S.closeT = setTimeout(() => { S.target = /[\s.,…—!?]/.test(next || ' ') ? 0 : S.target * .4; }, 60); }
+      if (!S.raf) { S.last = performance.now(); S.raf = requestAnimationFrame(frame); }
+    },
+    stop() { clearTimeout(S.closeT); S.target = 0; if (!S.raf) { S.last = performance.now(); S.raf = requestAnimationFrame(frame); } },
+  };
+}
+const botMouth = makeMouth($('botMouth'));
+
 // ---------- 함선 AI 통신창 ----------
 let commT = null, commTyping = null;
 function aiSay(text, opt = {}) {
@@ -3633,9 +3891,9 @@ function aiSay(text, opt = {}) {
   c.classList.remove('hidden'); c.classList.add('talk');
   const el = $('cmText'); let n = 0;
   clearInterval(commTyping);
-  commTyping = setInterval(() => { n++; el.textContent = text.slice(0, n); if (n >= text.length) { clearInterval(commTyping); c.classList.remove('talk'); } }, 26);
+  commTyping = setInterval(() => { n++; el.textContent = text.slice(0, n); botMouth.say(text[n - 1], text[n]); if (n >= text.length) { clearInterval(commTyping); c.classList.remove('talk'); botMouth.stop(); } }, 45);   // 입 모양이 보이도록 조금 천천히
   clearTimeout(commT);
-  commT = setTimeout(() => c.classList.add('hidden'), ((opt.hold || 5) + text.length * .026) * 1000);
+  commT = setTimeout(() => c.classList.add('hidden'), ((opt.hold || 5) + text.length * .045) * 1000);
   sfx('blip', 500);
 }
 
@@ -4090,6 +4348,11 @@ function updateHud() {
   let best = 0;
   lvls.forEach((l, i) => { if (Math.abs(t - l) < Math.abs(t - lvls[best])) best = i; });
   modeEls.forEach((el, i) => el.classList.toggle('on', i === best));
+  $('hlEng').textContent = `${['FULL', 'CRUISE', 'IDLE', 'OFF'][best]} · ${Math.round(t * 100)}%`;
+  $('hlThr').style.width = t * 100 + '%';
+  const wp = state.warp > .3 ? ['ENGAGED', '#c9b4ff'] : state.fuel <= 0 ? ['NO FUEL', 'var(--red)'] : ['READY', ''];
+  $('hlWarp').textContent = wp[0]; $('hlWarp').style.color = wp[1];
+  const st = statusInfo(); $('hlState').textContent = st[0]; $('hlState').style.color = st[1];
   $('modeLbl').textContent = pilotDef.name + ' · ' + shipDef.name + (exWorld.visible ? '' : '  ·  ' + ( state.mode === 'docked' ? 'DOCKED' : state.warp > 0.3 ? 'WARP DRIVE' : state.nearDock ? 'APPROACH' : 'FREE FLIGHT'));
   if (!exWorld.visible) {
     const done = state.beaconsPassed + state.beaconsMissed;
@@ -4231,6 +4494,7 @@ function showHelp() {
     <span><kbd>C</kbd> · 우클릭</span><span>정밀 조준 (선회 감속 · 확대) · 우클릭한 채 마우스로 미세 조준</span>
     <span><kbd>Shift</kbd></span><span>워프 부스트 (연료 소모 큼)</span>
     <span><kbd>O</kbd></span><span>관측 홀로그램 고정 / 해제</span>
+    <span><kbd>Tab</kbd></span><span>오른쪽 관측 패널 펼치기 · 형태 / 유입 / 환경 넘기기</span>
     <span><kbd>H</kbd></span><span>AI에게 지금 할 일 자세히 묻기</span>
     <span><kbd>M</kbd> · <kbd>P</kbd> · <kbd>I</kbd></span><span>NAV 범위 · 일시정지 · 상하 반전</span>
   </div>
@@ -4253,7 +4517,7 @@ function loreShow(i) {
   const el = $('loreText'), html = LORE.lines[i];
   // 태그를 지키면서 글자를 하나씩 드러냄
   const tmp = document.createElement('div'); tmp.innerHTML = html;
-  const total = tmp.textContent.length;
+  const plain = tmp.textContent, total = plain.length;
   let n = 0;
   clearInterval(LORE.timer);
   el.classList.add('typing'); $('lore').classList.add('talking');
@@ -4269,6 +4533,7 @@ function loreShow(i) {
     };
     const out = document.createElement('div'); walk(tmp, out);
     el.innerHTML = out.innerHTML;
+    loreMouth.say(plain[n - 1], plain[n]);
     if (n >= total) loreDone();
   };
   LORE.timer = setInterval(step, 28);
@@ -4280,8 +4545,10 @@ function loreShow(i) {
     : `${LORE.onEnd ? '' : '<button data-l="close">건너뛰기</button>'}<button class="pri" data-l="next">다음 ›</button>`;
   sfx('blip', 300);
 }
+const loreMouth = makeMouth($('loreMouth'));
 function loreDone() {
   clearInterval(LORE.timer);
+  loreMouth.stop();
   LORE.full = true;
   $('loreText').innerHTML = LORE.lines[LORE.i];
   $('loreText').classList.remove('typing'); $('lore').classList.remove('talking');
