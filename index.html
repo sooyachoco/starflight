@@ -686,7 +686,6 @@
   .nxr .bars i { flex: 1; background: linear-gradient(#ffc861, #ffc86140); min-height: 1px; }
   .nxr .ax { display: flex; justify-content: space-between; margin-top: 3px; font-size: 11px; }
   .nxr .note { margin-top: 6px; color: #6f82a3; font: 500 11px "Noto Sans KR", sans-serif; }
-  .lwl.nxg { color: #7ff1ff; font: 600 12px Rajdhani, sans-serif; letter-spacing: .06em; text-shadow: 0 1px 6px #000; }
   @media (max-height: 620px) { .nxr .age, .nxr .note { display: none; } }
   @media (max-width: 900px) { body.ex-on #obj { width: 290px; } .nxr td:nth-child(4) { font-size: 11.5px; } }
   /* 관측 홀로그램: 계기판에서 투사되는 반투명 화면 */
@@ -2976,14 +2975,8 @@ const NX_R = 2400, NXS = NX_R / 1350; // 은하 반지름 · 샘플(1350) 대비
 const NX_COL = 0xffc861;
 const NX_TILT = new THREE.Euler(.32, 0, -.16);
 const NX_UP = new THREE.Vector3(0, 1, 0).applyEuler(NX_TILT);
-const NX_EPS = [['/', .3], ['/login', .25], ['/launcher', .2], ['/cash', .1], ['/event', .15]];
-const NX_MEM = {
-  '/': ['처음 들어온 문 앞에서, 누군가 한참을 머뭇거렸다.', '매일 같은 시각에 켜지는 불빛이 있었다.'],
-  '/login': ['비밀번호를 세 번 틀리고, 네 번째에 웃었다.', '오랜만에 돌아온 이름이 문을 두드렸다.'],
-  '/launcher': ['업데이트 막대가 끝까지 차기를, 모두 함께 기다렸다.'],
-  '/cash': ['고민 끝에 담았다가, 다시 내려놓은 선물.'],
-  '/event': ['축제 첫날 밤, 광장이 처음으로 가득 찼다.', '끝나기 1분 전에 도착한 사람이 있었다.'],
-};
+const NX_MEM = ['처음 들어온 문 앞에서, 누군가 한참을 머뭇거렸다.', '매일 같은 시각에 켜지는 불빛이 있었다.', '오랜만에 돌아온 이름이 문을 두드렸다.',
+  '축제 첫날 밤, 광장이 처음으로 가득 찼다.', '끝나기 1분 전에 도착한 사람이 있었다.'];   // 지어낸 기억 조각 (실제 사람·세션이 아님)
 const NX = { day: .3, logos: false, cur: 1e9, uiAcc: 9, ev: 0, evOn: 0, evNext: .9, lastH: -1, L: null, target: null, seen: new Set(), coreNear: false };
 
 // 시드 난수 (매번 같은 별무리)
@@ -3167,43 +3160,33 @@ const nxCore = (() => {
   const swirl = new THREE.Points(g, mat); swirl.frustumCulled = false; nxG.add(swirl);
   return { uni, swirl, rIn };
 })();
-// 별(노드) = 페이지: 갈래(페이지 종류)마다 팔의 한 토막에 모임. 크기 = 관측량
-const nxGroups = NX_EPS.map(([path, share], gi) => ({ path, share, gi, t: .2 + .7 * (gi + .5) / NX_EPS.length, nodes: [],
-  L: new THREE.Vector3(), LT: new THREE.Vector3(), label: exLabel('nxg', path) }));
+// 별(노드): 팔을 따라 흩어진 기록 (반지름 = 연령 분포, 크기 = 관측량). 페이지 구분은 서비스별 로그를 받으면 나눔
 const nxStars = [];
-nxGroups.forEach(g => {
-  const n = Math.max(6, Math.round(330 * g.share));
-  for (let k = 0; k < n; k++) {
-    const views = NX_BASE.pv * g.share / n * Math.exp(ngauss() * .6);
-    nxStars.push({ id: `NEX-${String(1000 + nxStars.length * 7 % 9000).padStart(4, '0')}`, path: g.path, group: g, views,
-      dwell: NX_BASE.dt * nrand(.55, 1.45), bounce: Math.min(95, Math.max(5, NX_BASE.bounce + ngauss() * 7)),
-      revisit: Math.min(98, Math.max(5, NX_BASE.reSn / NX_BASE.sn * 100 + ngauss() * 6)), lr: [ngauss(), ngauss(), ngauss(), ngauss()],
-      links: [], idx: nxStars.length, pos: new THREE.Vector3(), L: new THREE.Vector3(), LT: new THREE.Vector3() });
-    g.nodes.push(nxStars[nxStars.length - 1]);
-  }
-});
-function nxNodeTargets() {   // 갈래와 별도 지금 팔을 따라감
+for (let k = 0; k < 330; k++) {
+  nxStars.push({ id: `NEX-${String(1000 + k * 7 % 9000).padStart(4, '0')}`, views: NX_BASE.pv / 330 * Math.exp(ngauss() * .6),
+    dwell: NX_BASE.dt * nrand(.55, 1.45), bounce: Math.min(95, Math.max(5, NX_BASE.bounce + ngauss() * 7)),
+    revisit: Math.min(98, Math.max(5, NX_BASE.reSn / NX_BASE.sn * 100 + ngauss() * 6)), uA: NR(), uT: NR(), lr: [ngauss(), ngauss(), ngauss()],
+    links: [], idx: k, pos: new THREE.Vector3(), L: new THREE.Vector3(), LT: new THREE.Vector3() });
+}
+function nxNodeTargets() {   // 별도 지금 팔을 따라감
   const S = NXSH;
-  nxGroups.forEach(g => {
-    const j = g.gi % S.arms, [ax, az] = nxArmXZ(S, j, g.t, 0, 0, 0), [x, y, z] = nxDeform(S, ax, az, 0);
-    g.LT.set(x * NX_R, y * NX_R, z * NX_R);
-    g.nodes.forEach(nd => {
-      const l = nd.lr, [nx, nz] = nxArmXZ(S, j, Math.min(1, Math.max(.05, g.t + l[0] * .07)), .8, l[1], l[2]), [px, py, pz] = nxDeform(S, nx, nz, l[3]);
-      nd.LT.set(px * NX_R, py * NX_R + l[3] * 6, pz * NX_R);
-    });
+  nxStars.forEach(nd => {
+    const j = Math.min(S.arms - 1, Math.floor(nd.uA * S.arms)), t = Math.min(1, Math.max(.12, nxRadQ(S, nd.uT))), l = nd.lr;
+    const [nx, nz] = nxArmXZ(S, j, t, .8, l[0], l[1]), [px, py, pz] = nxDeform(S, nx, nz, l[2]);
+    nd.LT.set(px * NX_R, py * NX_R + l[2] * 6, pz * NX_R);
   });
 }
 nxNodeTargets();
-nxGroups.forEach(g => { g.L.copy(g.LT); g.nodes.forEach(nd => nd.L.copy(nd.LT)); });
-// 연결: 같은 갈래에선 가까운 둘, 갈래 사이엔 PV/세션만큼
+nxStars.forEach(nd => nd.L.copy(nd.LT));
+// 연결: 가까운 둘 + 멀리 건너가는 연결은 PV/세션만큼
 const nxLinks = [];
-nxGroups.forEach(g => g.nodes.forEach(a => {
-  g.nodes.filter(b => b !== a).sort((x, y) => x.L.distanceToSquared(a.L) - y.L.distanceToSquared(a.L)).slice(0, 2)
-    .forEach(b => { if (!a.links.includes(b)) { a.links.push(b); b.links.push(a); nxLinks.push([a, b]); } });
-}));
+nxStars.forEach(a => {
+  nxStars.filter(b => b !== a).sort((x, y) => x.L.distanceToSquared(a.L) - y.L.distanceToSquared(a.L)).slice(0, 2)
+    .forEach(b => { if (!a.links.includes(b)) { a.links.push(b); b.links.push(a); nxLinks.push([a, b, 0]); } });
+});
 for (let k = 0, m = Math.round(NX_BASE.pv / NX_BASE.ses * 6); k < m; k++) {
   const a = nxStars[Math.floor(NR() * nxStars.length)], b = nxStars[Math.floor(NR() * nxStars.length)];
-  if (a.group !== b.group) { a.links.push(b); b.links.push(a); nxLinks.push([a, b]); }
+  if (a !== b && !a.links.includes(b)) { a.links.push(b); b.links.push(a); nxLinks.push([a, b, 1]); }
 }
 const nxNode = (() => {
   const n = nxStars.length, col = new Float32Array(n * 3), size = new Float32Array(n), ph = new Float32Array(n), idx = new Float32Array(n), c = new THREE.Color();
@@ -3226,7 +3209,7 @@ const nxNode = (() => {
 const nxLines = (() => {
   const own = [], tt = [], sd = [], cr = [];
   nxLinks.forEach(([a, b], k) => {
-    const m = Math.max(8, Math.min(60, Math.round(a.L.distanceTo(b.L) / (5 * NXS)))), seed = NR(), cross = a.group !== b.group ? 1 : 0;
+    const m = Math.max(8, Math.min(60, Math.round(a.L.distanceTo(b.L) / (5 * NXS)))), seed = NR(), cross = nxLinks[k][2];
     for (let q = 0; q < m; q++) { own.push(k); tt.push((q + .5) / m); sd.push(seed); cr.push(cross); }
   });
   const g = new THREE.BufferGeometry(), N = own.length;
@@ -3302,7 +3285,7 @@ function nxFrame(dt, now) {
   const k = 1 - Math.exp(-dt * 1.4), geo = nxDisk.geometry, pa = geo.attributes.position.array, ca = geo.attributes.color.array, T = NXP.T, C = NXP.C;
   for (let i = 0; i < pa.length; i++) { pa[i] += (T[i] - pa[i]) * k; ca[i] += (C[i] - ca[i]) * k; }
   geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
-  nxGroups.forEach(g => { g.L.lerp(g.LT, k); g.nodes.forEach(nd => nd.L.lerp(nd.LT, k)); });
+  nxStars.forEach(nd => nd.L.lerp(nd.LT, k));
   nxApplyNodes();
   nxDisk.material.opacity = .5 + .5 * Math.min(1.2, NX.L.tr);   // 유입 → 원반 밝기
   const lvl = Math.min(2.2, NX.L.tr * 1.6);
@@ -3321,11 +3304,6 @@ function nxFrame(dt, now) {
   if (best !== NX.target) { NX.target = best; nxUni.uFocus.value = best ? best.idx : -1; nxHolo(); if (best) holoPop(); }
   // 라벨
   tmpW.set(0, nxCore.rIn * 1.6, 0).applyMatrix4(nxG.matrixWorld); placeLabel(nxCoreLabel, tmpW, 4);
-  nxGroups.forEach(g => {
-    tmpW.copy(g.L).applyMatrix4(nxG.matrixWorld);
-    if (tmpW.distanceTo(ship.position) > 1600) { g.label.style.display = 'none'; return; }
-    placeLabel(g.label, tmpW, 4);
-  });
   holoFrame(dt);
   NX.uiAcc += dt;
   if (NX.uiAcc > .5) { NX.uiAcc = 0; nxHud(); }
@@ -3364,9 +3342,9 @@ function nxHolo() {
   const nd = NX.target;
   holoApply();
   if (!nd) { $('hbTitle').textContent = 'NEXON HUB'; $('hbMood').textContent = ''; $('hbBody').innerHTML = '<div class="hb-star"><div class="mem">별에 다가가면 그 별의 기록이 떠요.</div></div>'; return; }
-  const mem = NX_MEM[nd.path] || NX_MEM['/'], memo = mem[nd.idx % mem.length];
+  const memo = NX_MEM[nd.idx % NX_MEM.length];
   $('hbTitle').textContent = `STAR ${nd.id}`;
-  $('hbMood').textContent = `NEXON HUB · ${nd.path}`;
+  $('hbMood').textContent = 'NEXON HUB';
   $('hbBody').innerHTML = `<div class="hb-star"><dl>
     <dt>관측 (PV)</dt><dd>${Math.round(nd.views).toLocaleString('ko-KR')}</dd><dt>평균 체류</dt><dd>${nxMMSS(nd.dwell)}</dd>
     <dt>이탈</dt><dd>${nd.bounce.toFixed(1)}%</dd><dt>재방문</dt><dd>${nd.revisit.toFixed(1)}%</dd>
@@ -3441,7 +3419,7 @@ function nxQuest() {
   if (!NX.logos) return { text: '넥슨닷컴 별무리의 중심 · 블랙홀로 접근', pos: tmpW.set(0, 0, 0).applyMatrix4(nxG.matrixWorld).clone(), col: Q_VIOLET, size: nxCore.rIn * 2 };
   let best = null, bd = Infinity;
   for (const nd of nxStars) { if (NX.seen.has(nd)) continue; const d = nd.pos.distanceTo(ship.position); if (d < bd) { bd = d; best = nd; } }
-  if (best) return { text: `별 관측 · ${best.path} ${best.id} 가까이 지나가기 (${NX.seen.size}/${nxStars.length})`, pos: best.pos, col: Q_BLUE, size: 40 };
+  if (best) return { text: `별 관측 · ${best.id} 가까이 지나가기 (${NX.seen.size}/${nxStars.length})`, pos: best.pos, col: Q_BLUE, size: 40 };
   return { text: '모든 별을 관측했다', pos: null, col: Q_TEAL };
 }
 function nxHint() {
