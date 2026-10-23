@@ -85,11 +85,17 @@
     border: solid #04121a; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 
   /* 조준선 & 타깃 */
-  #reticle .fine { display: none; }
-  #reticle.prec { stroke: #ffb23e; }
-  #reticle.prec .fine { display: inline; }
-  #reticle.prec .norm { opacity: .3; }
-  #reticle.lock .dot { fill: #ff4a5a; }
+  #reticle { font-family: Rajdhani, sans-serif; filter: drop-shadow(0 0 3px #3ee6ff77); transition: filter .3s; }
+  #reticle * { transition: stroke .3s, fill .3s, opacity .3s, transform .35s cubic-bezier(.2, .8, .2, 1); }
+  #reticle text { fill: #e9f1ff; stroke: #02040acc; stroke-width: 3px; paint-order: stroke; font-size: 12px; font-weight: 600; letter-spacing: .12em; }
+  #reticle .rIn { transform-origin: 0 0; }   /* 분할 링 회전은 속도에 맞춰 JS가 돌림 */
+  #reticle .fine, #reticle .lockOnly, #reticle .warpOnly { opacity: 0; }
+  #reticle.prec { stroke: #ffb23e; } #reticle.prec .fine { opacity: 1; } #reticle.prec .norm { opacity: .3; } #reticle.prec .rIn { transform: scale(.55); }
+  #reticle.lock { filter: drop-shadow(0 0 4px #ff4a5a99); } #reticle.lock .lk { stroke: #ff4a5a; } #reticle.lock .dot { fill: #ff4a5a; }
+  #reticle.lock .lockOnly { opacity: 1; } #reticle.lock .lockOnly text, #reticle.lock .rng { fill: #ff8a96; } #reticle.lock .rIn { transform: scale(.7); }
+  #reticle.warp { filter: drop-shadow(0 0 5px #c9b4ffaa); } #reticle.warp .lk { stroke: #c9b4ff; } #reticle.warp .norm { opacity: .35; }
+  #reticle.warp .warpOnly { opacity: 1; } #reticle.warp .warpOnly text { fill: #c9b4ff; animation: retBlink 1.6s ease-in-out infinite; }
+  @keyframes retBlink { 50% { opacity: .35; } }
   #precLbl { position: absolute; left: 50%; top: calc(var(--win-h) / 2 + 30px); transform: translateX(-50%); display: none;
     font-size: 12px; font-weight: 700; letter-spacing: .2em; color: #ffb23e; text-shadow: 0 1px 4px #000; }
   #lockMk { position: absolute; display: none; width: 18px; height: 18px; margin: -11px 0 0 -11px; border: 2px solid #ff4a5a;
@@ -98,8 +104,8 @@
     font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #ff6a78; }
   #bAim { right: calc(max(18px, env(safe-area-inset-right)) + 170px); top: calc(var(--win-h) - 146px); font-size: 12px; }
   #bAim.on { background: rgba(255, 178, 62, .45); border-color: #ffb23e; color: #fff; }
-  #reticle { position: absolute; left: 50%; top: calc(var(--win-h) / 2); width: 640px; height: 100px;
-    margin: -50px 0 0 -320px; }
+  #reticle { position: absolute; left: 50%; top: calc(var(--win-h) / 2); width: 640px; height: 180px;
+    margin: -90px 0 0 -320px; overflow: visible; }
   #stn, #tgt { position: absolute; display: none; }
   #stn { transform: translate(-50%, -50%); color: var(--amber); text-align: center; font-weight: 600; font-size: 17px; }
   #stn svg { width: 22px; height: 22px; display: block; margin: 0 auto 2px; }
@@ -1039,12 +1045,20 @@
     <div class="oi kill"><span class="kx">✕</span>적 전투기 격추<em id="killN">0</em></div>
   </div>
 
-  <svg id="reticle" viewBox="-320 -50 640 100" fill="none" stroke="#e9f1ff">
-    <g class="fine" stroke-width="1.4"><circle r="9"/><path d="M0-20V-12M0 12V20M-20 0H-12M12 0H20"/><path d="M-34-6V6M34-6V6" opacity=".7"/></g>
-    <circle class="norm" r="22" stroke-width="1.6"/><circle class="dot" r="2.6" fill="#e9f1ff" stroke="none"/>
-    <path d="M0-46V-30M0 30V46M-80 0H-44M44 0H80" stroke-width="1.6"/>
-    <path d="M-300 0H-110M110 0H300" stroke-width="1" opacity=".45"/>
-    <path d="M-250-5V5M250-5V5" stroke-width="1" opacity=".6"/>
+  <svg id="reticle" viewBox="-320 -90 640 180" fill="none" stroke="#e9f1ff" stroke-width="1.4">
+    <g class="norm">
+      <g class="spin lk"><path d="M0-46A46 46 0 0 1 32.5-32.5M46 0A46 46 0 0 1 32.5 32.5M0 46A46 46 0 0 1-32.5 32.5M-46 0A46 46 0 0 1-32.5-32.5"/></g>
+      <g class="spinR" opacity=".45"><circle r="58" stroke-dasharray="2 7"/></g>
+    </g>
+    <g class="rIn"><circle class="lk" r="24" opacity=".55" stroke-dasharray="10 5"/></g>
+    <path class="lk" d="M-14 0H-6M14 0H6M0-14V-6M0 14V6" stroke-width="1.6"/>
+    <circle class="dot" r="1.8" fill="#e9f1ff" stroke="none"/>
+    <g class="fine"><circle r="9" opacity=".8"/><path d="M-90 0H-66M66 0H90" opacity=".6"/></g>
+    <g class="lockOnly lk"><path d="M-30-20-36-26V-14M30-20 36-26V-14M-30 20-36 26V14M30 20 36 26V14"/><text x="66" y="-30">LOCK</text></g>
+    <g opacity=".5"><path d="M-150 0H-100M100 0H150M-150-4V4M150-4V4"/></g>
+    <text id="rtSpd" x="-150" y="-10">SPD 0</text><text id="rtHdg" x="112" y="-10">HDG 000</text>
+    <text id="rtRng" class="rng" x="66" y="-16"></text>
+    <g class="warpOnly"><text x="0" y="80" text-anchor="middle">WARP DRIVE</text></g>
   </svg>
   <div id="stn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 22 12 12 22 2 12z"/><path d="M12 8 16 12 12 16 8 12z" fill="currentColor"/></svg>
@@ -4283,13 +4297,23 @@ function aimTarget() {
   if (best.c.v) lead.addScaledVector(tmpW.copy(best.c.v).sub(fwd.clone().multiplyScalar(state.speed)), best.d / BOLT_SPEED);
   return { lead, d: best.d };
 }
+const _hdgV = new THREE.Vector3(), RSPIN = { a: 0, last: 0 };
 function updateAimUI() {
-  const ret = $('reticle'), mk = $('lockMk');
+  const ret = $('reticle'), mk = $('lockMk'), tn = performance.now(), rdt = Math.min(.1, (tn - (RSPIN.last || tn)) / 1000);
+  RSPIN.last = tn;   // 분할 링: 느리면 천천히, 빠를수록 빨리, 워프 땐 훨씬 빨리 (초당 각도)
+  RSPIN.a = (RSPIN.a + rdt * (6 + 84 * clamp(state.speed / MAX_SPEED, 0, 1) + 420 * (state.warp || 0))) % 360;
+  ret.querySelector('.spin').setAttribute('transform', `rotate(${RSPIN.a.toFixed(2)})`);
+  ret.querySelector('.spinR').setAttribute('transform', `rotate(${(-RSPIN.a * .6).toFixed(2)})`);
   ret.classList.toggle('prec', aimPrec);
+  ret.classList.toggle('warp', state.warp > .3);
+  _hdgV.set(0, 0, -1).applyQuaternion(ship.quaternion);
+  $('rtSpd').textContent = 'SPD ' + Math.round(state.speed * 10);
+  $('rtHdg').textContent = 'HDG ' + String(Math.round((Math.atan2(_hdgV.x, -_hdgV.z) * 180 / Math.PI + 360) % 360)).padStart(3, '0');
   $('precLbl').style.display = aimPrec ? 'block' : 'none';
   $('bAim').classList.toggle('on', touchPrec);
   const at = state.mode === 'flying' ? aimTarget() : null;
   ret.classList.toggle('lock', !!at);
+  $('rtRng').textContent = at ? 'RNG ' + Math.round(at.d) : '';
   if (!at) { mk.style.display = 'none'; return; }
   camera.updateMatrixWorld();
   const pr = project(at.lead);
